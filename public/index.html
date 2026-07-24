@@ -14,7 +14,7 @@
     <a href="#conteudo-principal">Pular para o conteúdo principal</a>
 
     <header>
-      <a href="#inicio" aria-label="Marketplace Vortex - ir para o início">
+      <a href="#inicio" aria-label="Marketplace Vortex - ir para o início" class="logo">
         <span aria-hidden="true">↻</span>
         <span>Marketplace Vortex</span>
       </a>
@@ -29,12 +29,16 @@
         </ul>
       </nav>
 
-      <a href="#anunciar">Criar anúncio</a>
+      <div class="header-actions">
+        <a href="#vitrine" class="btn-login">Entrar</a>
+        <a href="#anunciar" class="btn-register">Criar anúncio</a>
+      </div>
     </header>
 
     <main id="conteudo-principal">
+      <!-- 1. Hero inicial -->
       <section id="inicio" aria-labelledby="titulo-principal">
-        <p>Comunidade UNIFOR</p>
+        
         <h1 id="titulo-principal">Dê uma nova volta para o que ainda tem valor.</h1>
         <p>
           Encontre, venda ou doe itens dentro da comunidade UNIFOR e faça parte de
@@ -46,7 +50,7 @@
             id="busca-rapida"
             name="busca"
             type="search"
-            placeholder="Ex.: livro, cadeira, calculadora"
+            placeholder="Ex.: livro, fone, mochila..."
           />
           <button type="submit">Explorar itens</button>
         </form>
@@ -58,8 +62,9 @@
         </aside>
       </section>
 
+      <!-- 2. Como funciona (Ciclo de economia circular) -->
       <section id="como-funciona" aria-labelledby="titulo-como-funciona">
-        <p>Economia circular na prática</p>
+        
         <h2 id="titulo-como-funciona">Em vez de descartar, faça circular.</h2>
         <p>
           O Marketplace Vortex conecta pessoas e objetos para prolongar a vida útil
@@ -90,8 +95,9 @@
         </ol>
       </section>
 
+      <!-- 3. Estatísticas simuladas em faixa visual (Impacto) -->
       <section aria-labelledby="titulo-impacto">
-        <p>Nosso impacto coletivo</p>
+        
         <h2 id="titulo-impacto">Cada anúncio mantém recursos em movimento.</h2>
         <dl>
           <div>
@@ -114,122 +120,358 @@
         <p>Dados demonstrativos para esta primeira versão.</p>
       </section>
 
+      <!-- 4. Vitrine de Anúncios com sidebar de filtros e barra de busca superior -->
       <section id="vitrine" aria-labelledby="titulo-vitrine">
-        <p>Descubra oportunidades</p>
-        <h2 id="titulo-vitrine">Itens que podem ganhar uma nova história</h2>
-        <p>Use os filtros para encontrar o que você precisa.</p>
+        <div class="vitrine-header-content">
+          <p>Descubra oportunidades</p>
+          <h2 id="titulo-vitrine">Itens que podem ganhar uma nova história</h2>
+          <p>Explore o catálogo com os filtros detalhados e encontre o que precisa no campus.</p>
+        </div>
 
-        <form id="filtros-anuncios" aria-label="Filtros de anúncios">
-          <div>
-            <label for="busca-anuncio">Buscar anúncio</label>
-            <input
-              id="busca-anuncio"
-              name="busca"
-              type="search"
-              placeholder="Buscar por nome ou descrição"
-            />
+        <div class="vitrine-layout">
+          <!-- Sidebar Lateral de Filtros -->
+          <aside class="sidebar-filtros" aria-label="Filtros laterais de busca">
+            <div class="filtro-grupo">
+              <h3>Categorias</h3>
+              <ul class="filtro-lista-links">
+                <li><a href="#vitrine" class="active"><span class="filtro-nome">Todas as Categorias</span><span class="filtro-contagem">240</span></a></li>
+                <li><a href="#vitrine"><span class="filtro-nome">Livros e Papelaria</span><span class="filtro-contagem">86</span></a></li>
+                <li><a href="#vitrine"><span class="filtro-nome">Eletrônicos</span><span class="filtro-contagem">42</span></a></li>
+                <li><a href="#vitrine"><span class="filtro-nome">Casa e Decoração</span><span class="filtro-contagem">31</span></a></li>
+                <li><a href="#vitrine"><span class="filtro-nome">Moda e Acessórios</span><span class="filtro-contagem">57</span></a></li>
+                <li><a href="#vitrine"><span class="filtro-nome">Outros</span><span class="filtro-contagem">24</span></a></li>
+              </ul>
+            </div>
+
+            <div class="filtro-grupo">
+              <h3>Tags de Filtro</h3>
+              <div class="filtro-tags">
+                <span class="tag">Cálculo I</span>
+                <span class="tag active">Tecnologia</span>
+                <span class="tag active">Doação</span>
+                <span class="tag">Campus Q</span>
+                <span class="tag">Biblioteca</span>
+              </div>
+            </div>
+
+            <div class="filtro-grupo">
+              <h3>Faixa de Valor</h3>
+              <form class="filtro-preco-form" onsubmit="event.preventDefault();">
+                <input type="number" placeholder="De R$" aria-label="Valor mínimo" />
+                <input type="number" placeholder="Até R$" aria-label="Valor máximo" />
+                <button type="submit" aria-label="Aplicar filtro de preço">&rarr;</button>
+              </form>
+            </div>
+
+            <div class="filtro-grupo">
+              <h3>Condição</h3>
+              <ul class="filtro-lista-check">
+                <li>
+                  <input type="checkbox" id="check-todos-cond" checked />
+                  <label for="check-todos-cond">Todas as condições <span>240</span></label>
+                </li>
+                <li>
+                  <input type="checkbox" id="check-novo" />
+                  <label for="check-novo">Novo <span>32</span></label>
+                </li>
+                <li>
+                  <input type="checkbox" id="check-seminovo" checked />
+                  <label for="check-seminovo">Seminovo <span>94</span></label>
+                </li>
+                <li>
+                  <input type="checkbox" id="check-usado" />
+                  <label for="check-usado">Usado <span>114</span></label>
+                </li>
+              </ul>
+            </div>
+
+            <div class="filtro-grupo">
+              <h3>Modalidade</h3>
+              <ul class="filtro-lista-radio">
+                <li>
+                  <input type="radio" name="modalidade-filtro" id="radio-todos" checked />
+                  <label for="radio-todos">Todas <span>240</span></label>
+                </li>
+                <li>
+                  <input type="radio" name="modalidade-filtro" id="radio-venda" />
+                  <label for="radio-venda">Venda <span>195</span></label>
+                </li>
+                <li>
+                  <input type="radio" name="modalidade-filtro" id="radio-doacao" />
+                  <label for="radio-doacao">Doação <span>45</span></label>
+                </li>
+              </ul>
+            </div>
+          </aside>
+
+          <!-- Coluna Principal da Vitrine -->
+          <div class="vitrine-conteudo">
+            <!-- Barra Superior de Busca e Ordenação -->
+            <div class="vitrine-busca-barra">
+              <form class="busca-input-container" onsubmit="event.preventDefault();">
+                <span class="busca-icone" aria-hidden="true">🔍</span>
+                <input type="search" placeholder="Buscar anúncios, coleções e contas..." aria-label="Buscar item" />
+              </form>
+
+              <div class="vitrine-acoes">
+                <button class="btn-ordenar">Ordenar por &uarr;</button>
+                <div class="layout-toggle">
+                  <button class="btn-layout active" aria-label="Visualização em Grade">
+                    <span aria-hidden="true">☷</span>
+                  </button>
+                  <button class="btn-layout" aria-label="Visualização em Lista">
+                    <span aria-hidden="true">☰</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Abas do Catálogo -->
+            <div class="vitrine-abas-container">
+              <div class="vitrine-abas">
+                <button class="aba active">Todos</button>
+                <button class="aba">Itens Recentes</button>
+                <button class="aba">Coleções</button>
+                <button class="aba">Doações</button>
+              </div>
+              <span class="resultados-contagem">Mostrando 4 resultados</span>
+            </div>
+
+            <!-- Grade de Anúncios -->
+            <div id="lista-anuncios" class="grid-vitrine">
+              <!-- Card 1 -->
+              <article class="card-anuncio" data-categoria="livros" data-condicao="seminovo" data-modalidade="venda" data-preco="45">
+                <div class="card-media">
+                  <div class="card-emoji" aria-hidden="true">📚</div>
+                  <div class="card-creators">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Ana" alt="" />
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Pedro" alt="" />
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bruno" alt="" />
+                  </div>
+                  <button class="card-likes" aria-label="125 curtidas. Curtir este item.">
+                    <span class="like-coracao" aria-hidden="true">♥</span> <span class="like-contador">125</span>
+                  </button>
+                </div>
+                <p class="card-cat">Livros e papelaria</p>
+                <h3>Kit de livros para Cálculo I</h3>
+                <p class="card-info">Seminovo · Biblioteca Central</p>
+                <p class="card-price">R$ 45,00</p>
+                <a href="#vitrine" class="btn-detalhes">Ver detalhes</a>
+              </article>
+
+              <!-- Card 2 -->
+              <article class="card-anuncio" data-categoria="eletronicos" data-condicao="usado" data-modalidade="venda" data-preco="220">
+                <div class="card-media">
+                  <div class="card-emoji" aria-hidden="true">🎧</div>
+                  <div class="card-creators">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Carla" alt="" />
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Daniel" alt="" />
+                  </div>
+                  <button class="card-likes" aria-label="98 curtidas. Curtir este item.">
+                    <span class="like-coracao" aria-hidden="true">♥</span> <span class="like-contador">98</span>
+                  </button>
+                </div>
+                <p class="card-cat">Eletrônicos</p>
+                <h3>Fone de ouvido Bluetooth</h3>
+                <p class="card-info">Usado · Centro de Convivência</p>
+                <p class="card-price">R$ 220,00</p>
+                <a href="#vitrine" class="btn-detalhes">Ver detalhes</a>
+              </article>
+
+              <!-- Card 3 -->
+              <article class="card-anuncio" data-categoria="casa" data-condicao="seminovo" data-modalidade="doacao" data-preco="0">
+                <div class="card-media">
+                  <div class="card-emoji" aria-hidden="true">🪴</div>
+                  <div class="card-creators">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Elisa" alt="" />
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felipe" alt="" />
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Julia" alt="" />
+                  </div>
+                  <button class="card-likes" aria-label="64 curtidas. Curtir este item.">
+                    <span class="like-coracao" aria-hidden="true">♥</span> <span class="like-contador">64</span>
+                  </button>
+                </div>
+                <p class="card-cat">Casa e decoração</p>
+                <h3>Vasos decorativos</h3>
+                <p class="card-info">Seminovo · Bloco H</p>
+                <p class="card-price">Doação</p>
+                <a href="#vitrine" class="btn-detalhes">Ver detalhes</a>
+              </article>
+
+              <!-- Card 4 -->
+              <article class="card-anuncio" data-categoria="moda" data-condicao="novo" data-modalidade="venda" data-preco="60">
+                <div class="card-media">
+                  <div class="card-emoji" aria-hidden="true">🎒</div>
+                  <div class="card-creators">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Lucas" alt="" />
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Sofia" alt="" />
+                  </div>
+                  <button class="card-likes" aria-label="112 curtidas. Curtir este item.">
+                    <span class="like-coracao" aria-hidden="true">♥</span> <span class="like-contador">112</span>
+                  </button>
+                </div>
+                <p class="card-cat">Moda e acessórios</p>
+                <h3>Mochila para notebook</h3>
+                <p class="card-info">Novo · Bloco Q</p>
+                <p class="card-price">R$ 60,00</p>
+                <a href="#vitrine" class="btn-detalhes">Ver detalhes</a>
+              </article>
+            </div>
           </div>
-          <div>
-            <label for="filtro-categoria">Categoria</label>
-            <select id="filtro-categoria" name="categoria">
-              <option value="todos">Todas as categorias</option>
-              <option value="livros">Livros e papelaria</option>
-              <option value="eletronicos">Eletrônicos</option>
-              <option value="casa">Casa e decoração</option>
-              <option value="moda">Moda e acessórios</option>
-            </select>
-          </div>
-          <div>
-            <label for="filtro-condicao">Condição</label>
-            <select id="filtro-condicao" name="condicao">
-              <option value="todos">Todas as condições</option>
-              <option value="novo">Novo</option>
-              <option value="seminovo">Seminovo</option>
-              <option value="usado">Usado</option>
-            </select>
-          </div>
-          <div>
-            <label for="ordenacao">Ordenar por</label>
-            <select id="ordenacao" name="ordenacao">
-              <option value="recentes">Mais recentes</option>
-              <option value="menor-preco">Menor preço</option>
-              <option value="maior-preco">Maior preço</option>
-            </select>
-          </div>
-          <button type="reset">Limpar filtros</button>
-        </form>
-
-        <p id="resultado-filtros" aria-live="polite">4 anúncios encontrados</p>
-
-        <div id="lista-anuncios" aria-label="Lista de anúncios">
-          <article
-            class="card-anuncio"
-            data-categoria="livros"
-            data-condicao="seminovo"
-            data-modalidade="venda"
-            data-preco="45"
-          >
-            <div aria-hidden="true">📚</div>
-            <p>Livros e papelaria</p>
-            <h3>Kit de livros para Cálculo I</h3>
-            <p>Seminovo · Biblioteca Central</p>
-            <p>R$ 45,00</p>
-            <a href="#anunciar">Ver detalhes</a>
-          </article>
-
-          <article
-            class="card-anuncio"
-            data-categoria="eletronicos"
-            data-condicao="usado"
-            data-modalidade="venda"
-            data-preco="220"
-          >
-            <div aria-hidden="true">🎧</div>
-            <p>Eletrônicos</p>
-            <h3>Fone de ouvido Bluetooth</h3>
-            <p>Usado · Centro de Convivência</p>
-            <p>R$ 220,00</p>
-            <a href="#anunciar">Ver detalhes</a>
-          </article>
-
-          <article
-            class="card-anuncio"
-            data-categoria="casa"
-            data-condicao="seminovo"
-            data-modalidade="doacao"
-            data-preco="0"
-          >
-            <div aria-hidden="true">🪴</div>
-            <p>Casa e decoração</p>
-            <h3>Vasos decorativos</h3>
-            <p>Seminovo · Bloco H</p>
-            <p>Doação</p>
-            <a href="#anunciar">Ver detalhes</a>
-          </article>
-
-          <article
-            class="card-anuncio"
-            data-categoria="moda"
-            data-condicao="novo"
-            data-modalidade="venda"
-            data-preco="60"
-          >
-            <div aria-hidden="true">🎒</div>
-            <p>Moda e acessórios</p>
-            <h3>Mochila para notebook</h3>
-            <p>Novo · Bloco Q</p>
-            <p>R$ 60,00</p>
-            <a href="#anunciar">Ver detalhes</a>
-          </article>
         </div>
       </section>
 
+      <!-- 5. Coleções recomendadas (mockup Figma) -->
+      <section id="colecoes-destaque" aria-labelledby="titulo-colecoes">
+        <div class="secao-header-centro">
+          <p>Curadoria da comunidade</p>
+          <h2 id="titulo-colecoes">Coleções recomendadas</h2>
+          <p>Conjuntos de itens úteis agrupados por alunos da UNIFOR.</p>
+        </div>
+
+        <div class="colecoes-grid">
+          <!-- Coleção 1 -->
+          <div class="card-colecao">
+            <div class="colecao-header">
+              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Pedro" alt="" class="colecao-avatar" />
+              <div>
+                <h3>Estudos de Engenharia <span class="badge-verificado">✓</span></h3>
+                <p>Por Pedro Mapu · 12 itens</p>
+              </div>
+            </div>
+            <p class="colecao-desc">Livros, réguas acadêmicas e apostilas recomendadas para os primeiros semestres.</p>
+            <div class="colecao-preview">
+              <div class="colecao-img-mini" aria-hidden="true">📐</div>
+              <div class="colecao-img-mini" aria-hidden="true">✏️</div>
+              <div class="colecao-img-mini overlay" aria-hidden="true">+10</div>
+            </div>
+          </div>
+
+          <!-- Coleção 2 -->
+          <div class="card-colecao">
+            <div class="colecao-header">
+              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Julia" alt="" class="colecao-avatar" />
+              <div>
+                <h3>Doações Bloco Q <span class="badge-verificado">✓</span></h3>
+                <p>Por Julia Costa · 8 itens</p>
+              </div>
+            </div>
+            <p class="colecao-desc">Materiais de desenho e artigos de moda que estou doando no Bloco Q.</p>
+            <div class="colecao-preview">
+              <div class="colecao-img-mini" aria-hidden="true">🎨</div>
+              <div class="colecao-img-mini" aria-hidden="true">👚</div>
+              <div class="colecao-img-mini overlay" aria-hidden="true">+6</div>
+            </div>
+          </div>
+
+          <!-- Coleção 3 -->
+          <div class="card-colecao">
+            <div class="colecao-header">
+              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Lucas" alt="" class="colecao-avatar" />
+              <div>
+                <h3>Eletrônicos e Gadgets <span class="badge-verificado">✓</span></h3>
+                <p>Por Lucas Andrade · 15 itens</p>
+              </div>
+            </div>
+            <p class="colecao-desc">Cabos, carregadores e periféricos seminovos que não utilizo mais.</p>
+            <div class="colecao-preview">
+              <div class="colecao-img-mini" aria-hidden="true">🔌</div>
+              <div class="colecao-img-mini" aria-hidden="true">🖱️</div>
+              <div class="colecao-img-mini overlay" aria-hidden="true">+13</div>
+            </div>
+          </div>
+
+          <!-- Coleção 4 -->
+          <div class="card-colecao">
+            <div class="colecao-header">
+              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Sofia" alt="" class="colecao-avatar" />
+              <div>
+                <h3>Kit Sobrevivência CC <span class="badge-verificado">✓</span></h3>
+                <p>Por Sofia Reis · 6 itens</p>
+              </div>
+            </div>
+            <p class="colecao-desc">Itens para armários e lockers do Centro de Convivência.</p>
+            <div class="colecao-preview">
+              <div class="colecao-img-mini" aria-hidden="true">🔒</div>
+              <div class="colecao-img-mini" aria-hidden="true">🥤</div>
+              <div class="colecao-img-mini overlay" aria-hidden="true">+4</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. Colaboradores em Destaque (Figma Top Sellers) -->
+      <section id="colaboradores-destaque" aria-labelledby="titulo-colaboradores">
+        <div class="secao-header-centro">
+          
+          <h2 id="titulo-colaboradores">Colaboradores em Destaque</h2>
+          <p>Alunos e professores que mais movimentam e doam itens no campus.</p>
+        </div>
+
+        <div class="colaboradores-grid">
+          <!-- Colaborador 1 -->
+          <div class="card-colaborador">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Ana" alt="" class="colaborador-avatar" />
+            <div class="colaborador-info">
+              <h3>Ana Cavalcante <span class="badge-verificado">✓</span></h3>
+              <p>🎒 45 Itens · 🛒 20 Trocas</p>
+            </div>
+          </div>
+
+          <!-- Colaborador 2 -->
+          <div class="card-colaborador">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bruno" alt="" class="colaborador-avatar" />
+            <div class="colaborador-info">
+              <h3>Bruno Ramos <span class="badge-verificado">✓</span></h3>
+              <p>📚 32 Itens · 🛒 15 Trocas</p>
+            </div>
+          </div>
+
+          <!-- Colaborador 3 -->
+          <div class="card-colaborador">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Carla" alt="" class="colaborador-avatar" />
+            <div class="colaborador-info">
+              <h3>Carla Souza <span class="badge-verificado">✓</span></h3>
+              <p>🪴 28 Itens · 🛒 12 Trocas</p>
+            </div>
+          </div>
+
+          <!-- Colaborador 4 -->
+          <div class="card-colaborador">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Daniel" alt="" class="colaborador-avatar" />
+            <div class="colaborador-info">
+              <h3>Daniel Oliveira <span class="badge-verificado">✓</span></h3>
+              <p>🎧 24 Itens · 🛒 10 Trocas</p>
+            </div>
+          </div>
+
+          <!-- Colaborador 5 -->
+          <div class="card-colaborador">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Elisa" alt="" class="colaborador-avatar" />
+            <div class="colaborador-info">
+              <h3>Elisa Dias <span class="badge-verificado">✓</span></h3>
+              <p>👜 19 Itens · 🛒 8 Trocas</p>
+            </div>
+          </div>
+
+          <!-- Colaborador 6 -->
+          <div class="card-colaborador">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felipe" alt="" class="colaborador-avatar" />
+            <div class="colaborador-info">
+              <h3>Felipe Costa <span class="badge-verificado">✓</span></h3>
+              <p>🔌 15 Itens · 🛒 7 Trocas</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. Formulário de anúncio -->
       <section id="anunciar" aria-labelledby="titulo-anunciar">
-        <p>Faça seu item circular</p>
+        
         <h2 id="titulo-anunciar">Publique um anúncio</h2>
         <p>Preencha as informações para disponibilizar seu item na comunidade.</p>
 
-        <form id="formulario-anuncio">
+        <form id="formulario-anuncio" onsubmit="event.preventDefault();">
           <div>
             <label for="nome-item">Nome do item</label>
             <input
@@ -306,14 +548,40 @@
         </form>
       </section>
 
+      <!-- 8. Gerenciador "Meus anúncios" com dados de exemplo iniciais compactos (editar/excluir) -->
       <section id="meus-anuncios" aria-labelledby="titulo-meus-anuncios">
-        <p>Seu espaço de gerenciamento</p>
+
         <h2 id="titulo-meus-anuncios">Meus anúncios</h2>
         <p>Acompanhe e gerencie os itens que você publicou.</p>
 
-        <div id="lista-meus-anuncios" aria-live="polite">
-          <p>Você ainda não publicou nenhum anúncio.</p>
-          <a href="#anunciar">Criar meu primeiro anúncio</a>
+        <div id="lista-meus-anuncios" class="grid-meus-anuncios" aria-live="polite">
+          <!-- Exemplo 1 -->
+          <article class="card-meu-anuncio" data-id="1">
+            <div class="meu-anuncio-media" aria-hidden="true">📐</div>
+            <div class="meu-anuncio-detalhes">
+              <span class="status-badge ativo">Ativo</span>
+              <h3>Régua T para Desenho Técnico</h3>
+              <p>Preço: R$ 35,00 · Bloco T</p>
+            </div>
+            <div class="meu-anuncio-acoes">
+              <button class="btn-editar" aria-label="Editar Régua T para Desenho Técnico">Editar</button>
+              <button class="btn-excluir" aria-label="Excluir Régua T para Desenho Técnico">Excluir</button>
+            </div>
+          </article>
+
+          <!-- Exemplo 2 -->
+          <article class="card-meu-anuncio" data-id="2">
+            <div class="meu-anuncio-media" aria-hidden="true">👚</div>
+            <div class="meu-anuncio-detalhes">
+              <span class="status-badge doacao">Doação</span>
+              <h3>Casaco de Frio Unifor</h3>
+              <p>Preço: Grátis (Doação) · Bloco M</p>
+            </div>
+            <div class="meu-anuncio-acoes">
+              <button class="btn-editar" aria-label="Editar Casaco de Frio Unifor">Editar</button>
+              <button class="btn-excluir" aria-label="Excluir Casaco de Frio Unifor">Excluir</button>
+            </div>
+          </article>
         </div>
       </section>
     </main>
@@ -322,17 +590,42 @@
       <section aria-labelledby="titulo-rodape">
         <h2 id="titulo-rodape">Marketplace Vortex</h2>
         <p>Uma iniciativa para incentivar escolhas mais conscientes na comunidade UNIFOR.</p>
+        
+        <div class="footer-socials">
+          <a href="#facebook" aria-label="Facebook">📘</a>
+          <a href="#linkedin" aria-label="LinkedIn">💼</a>
+          <a href="#twitter" aria-label="Twitter">🐦</a>
+          <a href="#instagram" aria-label="Instagram">📸</a>
+        </div>
       </section>
-      <nav aria-label="Navegação do rodapé">
-        <ul>
-          <li><a href="#como-funciona">Economia circular</a></li>
-          <li><a href="#vitrine">Explorar anúncios</a></li>
-          <li><a href="#anunciar">Criar anúncio</a></li>
-          <li><a href="#meus-anuncios">Meus anúncios</a></li>
-        </ul>
-      </nav>
-      <p>Projeto acadêmico desenvolvido para a Universidade de Fortaleza — UNIFOR.</p>
-      <p>&copy; 2026 Marketplace Vortex.</p>
+
+      <div class="footer-nav-container">
+        <nav aria-label="Navegação do rodapé - Coluna 1">
+          <h3>Plataforma</h3>
+          <ul>
+            <li><a href="#como-funciona">Economia circular</a></li>
+            <li><a href="#vitrine">Explorar anúncios</a></li>
+            <li><a href="#anunciar">Criar anúncio</a></li>
+          </ul>
+        </nav>
+        
+        <nav aria-label="Navegação do rodapé - Coluna 2">
+          <h3>Suporte</h3>
+          <ul>
+            <li><a href="#meus-anuncios">Meus anúncios</a></li>
+            <li><a href="#faq">Perguntas frequentes</a></li>
+            <li><a href="#contato">Contato</a></li>
+          </ul>
+        </nav>
+      </div>
+
+      <div class="footer-bottom">
+        <p>Projeto acadêmico desenvolvido para a Universidade de Fortaleza — UNIFOR.</p>
+        <div class="footer-lang">
+          <span>🌐 Português - BR</span>
+        </div>
+      </div>
+      <p class="footer-copy">&copy; 2026 Marketplace Vortex. Todos os direitos reservados.</p>
     </footer>
 
     <script src="./app.js" defer></script>
