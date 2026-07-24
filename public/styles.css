@@ -460,19 +460,194 @@ main > section > p:first-child::before {
   z-index: 1;
 }
 
-#inicio aside span {
-  color: var(--branco);
-  font-size: clamp(6rem, 12vw, 10rem);
-  line-height: 1;
+#inicio .doacao-animacao {
+  filter: drop-shadow(0 12px 18px rgba(15, 23, 42, 0.16));
+  max-width: 24rem;
   position: relative;
+  width: min(24rem, 100%);
   z-index: 2;
-  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.2));
-  animation: float 6s ease-in-out infinite;
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+#inicio .doacao-animacao svg {
+  display: block;
+  overflow: visible;
+  width: 100%;
+}
+
+.doacao-corpo,
+.doacao-cabeca {
+  fill: rgba(255, 255, 255, 0.96);
+}
+
+.doacao-cabelo,
+.doacao-olho {
+  fill: #1647a8;
+}
+
+.doacao-sorriso {
+  fill: none;
+  stroke: #1647a8;
+  stroke-linecap: round;
+  stroke-width: 3;
+}
+
+.doacao-braco {
+  fill: none;
+  stroke: var(--branco);
+  stroke-linecap: round;
+  stroke-width: 15;
+}
+
+.doacao-caixa {
+  fill: #b9f4c9;
+  stroke: rgba(255, 255, 255, 0.95);
+  stroke-width: 2;
+}
+
+.doacao-fita,
+.doacao-laco {
+  fill: none;
+  stroke: #166534;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.doacao-pessoa,
+.doacao-braco,
+.doacao-presente,
+.doacao-coracao {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.doacao-pessoa-doadora {
+  animation: doacao-doadora 4.8s ease-in-out infinite;
+}
+
+.doacao-pessoa-receptora {
+  animation: doacao-receptora 4.8s ease-in-out infinite;
+}
+
+.doacao-braco-doador {
+  animation: braco-doador 4.8s ease-in-out infinite;
+  transform-origin: left center;
+}
+
+.doacao-braco-receptor {
+  animation: braco-receptor 4.8s ease-in-out infinite;
+  transform-origin: right center;
+}
+
+.doacao-presente {
+  animation: presente-doado 4.8s ease-in-out infinite;
+}
+
+.doacao-coracao {
+  animation: coracao-doacao 4.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  fill: #ff6675;
+  filter: drop-shadow(0 6px 8px rgba(95, 20, 35, 0.25));
+}
+
+@keyframes doacao-doadora {
+  0%,
+  18%,
+  82%,
+  100% {
+    transform: translateX(0);
+  }
+
+  34%,
+  48% {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes doacao-receptora {
+  0%,
+  18%,
+  82%,
+  100% {
+    transform: translateX(0);
+  }
+
+  34%,
+  48% {
+    transform: translateX(-4px);
+  }
+}
+
+@keyframes braco-doador {
+  0%,
+  18%,
+  74%,
+  100% {
+    transform: rotate(0deg) translateX(0);
+  }
+
+  32%,
+  48% {
+    transform: rotate(5deg) translateX(5px);
+  }
+}
+
+@keyframes braco-receptor {
+  0%,
+  18%,
+  74%,
+  100% {
+    transform: rotate(0deg) translateX(0);
+  }
+
+  38%,
+  54% {
+    transform: rotate(-5deg) translateX(-5px);
+  }
+}
+
+@keyframes presente-doado {
+  0%,
+  18% {
+    opacity: 1;
+    transform: translateX(0) rotate(-2deg);
+  }
+
+  48%,
+  82% {
+    opacity: 1;
+    transform: translateX(36px) rotate(0deg);
+  }
+
+  90%,
+  100% {
+    opacity: 0;
+    transform: translateX(36px) rotate(0deg);
+  }
+}
+
+@keyframes coracao-doacao {
+  0%,
+  48% {
+    opacity: 0;
+    transform: translateY(7px) scale(0.82);
+  }
+
+  58% {
+    opacity: 1;
+    transform: translateY(0) scale(1.12);
+  }
+
+  65%,
+  82% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  92%,
+  100% {
+    opacity: 0;
+    transform: translateY(-5px) scale(0.96);
+  }
 }
 
 #inicio aside p {
@@ -2064,11 +2239,101 @@ footer section p {
   }
 }
 
+/* Entrada rápida do conteúdo, sincronizada nativamente com o scroll. */
+@supports (animation-timeline: view()) {
+  :where(
+    #como-funciona > h2,
+    #como-funciona > p,
+    #como-funciona li,
+    main > section[aria-labelledby="titulo-impacto"] > h2,
+    main > section[aria-labelledby="titulo-impacto"] dl > div,
+    main > section[aria-labelledby="titulo-impacto"] > p,
+    #vitrine > .vitrine-header-content,
+    #vitrine .sidebar-filtros,
+    #vitrine .vitrine-busca-barra,
+    #vitrine .vitrine-abas-container,
+    #vitrine .card-anuncio,
+    #colecoes-destaque .secao-header-centro,
+    #colecoes-destaque .card-colecao,
+    #colaboradores-destaque .secao-header-centro,
+    #colaboradores-destaque .card-colaborador,
+    #anunciar > h2,
+    #anunciar > p,
+    #formulario-anuncio,
+    #meus-anuncios > h2,
+    #meus-anuncios > p,
+    #meus-anuncios .card-meu-anuncio,
+    footer > *
+  ) {
+    animation: scroll-reveal linear both;
+    animation-timeline: view(block);
+    animation-range: entry 0% cover 22%;
+  }
+}
+
+@keyframes scroll-reveal {
+  from {
+    opacity: 0;
+    translate: 0 1.125rem;
+  }
+
+  to {
+    opacity: 1;
+    translate: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+
+  :where(
+    #como-funciona > h2,
+    #como-funciona > p,
+    #como-funciona li,
+    main > section[aria-labelledby="titulo-impacto"] > h2,
+    main > section[aria-labelledby="titulo-impacto"] dl > div,
+    main > section[aria-labelledby="titulo-impacto"] > p,
+    #vitrine > .vitrine-header-content,
+    #vitrine .sidebar-filtros,
+    #vitrine .vitrine-busca-barra,
+    #vitrine .vitrine-abas-container,
+    #vitrine .card-anuncio,
+    #colecoes-destaque .secao-header-centro,
+    #colecoes-destaque .card-colecao,
+    #colaboradores-destaque .secao-header-centro,
+    #colaboradores-destaque .card-colaborador,
+    #anunciar > h2,
+    #anunciar > p,
+    #formulario-anuncio,
+    #meus-anuncios > h2,
+    #meus-anuncios > p,
+    #meus-anuncios .card-meu-anuncio,
+    footer > *
+  ) {
+    animation: none !important;
+    opacity: 1 !important;
+    translate: none !important;
+  }
+
+  .doacao-pessoa,
+  .doacao-braco,
+  .doacao-presente,
+  .doacao-coracao {
+    animation: none !important;
+  }
+
+  .doacao-presente {
+    opacity: 1 !important;
+    transform: translateX(36px) !important;
+  }
+
+  .doacao-coracao {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }

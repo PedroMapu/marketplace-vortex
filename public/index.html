@@ -57,7 +57,38 @@
         <a href="#anunciar">Quero anunciar um item</a>
 
         <aside aria-label="Destaque da plataforma">
-          <span aria-hidden="true">♻</span>
+          <div class="doacao-animacao" aria-hidden="true">
+            <svg viewBox="0 0 360 190" role="presentation" focusable="false">
+              <g class="doacao-pessoa doacao-pessoa-doadora">
+                <path class="doacao-corpo" d="M48 180c2-45 18-70 48-70s46 25 48 70H48Z" />
+                <circle class="doacao-cabeca" cx="96" cy="76" r="27" />
+                <path class="doacao-cabelo" d="M70 73c0-31 18-39 34-35 13 3 21 13 21 30-13-1-24-8-31-18-5 10-13 18-24 23Z" />
+                <circle class="doacao-olho" cx="106" cy="76" r="2.6" />
+                <path class="doacao-sorriso" d="M105 88c5 4 10 4 14-1" />
+                <path class="doacao-braco doacao-braco-doador" d="M119 127c17 0 26 5 38 14" />
+              </g>
+
+              <g class="doacao-pessoa doacao-pessoa-receptora">
+                <path class="doacao-corpo" d="M216 180c2-45 18-70 48-70s46 25 48 70h-96Z" />
+                <circle class="doacao-cabeca" cx="264" cy="76" r="27" />
+                <path class="doacao-cabelo" d="M237 71c1-23 12-35 29-35 20 0 31 15 25 41-8-5-13-13-16-24-9 11-22 17-38 18Z" />
+                <circle class="doacao-olho" cx="254" cy="76" r="2.6" />
+                <path class="doacao-sorriso" d="M241 87c4 5 9 5 14 1" />
+                <path class="doacao-braco doacao-braco-receptor" d="M241 127c-17 0-26 5-38 14" />
+              </g>
+
+              <g class="doacao-presente">
+                <rect class="doacao-caixa" x="143" y="125" width="42" height="34" rx="5" />
+                <path class="doacao-fita" d="M164 125v34M143 137h42" />
+                <path class="doacao-laco" d="M164 125c-10-2-12-12-5-13 5-1 6 7 5 13Zm0 0c10-2 12-12 5-13-5-1-6 7-5 13Z" />
+              </g>
+
+              <path
+                class="doacao-coracao"
+                d="M180 48c-14-9-27-19-27-31 0-10 7-17 17-17 5 0 9 3 10 7 3-4 7-7 12-7 10 0 17 7 17 17 0 12-13 22-29 31Z"
+              />
+            </svg>
+          </div>
           <p>Reutilizar é transformar escolhas individuais em impacto coletivo.</p>
         </aside>
       </section>
