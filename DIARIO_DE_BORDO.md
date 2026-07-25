@@ -151,6 +151,76 @@ Consigo explicar que o SVG desenha as duas pessoas, a caixa e o coração dentro
 
 `6894fef` — front(3)
 
+## Dia 4 antecipado — 25/07/2026
+
+### Objetivo do dia
+
+Começar a parte de JavaScript, DOM e renderização prevista para o Dia 4 do plano de aprendizagem, substituindo os anúncios escritos diretamente no HTML por dados organizados em um array.
+
+### O que eu fiz
+
+Criei um array temporário com quatro anúncios simulados. Cada anúncio passou a ser representado por um objeto com propriedades como ID, nome, categoria, condição, modalidade, valor, localização, descrição e autor.
+
+Usei `querySelector` para localizar a vitrine e a seção “Meus anúncios”. Depois, criei funções responsáveis por percorrer o array com `forEach`, montar os elementos dos cartões e inseri-los no DOM.
+
+Os cartões fixos foram removidos do `index.html`, deixando contêineres vazios que são preenchidos pelo JavaScript. A contagem de resultados também passou a ser atualizada de acordo com a quantidade de objetos no array.
+
+Essa estrutura foi criada durante a preparação das funcionalidades do Dia 5, porque criar e excluir anúncios só seria possível depois que a vitrine tivesse uma fonte de dados única.
+
+### Prompt usado
+
+Não houve um prompt separado apenas para o Dia 4. A atividade apareceu como uma etapa necessária durante o pedido para planejar e implementar a criação, a exibição e a exclusão local de anúncios do Dia 5.
+
+### Resposta da IA
+
+A IA identificou que os anúncios estavam duplicados entre o HTML e o comportamento esperado no JavaScript. Por isso, sugeriu transformar os exemplos em objetos e criar funções de renderização, garantindo que a vitrine sempre representasse o conteúdo atual do array.
+
+Para reduzir o risco de inserir conteúdo inseguro na página, os elementos foram criados com `document.createElement` e os textos preenchidos com `textContent`, sem interpolar os dados do formulário em `innerHTML`.
+
+### O que funcionou
+
+Ao abrir a página, os quatro anúncios simulados são lidos do array e exibidos na vitrine. Os cartões mostram categoria, condição, localização, preço e autor, e a contagem informa corretamente quantos resultados estão disponíveis.
+
+A renderização também pode ser executada novamente sem manter cópias antigas dos cartões, porque o contêiner é limpo antes de receber os elementos atuais.
+
+### Erros encontrados
+
+Os cartões estavam inicialmente escritos diretamente no HTML. Isso faria a tela e o array representarem fontes de dados diferentes e poderia gerar anúncios duplicados depois de uma nova renderização.
+
+O plano do Dia 4 também prevê eventos de filtro por categoria. A interface visual dos filtros já existe, mas esse comportamento ainda não foi implementado e deverá ser concluído em uma próxima atividade.
+
+### Como investiguei
+
+Revisei os cartões existentes no `index.html`, comparei os campos repetidos e defini quais propriedades cada objeto deveria possuir. Depois, conferi se a quantidade de cartões gerados correspondia ao tamanho do array e se os contêineres do HTML permaneciam vazios antes da execução do JavaScript.
+
+Também verifiquei que o script é carregado com `defer`, permitindo que os elementos da página existam antes da execução dos `querySelector`.
+
+### O que aprendi
+
+Aprendi que um array pode guardar vários objetos com a mesma estrutura e que `forEach` permite percorrer esses objetos para gerar a interface. `querySelector` localiza elementos já existentes, enquanto `createElement`, `append` e `replaceChildren` permitem construir e atualizar o DOM.
+
+Também aprendi que manter uma única fonte de dados reduz duplicação: o array representa o estado dos anúncios e as funções de renderização transformam esse estado em elementos visuais.
+
+### Código que consigo explicar
+
+Consigo explicar que `anuncios` é o array temporário, `criarCardDaVitrine` transforma um objeto em um cartão e `renderizarAnuncios` percorre o array, cria cada cartão e atualiza a contagem de resultados.
+
+Consigo explicar também que os atributos `data-*` guardam informações úteis no elemento e que `textContent` insere o texto do anúncio sem interpretar esse conteúdo como HTML.
+
+### Testes realizados
+
+- Array iniciado com quatro objetos de anúncio.
+- Quatro cartões gerados na vitrine.
+- Contagem de resultados atualizada pelo tamanho do array.
+- Preços de venda formatados em reais.
+- Doação exibida sem preço de venda.
+- Segunda renderização sem duplicar os cartões anteriores.
+- Sintaxe do JavaScript validada.
+
+### Commit
+
+A base do Dia 4 foi integrada ao commit funcional seguinte, junto com as operações locais do Dia 5.
+
 ## Dia 5 antecipado — 25/07/2026
 
 ### Objetivo do dia
