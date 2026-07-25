@@ -75,7 +75,7 @@ Também corrigi o foco azul do campo de busca rápida e o estado visual de “To
 
 ### Prompt usado
 
-Revise o arquivo CSS, veja o que está tendo overflow e revise a responsividade.
+Revise o arquivo CSS, veja o que está tendo overflow e revise a responsividade. Se necessário crie agentes para checar o que foi solicitado de forma independente
 
 ### Resposta da IA
 
@@ -151,3 +151,78 @@ Consigo explicar que o SVG desenha as duas pessoas, a caixa e o coração dentro
 
 `6894fef` — front(3)
 
+## Dia 5 antecipado — 25/07/2026
+
+### Objetivo do dia
+
+Implementar as operações locais previstas para o Dia 5 do plano de aprendizagem: identificar o usuário, criar anúncios sem recarregar a página, relacionar cada anúncio ao seu autor, mostrar os anúncios próprios e permitir a exclusão somente pelo dono.
+
+Também reuni neste salvamento os refinamentos visuais e de animação que ainda estavam pendentes no repositório.
+
+### O que eu fiz
+
+Transformei os cartões fixos da vitrine em anúncios gerados pelo JavaScript a partir de um array. Criei o envio do formulário com `submit` e `preventDefault`, leitura dos dados com `FormData`, criação de um objeto para o novo anúncio e inclusão com `push`.
+
+O site agora pergunta o nome da pessoa no primeiro acesso, cria um identificador e salva esses dados no `localStorage`. Cada anúncio novo recebe o identificador e o nome do usuário atual. A seção “Meus anúncios” usa `filter` para mostrar somente os itens dessa pessoa.
+
+Implementei a exclusão por ID com confirmação. O botão aparece somente nos anúncios próprios e a função de exclusão verifica novamente a autoria antes de remover o item do array. Assim, esconder o botão não é a única proteção.
+
+Também foram integrados o estado vazio das listas, mensagens acessíveis de sucesso e erro, contagem atualizada da vitrine, imagem temporária do item, formatação de moeda, modalidade de doação com valor zero, animações de entrada, contadores, cabeçalho durante o scroll e ajustes visuais no formulário e no ciclo de economia circular.
+
+### Prompts usados
+
+Faça um planejamento para fazer cada uma das atividades: criar anúncio sem recarregar a página, excluir anúncio do array, pedir e salvar o nome do usuário, associar usuário ao anúncio, mostrar os próprios anúncios e permitir exclusão somente dos anúncios próprios.
+
+Depois, crie agentes temporários para trabalharem em paralelo e realizarem todas as tarefas necessárias para o Dia 5 de acordo com o planejamento de desenvolvimento.
+
+### Resposta da IA
+
+A IA consultou o plano de aprendizagem para confirmar o escopo exato do Dia 5 e dividiu a revisão entre agentes temporários. Um agente preparou o HTML para renderização dinâmica, outro fez uma revisão independente dos riscos e testes, e a integração final foi feita no JavaScript.
+
+Foram criadas funções separadas para recuperar o usuário, renderizar as listas, criar anúncios e excluir anúncios. A solução também evita inserir dados do formulário diretamente com `innerHTML`, usando criação de elementos e `textContent`.
+
+### O que funcionou
+
+O nome do usuário permanece salvo depois de atualizar a página. Um anúncio válido é criado sem recarregamento, aparece na vitrine e em “Meus anúncios” e fica associado ao usuário atual. A exclusão remove o anúncio das duas listas, enquanto uma tentativa de apagar um anúncio alheio é recusada.
+
+O JavaScript passou na verificação de sintaxe e o fluxo principal passou por 14 verificações automatizadas com DOM, formulário e `localStorage` simulados.
+
+### Erros encontrados
+
+O navegador integrado não estava disponível para o teste visual automatizado. Por isso, além das verificações estáticas, foi criado um teste isolado do fluxo do JavaScript.
+
+Um dos agentes temporários de lógica não conseguiu salvar uma implementação utilizável. A integração foi assumida pelo agente principal com base no planejamento e na revisão independente.
+
+Durante o primeiro teste simulado, faltava o método `reset` no formulário falso usado pelo teste. O problema estava no ambiente de teste, não no código da página. Depois de completar a simulação, todas as verificações passaram.
+
+### Como investiguei
+
+Comparei o código com as entregas descritas no documento do plano, revisei os IDs e campos do formulário, verifiquei o array antes e depois de criar e excluir itens e testei separadamente anúncios próprios e anúncios de outros usuários.
+
+Também usei `node --check`, `git diff --check` e uma execução isolada do `app.js` para conferir `preventDefault`, `push`, `filter`, associação pelo `usuarioId`, persistência do usuário e bloqueio da exclusão indevida.
+
+### O que aprendi
+
+Aprendi que `preventDefault` impede o comportamento padrão de envio do formulário, permitindo atualizar a página pelo DOM. `FormData` lê os campos pelo atributo `name`, `push` adiciona um objeto ao array e `filter` pode criar uma nova lista sem o item excluído.
+
+Também aprendi que o nome não deve ser usado sozinho para verificar autoria, porque duas pessoas podem ter o mesmo nome. Por isso, cada usuário recebe um identificador. O `localStorage` mantém dados simples no navegador, mas não substitui autenticação ou validação no servidor.
+
+### Código que consigo explicar
+
+Consigo explicar que `anuncios` guarda os objetos exibidos na tela, `renderizarAnuncios` monta a vitrine e `renderizarMeusAnuncios` compara `anuncio.usuarioId` com `usuarioAtual.id`.
+
+Consigo explicar também que `criarAnuncio` lê o formulário, cria o objeto e usa `anuncios.push`, enquanto `excluirAnuncio` procura o ID, verifica o proprietário e usa `anuncios.filter` para remover somente o item autorizado.
+
+### Testes realizados
+
+- Nome solicitado no primeiro acesso e recuperado do `localStorage`.
+- Formulário enviado com `preventDefault`.
+- Anúncio incluído no array e associado ao usuário.
+- Anúncio próprio exibido em “Meus anúncios”.
+- Anúncio alheio mantido na vitrine e protegido contra exclusão.
+- Exclusão própria refletida nas duas listas.
+- Sintaxe do JavaScript e formatação do diff verificadas.
+
+### Commit
+
+`feat: implementar operações locais do Dia 5`

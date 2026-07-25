@@ -23,6 +23,7 @@
         <ul>
           <li><a href="#inicio">Início</a></li>
           <li><a href="#como-funciona">Como funciona</a></li>
+          <li><a href="#eficiencia">Estatísticas</a></li>
           <li><a href="#vitrine">Explorar</a></li>
           <li><a href="#anunciar">Anunciar</a></li>
           <li><a href="#meus-anuncios">Meus anúncios</a></li>
@@ -30,7 +31,7 @@
       </nav>
 
       <div class="header-actions">
-        <a href="#vitrine" class="btn-login">Entrar</a>
+        <a id="nome-usuario" href="#vitrine" class="btn-login" aria-live="polite">Entrar</a>
         <a href="#anunciar" class="btn-register">Criar anúncio</a>
       </div>
     </header>
@@ -44,17 +45,10 @@
           Encontre, venda ou doe itens dentro da comunidade UNIFOR e faça parte de
           uma economia mais circular.
         </p>
-        <form action="#vitrine" role="search">
-          <label for="busca-rapida">O que você está procurando?</label>
-          <input
-            id="busca-rapida"
-            name="busca"
-            type="search"
-            placeholder="Ex.: livro, fone, mochila..."
-          />
-          <button type="submit">Explorar itens</button>
-        </form>
-        <a href="#anunciar">Quero anunciar um item</a>
+        <div class="hero-ctas" aria-label="Ações principais">
+          <a href="#anunciar" class="hero-cta hero-cta-primary">Quero anunciar!</a>
+          <a href="#vitrine" class="hero-cta hero-cta-secondary">Quero explorar!</a>
+        </div>
 
         <aside aria-label="Destaque da plataforma">
           <div class="doacao-animacao" aria-hidden="true">
@@ -102,50 +96,92 @@
           de cada item e reduzir desperdícios no campus.
         </p>
 
-        <ol>
-          <li>
-            <span aria-hidden="true">01</span>
-            <h3>Desapegue</h3>
-            <p>Cadastre um item que você não usa mais, para venda ou doação.</p>
-          </li>
-          <li>
-            <span aria-hidden="true">02</span>
-            <h3>Conecte</h3>
-            <p>Seu anúncio fica disponível para pessoas da comunidade.</p>
-          </li>
-          <li>
-            <span aria-hidden="true">03</span>
-            <h3>Reutilize</h3>
-            <p>Outro item encontra um novo propósito em vez de virar resíduo.</p>
-          </li>
-          <li>
-            <span aria-hidden="true">04</span>
-            <h3>Transforme</h3>
-            <p>Pequenas escolhas ajudam a criar um campus mais consciente.</p>
-          </li>
-        </ol>
+        <div class="ciclo-diagrama">
+          <svg
+            class="ciclo-trilho"
+            viewBox="0 0 1000 620"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <defs>
+              <linearGradient id="gradiente-ciclo" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#004af7" />
+                <stop offset="1" stop-color="#439a5d" />
+              </linearGradient>
+              <marker
+                id="seta-ciclo"
+                viewBox="0 0 12 12"
+                refX="10"
+                refY="6"
+                markerWidth="8"
+                markerHeight="8"
+                orient="auto"
+              >
+                <path d="M1 1 11 6 1 11Z" fill="#246ed5" />
+              </marker>
+            </defs>
+            <path
+              class="ciclo-trilho-base"
+              d="M500 86C720 86 855 170 855 310S720 534 500 534 145 450 145 310 280 86 500 86Z"
+            />
+            <path class="ciclo-segmento" d="M610 92C742 106 823 163 846 238" />
+            <path class="ciclo-segmento" d="M850 382C818 468 730 516 610 529" />
+            <path class="ciclo-segmento" d="M390 529C270 516 182 468 150 382" />
+            <path class="ciclo-segmento" d="M154 238C177 163 258 106 390 92" />
+          </svg>
+
+          <div class="ciclo-nucleo" aria-hidden="true">
+            <span>↻</span>
+            <strong>O valor continua</strong>
+            <small>em movimento</small>
+          </div>
+
+          <ol>
+            <li>
+              <span aria-hidden="true">01</span>
+              <h3>Desapegue</h3>
+              <p>Cadastre um item que você não usa mais, para venda ou doação.</p>
+            </li>
+            <li>
+              <span aria-hidden="true">02</span>
+              <h3>Conecte</h3>
+              <p>Seu anúncio fica disponível para pessoas da comunidade.</p>
+            </li>
+            <li>
+              <span aria-hidden="true">03</span>
+              <h3>Reutilize</h3>
+              <p>Outro item encontra um novo propósito em vez de virar resíduo.</p>
+            </li>
+            <li>
+              <span aria-hidden="true">04</span>
+              <h3>Transforme</h3>
+              <p>Pequenas escolhas ajudam a criar um campus mais consciente.</p>
+            </li>
+          </ol>
+        </div>
       </section>
 
       <!-- 3. Estatísticas simuladas em faixa visual (Impacto) -->
-      <section aria-labelledby="titulo-impacto">
+      <section id="eficiencia" aria-labelledby="titulo-impacto">
         
         <h2 id="titulo-impacto">Cada anúncio mantém recursos em movimento.</h2>
         <dl>
           <div>
             <dt>Itens reaproveitados</dt>
-            <dd>248</dd>
+            <dd data-counter data-counter-to="248">248</dd>
           </div>
           <div>
             <dt>Quilos de resíduos evitados</dt>
-            <dd>612 kg</dd>
+            <dd data-counter data-counter-to="612" data-counter-suffix=" kg">612 kg</dd>
           </div>
           <div>
             <dt>Anúncios ativos</dt>
-            <dd>86</dd>
+            <dd data-counter data-counter-to="86">86</dd>
           </div>
           <div>
             <dt>Pessoas conectadas</dt>
-            <dd>173</dd>
+            <dd data-counter data-counter-to="173">173</dd>
           </div>
         </dl>
         <p>Dados demonstrativos para esta primeira versão.</p>
@@ -265,89 +301,19 @@
                 <button class="aba">Coleções</button>
                 <button class="aba">Doações</button>
               </div>
-              <span class="resultados-contagem">Mostrando 4 resultados</span>
+              <span id="resultados-contagem" class="resultados-contagem" aria-live="polite">
+                Nenhum anúncio carregado
+              </span>
             </div>
 
             <!-- Grade de Anúncios -->
-            <div id="lista-anuncios" class="grid-vitrine">
-              <!-- Card 1 -->
-              <article class="card-anuncio" data-categoria="livros" data-condicao="seminovo" data-modalidade="venda" data-preco="45">
-                <div class="card-media">
-                  <div class="card-emoji" aria-hidden="true">📚</div>
-                  <div class="card-creators">
-                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Ana" alt="" />
-                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Pedro" alt="" />
-                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bruno" alt="" />
-                  </div>
-                  <button class="card-likes" aria-label="125 curtidas. Curtir este item.">
-                    <span class="like-coracao" aria-hidden="true">♥</span> <span class="like-contador">125</span>
-                  </button>
-                </div>
-                <p class="card-cat">Livros e papelaria</p>
-                <h3>Kit de livros para Cálculo I</h3>
-                <p class="card-info">Seminovo · Biblioteca Central</p>
-                <p class="card-price">R$ 45,00</p>
-                <a href="#vitrine" class="btn-detalhes">Ver detalhes</a>
-              </article>
-
-              <!-- Card 2 -->
-              <article class="card-anuncio" data-categoria="eletronicos" data-condicao="usado" data-modalidade="venda" data-preco="220">
-                <div class="card-media">
-                  <div class="card-emoji" aria-hidden="true">🎧</div>
-                  <div class="card-creators">
-                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Carla" alt="" />
-                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Daniel" alt="" />
-                  </div>
-                  <button class="card-likes" aria-label="98 curtidas. Curtir este item.">
-                    <span class="like-coracao" aria-hidden="true">♥</span> <span class="like-contador">98</span>
-                  </button>
-                </div>
-                <p class="card-cat">Eletrônicos</p>
-                <h3>Fone de ouvido Bluetooth</h3>
-                <p class="card-info">Usado · Centro de Convivência</p>
-                <p class="card-price">R$ 220,00</p>
-                <a href="#vitrine" class="btn-detalhes">Ver detalhes</a>
-              </article>
-
-              <!-- Card 3 -->
-              <article class="card-anuncio" data-categoria="casa" data-condicao="seminovo" data-modalidade="doacao" data-preco="0">
-                <div class="card-media">
-                  <div class="card-emoji" aria-hidden="true">🪴</div>
-                  <div class="card-creators">
-                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Elisa" alt="" />
-                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felipe" alt="" />
-                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Julia" alt="" />
-                  </div>
-                  <button class="card-likes" aria-label="64 curtidas. Curtir este item.">
-                    <span class="like-coracao" aria-hidden="true">♥</span> <span class="like-contador">64</span>
-                  </button>
-                </div>
-                <p class="card-cat">Casa e decoração</p>
-                <h3>Vasos decorativos</h3>
-                <p class="card-info">Seminovo · Bloco H</p>
-                <p class="card-price">Doação</p>
-                <a href="#vitrine" class="btn-detalhes">Ver detalhes</a>
-              </article>
-
-              <!-- Card 4 -->
-              <article class="card-anuncio" data-categoria="moda" data-condicao="novo" data-modalidade="venda" data-preco="60">
-                <div class="card-media">
-                  <div class="card-emoji" aria-hidden="true">🎒</div>
-                  <div class="card-creators">
-                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Lucas" alt="" />
-                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Sofia" alt="" />
-                  </div>
-                  <button class="card-likes" aria-label="112 curtidas. Curtir este item.">
-                    <span class="like-coracao" aria-hidden="true">♥</span> <span class="like-contador">112</span>
-                  </button>
-                </div>
-                <p class="card-cat">Moda e acessórios</p>
-                <h3>Mochila para notebook</h3>
-                <p class="card-info">Novo · Bloco Q</p>
-                <p class="card-price">R$ 60,00</p>
-                <a href="#vitrine" class="btn-detalhes">Ver detalhes</a>
-              </article>
-            </div>
+            <div
+              id="lista-anuncios"
+              class="grid-vitrine"
+              aria-label="Anúncios disponíveis"
+              aria-live="polite"
+              aria-atomic="false"
+            ></div>
           </div>
         </div>
       </section>
@@ -502,7 +468,7 @@
         <h2 id="titulo-anunciar">Publique um anúncio</h2>
         <p>Preencha as informações para disponibilizar seu item na comunidade.</p>
 
-        <form id="formulario-anuncio" onsubmit="event.preventDefault();">
+        <form id="formulario-anuncio" novalidate>
           <div>
             <label for="nome-item">Nome do item</label>
             <input
@@ -544,12 +510,12 @@
             <input
               id="valor-item"
               name="valor"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="0,00"
+              type="text"
+              inputmode="decimal"
+              placeholder="R$ 0,00"
+              required
             />
-            <small>Deixe em branco caso o item seja uma doação.</small>
+            <small>Em anúncios de doação, o valor será definido como R$ 0,00.</small>
           </div>
           <div>
             <label for="localizacao-item">Localização para retirada</label>
@@ -563,7 +529,7 @@
           </div>
           <div>
             <label for="imagem-item">Imagem do item</label>
-            <input id="imagem-item" name="imagem" type="file" accept="image/*" />
+            <input id="imagem-item" name="imagem" type="file" accept="image/*" required />
           </div>
           <div>
             <label for="descricao-item">Descrição</label>
@@ -575,45 +541,24 @@
               required
             ></textarea>
           </div>
-          <button type="submit">Publicar anúncio</button>
+          <button id="botao-publicar-anuncio" type="submit" aria-live="polite">Publicar anúncio</button>
         </form>
+        <p id="feedback-anuncio" role="status" aria-live="polite"></p>
       </section>
 
-      <!-- 8. Gerenciador "Meus anúncios" com dados de exemplo iniciais compactos (editar/excluir) -->
+      <!-- 8. Gerenciador "Meus anúncios" -->
       <section id="meus-anuncios" aria-labelledby="titulo-meus-anuncios">
 
         <h2 id="titulo-meus-anuncios">Meus anúncios</h2>
         <p>Acompanhe e gerencie os itens que você publicou.</p>
 
-        <div id="lista-meus-anuncios" class="grid-meus-anuncios" aria-live="polite">
-          <!-- Exemplo 1 -->
-          <article class="card-meu-anuncio" data-id="1">
-            <div class="meu-anuncio-media" aria-hidden="true">📐</div>
-            <div class="meu-anuncio-detalhes">
-              <span class="status-badge ativo">Ativo</span>
-              <h3>Régua T para Desenho Técnico</h3>
-              <p>Preço: R$ 35,00 · Bloco T</p>
-            </div>
-            <div class="meu-anuncio-acoes">
-              <button class="btn-editar" aria-label="Editar Régua T para Desenho Técnico">Editar</button>
-              <button class="btn-excluir" aria-label="Excluir Régua T para Desenho Técnico">Excluir</button>
-            </div>
-          </article>
-
-          <!-- Exemplo 2 -->
-          <article class="card-meu-anuncio" data-id="2">
-            <div class="meu-anuncio-media" aria-hidden="true">👚</div>
-            <div class="meu-anuncio-detalhes">
-              <span class="status-badge doacao">Doação</span>
-              <h3>Casaco de Frio Unifor</h3>
-              <p>Preço: Grátis (Doação) · Bloco M</p>
-            </div>
-            <div class="meu-anuncio-acoes">
-              <button class="btn-editar" aria-label="Editar Casaco de Frio Unifor">Editar</button>
-              <button class="btn-excluir" aria-label="Excluir Casaco de Frio Unifor">Excluir</button>
-            </div>
-          </article>
-        </div>
+        <div
+          id="lista-meus-anuncios"
+          class="grid-meus-anuncios"
+          aria-label="Anúncios publicados por você"
+          aria-live="polite"
+          aria-atomic="false"
+        ></div>
       </section>
     </main>
 
@@ -660,5 +605,6 @@
     </footer>
 
     <script src="./app.js" defer></script>
+    <script src="./animations.js" defer></script>
   </body>
 </html>
