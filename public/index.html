@@ -201,12 +201,12 @@
             <div class="filtro-grupo">
               <h3>Categorias</h3>
               <ul class="filtro-lista-links">
-                <li><a href="#vitrine" class="active"><span class="filtro-nome">Todas as Categorias</span><span class="filtro-contagem">240</span></a></li>
-                <li><a href="#vitrine"><span class="filtro-nome">Livros e Papelaria</span><span class="filtro-contagem">86</span></a></li>
-                <li><a href="#vitrine"><span class="filtro-nome">Eletrônicos</span><span class="filtro-contagem">42</span></a></li>
-                <li><a href="#vitrine"><span class="filtro-nome">Casa e Decoração</span><span class="filtro-contagem">31</span></a></li>
-                <li><a href="#vitrine"><span class="filtro-nome">Moda e Acessórios</span><span class="filtro-contagem">57</span></a></li>
-                <li><a href="#vitrine"><span class="filtro-nome">Outros</span><span class="filtro-contagem">24</span></a></li>
+                <li><a href="#vitrine" class="active" data-categoria-filtro="todas"><span class="filtro-nome">Todas as Categorias</span><span class="filtro-contagem">0</span></a></li>
+                <li><a href="#vitrine" data-categoria-filtro="livros"><span class="filtro-nome">Livros e Papelaria</span><span class="filtro-contagem">0</span></a></li>
+                <li><a href="#vitrine" data-categoria-filtro="eletronicos"><span class="filtro-nome">Eletrônicos</span><span class="filtro-contagem">0</span></a></li>
+                <li><a href="#vitrine" data-categoria-filtro="casa"><span class="filtro-nome">Casa e Decoração</span><span class="filtro-contagem">0</span></a></li>
+                <li><a href="#vitrine" data-categoria-filtro="moda"><span class="filtro-nome">Moda e Acessórios</span><span class="filtro-contagem">0</span></a></li>
+                <li><a href="#vitrine" data-categoria-filtro="outros"><span class="filtro-nome">Outros</span><span class="filtro-contagem">0</span></a></li>
               </ul>
             </div>
 
@@ -235,19 +235,19 @@
               <ul class="filtro-lista-check">
                 <li>
                   <input type="checkbox" id="check-todos-cond" checked />
-                  <label for="check-todos-cond">Todas as condições <span>240</span></label>
+                  <label for="check-todos-cond" data-condicao-filtro="todas">Todas as condições <span class="filtro-contagem">0</span></label>
                 </li>
                 <li>
                   <input type="checkbox" id="check-novo" />
-                  <label for="check-novo">Novo <span>32</span></label>
+                  <label for="check-novo" data-condicao-filtro="novo">Novo <span class="filtro-contagem">0</span></label>
                 </li>
                 <li>
                   <input type="checkbox" id="check-seminovo" checked />
-                  <label for="check-seminovo">Seminovo <span>94</span></label>
+                  <label for="check-seminovo" data-condicao-filtro="seminovo">Seminovo <span class="filtro-contagem">0</span></label>
                 </li>
                 <li>
                   <input type="checkbox" id="check-usado" />
-                  <label for="check-usado">Usado <span>114</span></label>
+                  <label for="check-usado" data-condicao-filtro="usado">Usado <span class="filtro-contagem">0</span></label>
                 </li>
               </ul>
             </div>
@@ -257,15 +257,15 @@
               <ul class="filtro-lista-radio">
                 <li>
                   <input type="radio" name="modalidade-filtro" id="radio-todos" checked />
-                  <label for="radio-todos">Todas <span>240</span></label>
+                  <label for="radio-todos" data-modalidade-filtro="todas">Todas <span class="filtro-contagem">0</span></label>
                 </li>
                 <li>
                   <input type="radio" name="modalidade-filtro" id="radio-venda" />
-                  <label for="radio-venda">Venda <span>195</span></label>
+                  <label for="radio-venda" data-modalidade-filtro="venda">Venda <span class="filtro-contagem">0</span></label>
                 </li>
                 <li>
                   <input type="radio" name="modalidade-filtro" id="radio-doacao" />
-                  <label for="radio-doacao">Doação <span>45</span></label>
+                  <label for="radio-doacao" data-modalidade-filtro="doacao">Doação <span class="filtro-contagem">0</span></label>
                 </li>
               </ul>
             </div>
@@ -275,18 +275,29 @@
           <div class="vitrine-conteudo">
             <!-- Barra Superior de Busca e Ordenação -->
             <div class="vitrine-busca-barra">
-              <form class="busca-input-container" onsubmit="event.preventDefault();">
+              <form id="formulario-busca-vitrine" class="busca-input-container" role="search">
                 <span class="busca-icone" aria-hidden="true">🔍</span>
-                <input type="search" placeholder="Buscar anúncios, coleções e contas..." aria-label="Buscar item" />
+                <input
+                  id="busca-vitrine"
+                  type="search"
+                  placeholder="Buscar por item, categoria ou localização..."
+                  aria-label="Buscar anúncios"
+                  autocomplete="off"
+                />
               </form>
 
               <div class="vitrine-acoes">
-                <button class="btn-ordenar">Ordenar por &uarr;</button>
-                <div class="layout-toggle">
-                  <button class="btn-layout active" aria-label="Visualização em Grade">
+                <select id="ordenacao-vitrine" class="btn-ordenar" aria-label="Ordenar anúncios">
+                  <option value="recentes">Mais recentes</option>
+                  <option value="menor-preco">Menor preço</option>
+                  <option value="maior-preco">Maior preço</option>
+                  <option value="nome">Nome de A a Z</option>
+                </select>
+                <div class="layout-toggle" aria-label="Modo de visualização">
+                  <button class="btn-layout active" type="button" data-layout="grade" aria-label="Visualização em grade" aria-pressed="true">
                     <span aria-hidden="true">☷</span>
                   </button>
-                  <button class="btn-layout" aria-label="Visualização em Lista">
+                  <button class="btn-layout" type="button" data-layout="lista" aria-label="Visualização em lista" aria-pressed="false">
                     <span aria-hidden="true">☰</span>
                   </button>
                 </div>
@@ -295,11 +306,11 @@
 
             <!-- Abas do Catálogo -->
             <div class="vitrine-abas-container">
-              <div class="vitrine-abas">
-                <button class="aba active">Todos</button>
-                <button class="aba">Itens Recentes</button>
-                <button class="aba">Coleções</button>
-                <button class="aba">Doações</button>
+              <div class="vitrine-abas" aria-label="Filtrar catálogo">
+                <button class="aba active" type="button" data-aba-catalogo="todos" aria-pressed="true">Todos</button>
+                <button class="aba" type="button" data-aba-catalogo="recentes" aria-pressed="false">Itens recentes</button>
+                <button class="aba" type="button" data-aba-catalogo="venda" aria-pressed="false">À venda</button>
+                <button class="aba" type="button" data-aba-catalogo="doacao" aria-pressed="false">Doações</button>
               </div>
               <span id="resultados-contagem" class="resultados-contagem" aria-live="polite">
                 Nenhum anúncio carregado
@@ -529,7 +540,15 @@
           </div>
           <div>
             <label for="imagem-item">Imagem do item</label>
-            <input id="imagem-item" name="imagem" type="file" accept="image/*" required />
+            <input
+              id="imagem-item"
+              name="imagem"
+              type="file"
+              accept=".png,image/png"
+              aria-describedby="formato-imagem"
+              required
+            />
+            <small id="formato-imagem">Formato aceito: PNG.</small>
           </div>
           <div>
             <label for="descricao-item">Descrição</label>
@@ -603,6 +622,24 @@
       </div>
       <p class="footer-copy">&copy; 2026 Marketplace Vortex. Todos os direitos reservados.</p>
     </footer>
+
+    <dialog id="modal-imagem" class="modal-imagem" aria-labelledby="modal-imagem-titulo">
+      <div class="modal-imagem-conteudo">
+        <div class="modal-imagem-cabecalho">
+          <h2 id="modal-imagem-titulo"></h2>
+          <button
+            id="fechar-modal-imagem"
+            class="modal-imagem-fechar"
+            type="button"
+            aria-label="Fechar imagem ampliada"
+          >
+            &times;
+          </button>
+        </div>
+        <img id="imagem-ampliada" src="" alt="" />
+        <p>Pressione Esc ou clique fora da imagem para fechar.</p>
+      </div>
+    </dialog>
 
     <script src="./app.js" defer></script>
     <script src="./animations.js" defer></script>

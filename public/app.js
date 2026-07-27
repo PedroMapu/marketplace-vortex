@@ -9,6 +9,18 @@ const resultadosContagem = document.querySelector("#resultados-contagem");
 const feedbackAnuncio = document.querySelector("#feedback-anuncio");
 const nomeUsuario = document.querySelector("#nome-usuario");
 const headerPrincipal = document.querySelector("header");
+const formularioBuscaVitrine = document.querySelector("#formulario-busca-vitrine");
+const campoBuscaVitrine = document.querySelector("#busca-vitrine");
+const ordenacaoVitrine = document.querySelector("#ordenacao-vitrine");
+const abasCatalogo = document.querySelectorAll("[data-aba-catalogo]");
+const botoesLayout = document.querySelectorAll("[data-layout]");
+const filtrosCategoria = document.querySelectorAll("[data-categoria-filtro]");
+const filtrosCondicao = document.querySelectorAll("[data-condicao-filtro]");
+const filtrosModalidade = document.querySelectorAll("[data-modalidade-filtro]");
+const modalImagem = document.querySelector("#modal-imagem");
+const imagemAmpliada = document.querySelector("#imagem-ampliada");
+const tituloModalImagem = document.querySelector("#modal-imagem-titulo");
+const botaoFecharModalImagem = document.querySelector("#fechar-modal-imagem");
 
 const CHAVE_USUARIO = "marketplace-vortex:usuario";
 const categorias = {
@@ -26,6 +38,9 @@ const nomesCondicoes = {
 let temporizadorAvisoBotao;
 let temporizadorFeedback;
 let scrollHeaderAgendado = false;
+let termoBuscaVitrine = "";
+let abaCatalogoAtiva = "todos";
+let ordenacaoAtiva = "recentes";
 let anuncios = [
   {
     id: "anuncio-exemplo-1",
@@ -84,6 +99,9 @@ let anuncios = [
 const formatadorMoeda = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
+});
+const ordenadorAlfabetico = new Intl.Collator("pt-BR", {
+  sensitivity: "base",
 });
 
 function gerarId(prefixo) {
@@ -288,14 +306,20 @@ function obterDadosVisuaisCategoria(categoria) {
 }
 
 function criarMediaDoAnuncio(anuncio, classe) {
-  const media = criarElemento("div", classe);
+  const media = anuncio.imagemUrl
+    ? criarElemento("button", `${classe} botao-ampliar-imagem`)
+    : criarElemento("div", classe);
 
   if (anuncio.imagemUrl) {
+    media.type = "button";
+    media.dataset.anuncioId = anuncio.id;
     media.style.backgroundImage = `url("${anuncio.imagemUrl}")`;
     media.style.backgroundPosition = "center";
     media.style.backgroundSize = "cover";
-    media.setAttribute("role", "img");
-    media.setAttribute("aria-label", `Imagem de ${anuncio.nome}`);
+    media.setAttribute("aria-label", `Ampliar imagem de ${anuncio.nome}`);
+
+    const dica = criarElemento("span", "dica-ampliar", "Ampliar imagem");
+    media.append(dica);
   } else {
     const emoji = criarElemento(
       "span",
@@ -308,6 +332,61 @@ function criarMediaDoAnuncio(anuncio, classe) {
   }
 
   return media;
+}
+
+function abrirImagemDoAnuncio(id, elementoAcionador) {
+  const anuncio = anuncios.find((item) => item.id === String(id));
+
+  if (!anuncio?.imagemUrl || !modalImagem || !imagemAmpliada || !tituloModalImagem) {
+    return;
+  }
+
+  modalImagem.elementoAcionador = elementoAcionador;
+  imagemAmpliada.src = anuncio.imagemUrl;
+  imagemAmpliada.alt = `Imagem ampliada de ${anuncio.nome}`;
+  tituloModalImagem.textContent = anuncio.nome;
+  document.body.classList.add("modal-aberto");
+  modalImagem.showModal();
+}
+
+function fecharImagemAmpliada() {
+  if (modalImagem?.open) {
+    modalImagem.close();
+  }
+}
+
+function inicializarVisualizacaoDeImagens() {
+  if (!modalImagem || !botaoFecharModalImagem) {
+    return;
+  }
+
+  [listaAnuncios, listaMeusAnuncios].forEach((lista) => {
+    lista?.addEventListener("click", (evento) => {
+      const botaoImagem = evento.target.closest(".botao-ampliar-imagem");
+
+      if (botaoImagem && lista.contains(botaoImagem)) {
+        abrirImagemDoAnuncio(botaoImagem.dataset.anuncioId, botaoImagem);
+      }
+    });
+  });
+
+  botaoFecharModalImagem.addEventListener("click", fecharImagemAmpliada);
+
+  modalImagem.addEventListener("click", (evento) => {
+    const clicouNoConteudo =
+      evento.target.closest("#imagem-ampliada, #fechar-modal-imagem, #modal-imagem-titulo");
+
+    if (!clicouNoConteudo) {
+      fecharImagemAmpliada();
+    }
+  });
+
+  modalImagem.addEventListener("close", () => {
+    document.body.classList.remove("modal-aberto");
+    imagemAmpliada.removeAttribute("src");
+    modalImagem.elementoAcionador?.focus();
+    modalImagem.elementoAcionador = null;
+  });
 }
 
 function criarCardDaVitrine(anuncio) {
@@ -387,19 +466,154 @@ function criarEstadoVazio(mensagem) {
   return criarElemento("p", "estado-vazio", mensagem);
 }
 
+function normalizarTexto(texto) {
+  return String(texto)
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .trim();
+}
+
+function obterAnunciosVisiveis() {
+  const termoNormalizado = normalizarTexto(termoBuscaVitrine);
+  let itens = anuncios.map((anuncio, indice) => ({ anuncio, indice }));
+
+  if (abaCatalogoAtiva === "recentes") {
+    const primeiroIndiceRecente = Math.max(0, anuncios.length - 3);
+    itens = itens.filter(({ indice }) => indice >= primeiroIndiceRecente);
+  } else if (abaCatalogoAtiva === "venda" || abaCatalogoAtiva === "doacao") {
+    itens = itens.filter(
+      ({ anuncio }) => anuncio.modalidade === abaCatalogoAtiva,
+    );
+  }
+
+  if (termoNormalizado) {
+    itens = itens.filter(({ anuncio }) => {
+      const categoria = obterDadosVisuaisCategoria(anuncio.categoria).nome;
+      const condicao = nomesCondicoes[anuncio.condicao] || anuncio.condicao;
+      const modalidade =
+        anuncio.modalidade === "doacao" ? "Doação" : "Venda";
+      const conteudoPesquisavel = [
+        anuncio.nome,
+        anuncio.descricao,
+        anuncio.localizacao,
+        anuncio.usuarioNome,
+        categoria,
+        condicao,
+        modalidade,
+      ]
+        .map(normalizarTexto)
+        .join(" ");
+
+      return conteudoPesquisavel.includes(termoNormalizado);
+    });
+  }
+
+  itens.sort((itemA, itemB) => {
+    if (ordenacaoAtiva === "menor-preco") {
+      return itemA.anuncio.valor - itemB.anuncio.valor;
+    }
+
+    if (ordenacaoAtiva === "maior-preco") {
+      return itemB.anuncio.valor - itemA.anuncio.valor;
+    }
+
+    if (ordenacaoAtiva === "nome") {
+      return ordenadorAlfabetico.compare(
+        itemA.anuncio.nome,
+        itemB.anuncio.nome,
+      );
+    }
+
+    return itemB.indice - itemA.indice;
+  });
+
+  return itens.map(({ anuncio }) => anuncio);
+}
+
+function atualizarContadoresDosFiltros() {
+  const contagensCategoria = {
+    todas: anuncios.length,
+    livros: 0,
+    eletronicos: 0,
+    casa: 0,
+    moda: 0,
+    outros: 0,
+  };
+  const contagensCondicao = {
+    todas: anuncios.length,
+    novo: 0,
+    seminovo: 0,
+    usado: 0,
+  };
+  const contagensModalidade = {
+    todas: anuncios.length,
+    venda: 0,
+    doacao: 0,
+  };
+
+  anuncios.forEach((anuncio) => {
+    const categoria = Object.hasOwn(categorias, anuncio.categoria)
+      ? anuncio.categoria
+      : "outros";
+
+    contagensCategoria[categoria] += 1;
+
+    if (Object.hasOwn(contagensCondicao, anuncio.condicao)) {
+      contagensCondicao[anuncio.condicao] += 1;
+    }
+
+    if (Object.hasOwn(contagensModalidade, anuncio.modalidade)) {
+      contagensModalidade[anuncio.modalidade] += 1;
+    }
+  });
+
+  filtrosCategoria.forEach((filtro) => {
+    const contador = filtro.querySelector(".filtro-contagem");
+    const categoria = filtro.dataset.categoriaFiltro;
+
+    if (contador && Object.hasOwn(contagensCategoria, categoria)) {
+      contador.textContent = String(contagensCategoria[categoria]);
+    }
+  });
+
+  filtrosCondicao.forEach((filtro) => {
+    const contador = filtro.querySelector(".filtro-contagem");
+    const condicao = filtro.dataset.condicaoFiltro;
+
+    if (contador && Object.hasOwn(contagensCondicao, condicao)) {
+      contador.textContent = String(contagensCondicao[condicao]);
+    }
+  });
+
+  filtrosModalidade.forEach((filtro) => {
+    const contador = filtro.querySelector(".filtro-contagem");
+    const modalidade = filtro.dataset.modalidadeFiltro;
+
+    if (contador && Object.hasOwn(contagensModalidade, modalidade)) {
+      contador.textContent = String(contagensModalidade[modalidade]);
+    }
+  });
+}
+
 function renderizarAnuncios() {
   if (!listaAnuncios) {
     return;
   }
 
+  const anunciosVisiveis = obterAnunciosVisiveis();
   listaAnuncios.replaceChildren();
 
-  if (anuncios.length === 0) {
-    listaAnuncios.append(criarEstadoVazio("Nenhum anúncio disponível."));
+  if (anunciosVisiveis.length === 0) {
+    const mensagem = termoBuscaVitrine
+      ? `Nenhum anúncio encontrado para “${termoBuscaVitrine.trim()}”.`
+      : "Nenhum anúncio disponível nesta seleção.";
+
+    listaAnuncios.append(criarEstadoVazio(mensagem));
   } else {
     const fragmento = document.createDocumentFragment();
 
-    anuncios.forEach((anuncio) => {
+    anunciosVisiveis.forEach((anuncio) => {
       fragmento.append(criarCardDaVitrine(anuncio));
     });
 
@@ -407,10 +621,66 @@ function renderizarAnuncios() {
   }
 
   if (resultadosContagem) {
-    const total = anuncios.length;
-    resultadosContagem.textContent =
-      total === 1 ? "Mostrando 1 resultado" : `Mostrando ${total} resultados`;
+    const totalVisivel = anunciosVisiveis.length;
+    const totalGeral = anuncios.length;
+
+    if (totalVisivel === totalGeral) {
+      resultadosContagem.textContent =
+        totalVisivel === 1
+          ? "Mostrando 1 resultado"
+          : `Mostrando ${totalVisivel} resultados`;
+    } else {
+      resultadosContagem.textContent = `Mostrando ${totalVisivel} de ${totalGeral} resultados`;
+    }
   }
+
+  atualizarContadoresDosFiltros();
+}
+
+function inicializarControlesDaVitrine() {
+  formularioBuscaVitrine?.addEventListener("submit", (evento) => {
+    evento.preventDefault();
+  });
+
+  campoBuscaVitrine?.addEventListener("input", () => {
+    termoBuscaVitrine = campoBuscaVitrine.value;
+    renderizarAnuncios();
+  });
+
+  ordenacaoVitrine?.addEventListener("change", () => {
+    ordenacaoAtiva = ordenacaoVitrine.value;
+    renderizarAnuncios();
+  });
+
+  abasCatalogo.forEach((aba) => {
+    aba.addEventListener("click", () => {
+      abaCatalogoAtiva = aba.dataset.abaCatalogo;
+
+      abasCatalogo.forEach((item) => {
+        const estaAtiva = item === aba;
+        item.classList.toggle("active", estaAtiva);
+        item.setAttribute("aria-pressed", String(estaAtiva));
+      });
+
+      renderizarAnuncios();
+    });
+  });
+
+  botoesLayout.forEach((botao) => {
+    botao.addEventListener("click", () => {
+      const visualizacaoEmLista = botao.dataset.layout === "lista";
+      listaAnuncios?.classList.toggle(
+        "visualizacao-lista",
+        visualizacaoEmLista,
+      );
+
+      botoesLayout.forEach((item) => {
+        const estaAtivo = item === botao;
+        item.classList.toggle("active", estaAtivo);
+        item.setAttribute("aria-pressed", String(estaAtivo));
+      });
+    });
+  });
 }
 
 function renderizarMeusAnuncios() {
@@ -447,8 +717,13 @@ function criarAnuncio() {
   const valor =
     modalidade === "doacao" ? 0 : obterValorNumerico(dados.get("valor"));
 
-  if (!(arquivoImagem instanceof File) || !arquivoImagem.type.startsWith("image/")) {
-    mostrarFeedback("Escolha um arquivo de imagem válido.");
+  const arquivoEhPng =
+    arquivoImagem instanceof File &&
+    arquivoImagem.type === "image/png" &&
+    arquivoImagem.name.toLowerCase().endsWith(".png");
+
+  if (!arquivoEhPng) {
+    mostrarFeedback("Escolha uma imagem no formato PNG.");
     document.querySelector("#imagem-item")?.focus();
     return false;
   }
@@ -605,6 +880,8 @@ window.addEventListener("beforeunload", () => {
 sincronizarModalidadeComValor();
 inicializarFormularioDeAnuncio();
 inicializarExclusaoDeAnuncios();
+inicializarVisualizacaoDeImagens();
+inicializarControlesDaVitrine();
 inicializarHeaderFixo();
 renderizarAnuncios();
 renderizarMeusAnuncios();

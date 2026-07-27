@@ -1,0 +1,24 @@
+{
+  "name": "marketplace-vortex",
+  "version": "1.0.0",
+  "description": "Aplicação Full Stack para cadastro, listagem, filtro e exclusão de anúncios de produtos destinados à reutilização, venda ou doação.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PedroMapu/marketplace-vortex.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/PedroMapu/marketplace-vortex/issues"
+  },
+  "homepage": "https://github.com/PedroMapu/marketplace-vortex#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

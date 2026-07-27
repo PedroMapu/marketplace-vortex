@@ -296,3 +296,120 @@ Consigo explicar também que `criarAnuncio` lê o formulário, cria o objeto e u
 ### Commit
 
 `feat: implementar operações locais do Dia 5`
+
+## Dia 6 — 26/07/2026
+
+### Objetivo do dia
+
+Iniciar a estrutura de backend do Marketplace Vortex com Node.js e Express. O objetivo foi transformar a página estática em uma aplicação servida por um servidor local, criar a primeira rota JSON e padronizar a inicialização com `npm start`.
+
+Também reuni neste commit refinamentos do fluxo de publicação e da vitrine: aceitar somente imagens PNG, ampliar a imagem de um anúncio, apresentar contadores dinâmicos nos filtros e tornar funcionais a busca, a ordenação, as abas do catálogo e a alternância entre grade e lista.
+
+### O que eu fiz
+
+Inicializei o projeto com `npm init -y`, instalei o Express e gerei o `package-lock.json`. Criei o arquivo `server.js`, configurei o middleware `express.json()`, disponibilizei a rota `GET /api/status` e usei `express.static` para servir os arquivos existentes da pasta `public`.
+
+Atualizei o `package.json` para apontar o arquivo principal para `server.js` e adicionei o script `"start": "node server.js"`. O servidor usa a variável de ambiente `PORT` quando ela estiver disponível e adota a porta 3000 como padrão.
+
+No formulário de anúncio, restringi o seletor e a validação do JavaScript ao formato PNG. Também implementei uma visualização ampliada para as imagens publicadas, com abertura pelo mouse ou teclado e fechamento pelo botão, pela tecla Esc ou pelo clique fora do conteúdo.
+
+Substituí os números demonstrativos dos filtros por contagens calculadas a partir do array `anuncios`. Categorias, condições e modalidades agora mostram quantos anúncios existem em cada opção, e esses valores são recalculados após a criação ou exclusão de um item.
+
+Conectei a barra de busca aos dados dos anúncios. A pesquisa considera nome, descrição, categoria, condição, modalidade, localização e autor. Implementei também ordenação por itens recentes, menor preço, maior preço e nome em ordem alfabética.
+
+As abas do catálogo passaram a filtrar todos os anúncios, os três itens mais recentes, os itens à venda e as doações. Como o modelo de anúncio ainda não possui associação com coleções, substituí a aba “Coleções” por “À venda”. Os botões de layout agora alternam entre grade e lista, com adaptação para telas menores.
+
+### Prompts usados
+
+Execute `npm init -y`, instale Express, crie o servidor, sirva a pasta `public`, crie a primeira rota JSON e crie o script `npm start`.
+
+Faça um planejamento em relatório de tudo que será feito e, depois, siga o planejamento.
+
+Permita somente o envio de imagens PNG na publicação e possibilite que o usuário abra a imagem do anúncio para visualizá-la mais de perto.
+
+Faça os contadores de categorias, condições e modalidades representarem dinamicamente os anúncios existentes.
+
+Torne funcionais a barra superior de busca e ordenação, as ações de visualização e as abas do catálogo.
+
+### Resposta da IA
+
+A IA organizou a implementação em etapas dependentes: preparar o projeto Node.js, instalar a dependência, criar o servidor, registrar a rota da API, servir o frontend e testar o resultado.
+
+Foi escolhida a rota `GET /api/status` como primeira resposta JSON por ser simples e adequada para verificar se o backend está ativo. A resposta contém a mensagem “API do Marketplace Vortex funcionando.”.
+
+Para ampliar as imagens, foi utilizado o elemento nativo `dialog`, que já oferece comportamento de modal e suporte à tecla Esc. A interação recebeu rótulos acessíveis, foco visível e devolução do foco ao botão que abriu a imagem.
+
+Para evitar números divergentes, a IA centralizou os cálculos em `atualizarContadoresDosFiltros`. A renderização passou a obter somente os anúncios visíveis de acordo com o termo pesquisado, a aba ativa e a ordenação escolhida.
+
+Os controles receberam atributos `data-*` para relacionar os elementos do HTML aos valores dos objetos. Os estados ativos são comunicados visualmente e pelo atributo `aria-pressed`.
+
+### O que funcionou
+
+O comando `npm start` iniciou o Express e exibiu o endereço `http://localhost:3000`. A página inicial foi entregue pelo servidor com status HTTP 200 e a rota `/api/status` retornou o JSON esperado.
+
+O Express foi instalado na versão 5.2.1 e a auditoria do npm não encontrou vulnerabilidades. Os arquivos anteriores do frontend permaneceram dentro da pasta `public` e continuaram sendo servidos pelos mesmos caminhos relativos.
+
+A seleção de arquivo agora informa o formato aceito, e a validação bloqueia arquivos que não tenham o tipo MIME `image/png` e a extensão `.png`. Quando um anúncio possui uma imagem, sua miniatura se transforma em um botão que abre a visualização ampliada.
+
+Os quatro anúncios simulados geram corretamente as contagens: um novo, dois seminovos, um usado, três vendas e uma doação. As categorias também começam com um anúncio em cada categoria existente e zero em “Outros”.
+
+A busca atualiza a vitrine durante a digitação, as ordenações mudam a sequência dos cartões e as abas podem ser combinadas com o texto pesquisado. A quantidade de resultados informa tanto o número visível quanto o total quando existe um filtro ativo.
+
+### Erros encontrados
+
+No início, os comandos `node` e `npm` não foram reconhecidos pela sessão atual do terminal. A investigação mostrou que o Node.js LTS 24.18.0 já estava instalado pelo Windows Package Manager e registrado no `PATH` do usuário, mas a sessão em execução ainda conservava o valor antigo. Para concluir a atividade, utilizei diretamente os executáveis da instalação encontrada.
+
+O navegador integrado não estava disponível para a inspeção visual automatizada do modal e dos novos controles da vitrine. Por isso, a implementação foi revisada estaticamente, e o teste do servidor foi realizado com requisições HTTP locais.
+
+Os anúncios simulados não possuem arquivos de imagem e continuam mostrando apenas os seus fundos e emojis. A ampliação fica disponível nos anúncios criados pelo formulário com uma imagem PNG.
+
+### Como investiguei
+
+Conferi a instalação do Node.js pelo Windows Package Manager, localizei `node.exe` e `npm.cmd` e confirmei a versão instalada. Depois, validei a sintaxe de `server.js`, consultei a árvore de dependências com `npm list express --depth=0` e executei o servidor pelo próprio script `npm start`.
+
+Com o servidor ativo, fiz uma requisição para `/api/status` e outra para `/`. Comparei o conteúdo JSON retornado, o código HTTP da página e a mensagem registrada pelo servidor. Ao final, encerrei o processo temporário de teste e removi os logs usados somente durante a verificação.
+
+Também usei `git diff --check` para verificar a formatação das alterações antes do commit.
+
+Para os filtros, simulei anúncios com diferentes categorias, condições, modalidades e preços. Conferi as quantidades esperadas, a seleção de doações, a ordenação crescente e decrescente e uma busca textual. Também confirmei pelo servidor que o HTML entregue contém os controles de busca, ordenação e abas.
+
+### O que aprendi
+
+Aprendi que o `package.json` descreve o projeto, registra suas dependências e centraliza comandos como `npm start`. O `package-lock.json` registra as versões resolvidas das dependências para tornar instalações futuras mais previsíveis.
+
+Aprendi que o Express recebe requisições por meio de rotas. `app.get` responde a uma requisição GET, `response.json` envia dados JSON e `express.static` permite entregar HTML, CSS, JavaScript e imagens de uma pasta.
+
+Também aprendi que a propriedade `accept` do campo de arquivo ajuda o usuário a escolher o formato correto, mas a validação ainda precisa ser repetida no JavaScript e, futuramente, no backend. O modal melhora a visualização, enquanto os controles de teclado e foco tornam a interação acessível.
+
+Aprendi que filtros não devem alterar a fonte original de dados. Em vez disso, `filter`, `sort` e `map` produzem a lista que deve ser exibida naquele momento. O estado da busca, da aba e da ordenação pode ser mantido separadamente e aplicado novamente a cada renderização.
+
+Também aprendi que números escritos diretamente no HTML ficam desatualizados. Quando a interface deriva as contagens do mesmo array usado para montar os cartões, os indicadores permanecem coerentes depois de criar ou excluir anúncios.
+
+### Código que consigo explicar
+
+Consigo explicar que `express()` cria a aplicação, `PORT` define a porta do servidor, `express.json()` prepara o recebimento de JSON e `app.listen` começa a aceitar conexões.
+
+Consigo explicar também que `app.get("/api/status", ...)` registra a primeira rota da API e que `express.static(path.join(__dirname, "public"))` transforma a pasta `public` na origem dos arquivos do site.
+
+No frontend, consigo explicar que `criarMediaDoAnuncio` cria um botão quando há uma imagem e que `abrirImagemDoAnuncio` procura o anúncio pelo ID, configura o conteúdo do modal e chama `showModal()`.
+
+Consigo explicar que `obterAnunciosVisiveis` combina a aba ativa, o texto da busca e a ordenação sem alterar o array original. `inicializarControlesDaVitrine` registra os eventos dos controles, enquanto `atualizarContadoresDosFiltros` percorre todos os anúncios e atualiza os números mostrados na lateral.
+
+### Testes realizados
+
+- Projeto Node.js inicializado e arquivos do npm gerados.
+- Express 5.2.1 confirmado como dependência direta.
+- Auditoria do npm concluída sem vulnerabilidades.
+- Sintaxe de `server.js` validada.
+- Servidor iniciado pelo script `npm start`.
+- Página inicial respondendo com HTTP 200.
+- Rota `/api/status` respondendo com JSON válido.
+- Contagens de categorias, condições e modalidades verificadas.
+- Busca textual, seleção de doações e ordenação por preço simuladas.
+- Controles de busca, ordenação e abas confirmados no HTML servido.
+- Sintaxe do JavaScript do frontend validada.
+- Formatação do diff verificada.
+
+### Commit
+
+`feat: iniciar backend Express do Dia 6`
