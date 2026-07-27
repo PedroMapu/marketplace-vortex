@@ -413,3 +413,111 @@ Consigo explicar que `obterAnunciosVisiveis` combina a aba ativa, o texto da bus
 ### Commit
 
 `feat: iniciar backend Express do Dia 6`
+
+## Dia 7 antecipado — 26/07/2026
+
+### Objetivo do dia
+
+Antecipar a etapa de SQLite e das rotas principais da API prevista para 30/07/2026. O objetivo foi criar persistência real para os anúncios, implementar as operações GET e POST e comprovar que os dados continuam disponíveis depois que o servidor é reiniciado.
+
+### O que eu fiz
+
+Confirmei que o Node.js 24.18.0 instalado no ambiente oferece suporte ao módulo nativo `node:sqlite`, sem necessidade de instalar outra dependência.
+
+Criei o arquivo `database.js`. Ele cria automaticamente a pasta `data`, abre o banco `data/marketplace.db` e executa `CREATE TABLE IF NOT EXISTS anuncios`. O arquivo do banco não foi criado manualmente.
+
+A tabela recebeu as colunas `id`, `nome`, `categoria`, `condicao`, `modalidade`, `valor`, `localizacao`, `descricao`, `imagemUrl`, `usuarioId`, `usuarioNome` e `criadoEm`. O ID é gerado automaticamente e a data de criação recebe um valor ISO produzido pelo SQLite.
+
+Preparei consultas SQL para inserir, listar e localizar um anúncio pelo ID. As funções `listarAnuncios` e `criarAnuncio` foram exportadas para que o servidor não precise conhecer os detalhes da conexão.
+
+No `server.js`, implementei `GET /api/anuncios` e `POST /api/anuncios`. A criação valida os campos, normaliza os textos e verifica categoria, condição, modalidade e valor antes de executar o INSERT. Uma criação válida responde com HTTP 201; entradas inválidas e JSON malformado respondem com HTTP 400 em JSON.
+
+Também adicionei respostas JSON para rotas de API inexistentes e falhas internas. A rota `/api/status` e o serviço dos arquivos da pasta `public` foram preservados.
+
+Atualizei o `.gitignore` para não versionar `data/*.db` nem os arquivos auxiliares que o SQLite possa gerar.
+
+### Organização entre agentes
+
+O trabalho foi dividido entre três agentes temporários. Um agente implementou exclusivamente `database.js`, outro implementou exclusivamente as rotas em `server.js` e o terceiro realizou uma revisão independente da estratégia de testes e da integridade do repositório.
+
+O agente principal consultou o Plano de Aprendizagem, definiu o contrato entre banco e API, integrou os resultados, executou os testes completos e preservou uma alteração local preexistente em `public/index.html`, que não pertence ao Dia 7.
+
+### Prompt usado
+
+Antecipe o Dia 7 do Plano de Aprendizagem, separe o trabalho entre agentes, crie `database.js`, garanta a criação automática da pasta `data`, crie a tabela `anuncios`, implemente GET e POST, confirme a persistência após reiniciar o servidor e teste as respostas em JSON. Antes de começar, produza um relatório com o planejamento, os critérios de conclusão e a estratégia de testes.
+
+### Resposta da IA
+
+Antes de modificar os arquivos, a IA apresentou um relatório com as etapas, a divisão entre agentes, os critérios de aceitação e os testes previstos.
+
+A arquitetura foi separada em duas camadas. `database.js` concentra a pasta, a conexão, a tabela e os prepared statements. `server.js` concentra HTTP, validação, códigos de status e respostas JSON.
+
+O formato dos registros foi alinhado aos objetos já usados no frontend para facilitar a integração prevista para o Dia 8.
+
+### O que funcionou
+
+Ao carregar `database.js`, a pasta e o arquivo SQLite foram gerados automaticamente. A tabela `anuncios` foi encontrada no catálogo do SQLite com as 12 colunas esperadas.
+
+O GET respondeu com HTTP 200, `Content-Type: application/json` e um array. O POST válido respondeu com HTTP 201 e retornou o anúncio completo com ID e data gerados.
+
+Um POST vazio e uma requisição com JSON malformado responderam com HTTP 400 em JSON. Uma doação com valor zero foi aceita, enquanto combinações inválidas de modalidade e valor foram bloqueadas.
+
+Para verificar persistência, criei um anúncio pela API, encerrei o servidor, iniciei um novo processo e consultei o GET. O mesmo ID continuou presente. Ao final, removi diretamente do banco apenas os dois registros temporários usados pelos testes, deixando a tabela vazia.
+
+A página inicial e `/api/status` continuaram respondendo com HTTP 200.
+
+### Erros encontrados
+
+As ferramentas de linha de comando do Poppler não estavam disponíveis para consultar visualmente o PDF do plano. Usei `pypdf` como alternativa para extrair somente as páginas relacionadas ao Dia 7.
+
+Durante a revisão, foi identificada uma alteração local preexistente em `public/index.html`, removendo um pequeno texto da vitrine. Como ela não pertence ao escopo do backend e não foi feita pelos agentes, foi preservada e mantida fora do commit do Dia 7.
+
+Um primeiro comando de inspeção do banco apresentou erro de aspas no código passado ao `node -e`. O problema estava apenas no comando de teste; a consulta foi repetida com a citação correta e confirmou a tabela e zero registros restantes.
+
+A revisão independente observou que categoria, condição e modalidade com espaços externos seriam verificadas antes da normalização. Ajustei a validação para aplicar `trim()` antes de consultar os valores permitidos.
+
+### Como investiguei
+
+Consultei o Plano de Aprendizagem para confirmar o uso de `node:sqlite`, os arquivos do Dia 7 e a regra de não criar o banco manualmente. Executei `require("node:sqlite")` para verificar a compatibilidade real do ambiente.
+
+Validei a sintaxe de `database.js` e `server.js` com `node --check`. Consultei `PRAGMA table_info(anuncios)` e `sqlite_schema` para confirmar as colunas e a existência da tabela.
+
+Iniciei o servidor em uma porta temporária, fiz requisições HTTP para GET, POST, status e página inicial, encerrei o processo e o iniciei novamente. Comparei o ID criado antes do reinício com os dados retornados depois dele.
+
+### O que aprendi
+
+Aprendi que banco, tabela, linha e coluna representam níveis diferentes da persistência. `CREATE TABLE IF NOT EXISTS` permite inicializar a estrutura sem apagar dados existentes.
+
+Aprendi que prepared statements separam os valores do comando SQL, reduzem riscos de injeção e podem ser reutilizados. `INSERT` cria uma linha, enquanto `SELECT` recupera os dados persistidos.
+
+Também aprendi que `req.body` contém o JSON enviado pelo cliente, `res.status` define o código HTTP e `res.json` garante uma resposta JSON. HTTP 200 representa uma leitura bem-sucedida, 201 representa uma criação e 400 indica dados enviados incorretamente.
+
+Reiniciar o processo do servidor não remove os dados porque eles estão gravados no arquivo SQLite, e não apenas em uma variável na memória.
+
+### Código que consigo explicar
+
+Consigo explicar que `mkdirSync(pastaDados, { recursive: true })` garante a existência da pasta, `new DatabaseSync(caminhoBanco)` abre ou cria o banco e `database.exec` inicializa a tabela.
+
+Consigo explicar que `database.prepare` cria uma consulta preparada, `.run` executa o INSERT, `.all` retorna várias linhas e `.get` retorna somente uma.
+
+No servidor, consigo explicar que GET chama `listarAnuncios`, POST valida `req.body`, chama `criarAnuncio` e responde com o registro criado e HTTP 201.
+
+### Testes realizados
+
+- Compatibilidade de `node:sqlite` confirmada.
+- Sintaxe de `database.js` e `server.js` validada.
+- Criação automática da pasta e do arquivo de banco confirmada.
+- Tabela `anuncios` e suas 12 colunas verificadas.
+- GET respondendo HTTP 200 com array JSON.
+- POST válido respondendo HTTP 201 com ID gerado.
+- Doação com valor zero aceita.
+- POST inválido respondendo HTTP 400 em JSON.
+- JSON malformado respondendo HTTP 400 em JSON.
+- Persistência do mesmo ID confirmada após reiniciar o servidor.
+- Página inicial e `/api/status` respondendo HTTP 200.
+- Registros temporários removidos ao final.
+- Processos e logs temporários encerrados e removidos.
+
+### Commit
+
+`feat: antecipar persistência SQLite do Dia 7`
