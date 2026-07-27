@@ -25,14 +25,32 @@
           <li><a href="#como-funciona">Como funciona</a></li>
           <li><a href="#eficiencia">Estatísticas</a></li>
           <li><a href="#vitrine">Explorar</a></li>
-          <li><a href="#anunciar">Anunciar</a></li>
+          <li><a href="#vitrine">Anunciar</a></li>
           <li><a href="#meus-anuncios">Meus anúncios</a></li>
         </ul>
       </nav>
 
       <div class="header-actions">
-        <a id="nome-usuario" href="#vitrine" class="btn-login" aria-live="polite">Entrar</a>
-        <a href="#anunciar" class="btn-register">Criar anúncio</a>
+        <div class="conta-usuario">
+          <button
+            id="nome-usuario"
+            class="btn-login"
+            type="button"
+            aria-label="Entrar na conta"
+            aria-live="polite"
+            aria-expanded="false"
+            aria-controls="menu-conta"
+          >
+            <span class="icone-conta-cta" aria-hidden="true"></span>
+            <span class="rotulo-conta-cta">Entrar na conta</span>
+            <span class="indicador-conta-cta" aria-hidden="true">→</span>
+          </button>
+          <div id="menu-conta" class="menu-conta" role="menu" hidden>
+            <button id="botao-sair-conta" type="button" role="menuitem">
+              Sair da conta
+            </button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -46,7 +64,7 @@
           uma economia mais circular.
         </p>
         <div class="hero-ctas" aria-label="Ações principais">
-          <a href="#anunciar" class="hero-cta hero-cta-primary">Quero anunciar!</a>
+          <a href="#vitrine" class="hero-cta hero-cta-primary">Quero anunciar!</a>
           <a href="#vitrine" class="hero-cta hero-cta-secondary">Quero explorar!</a>
         </div>
 
@@ -190,7 +208,7 @@
       <!-- 4. Vitrine de Anúncios com sidebar de filtros e barra de busca superior -->
       <section id="vitrine" aria-labelledby="titulo-vitrine">
         <div class="vitrine-header-content">
-          <p>Descubra oportunidades</p>
+
           <h2 id="titulo-vitrine">Itens que podem ganhar uma nova história</h2>
           <p>Explore o catálogo com os filtros detalhados e encontre o que precisa no campus.</p>
         </div>
@@ -201,7 +219,7 @@
             <div class="filtro-grupo">
               <h3>Categorias</h3>
               <ul class="filtro-lista-links">
-                <li><a href="#vitrine" class="active" data-categoria-filtro="todas"><span class="filtro-nome">Todas as Categorias</span><span class="filtro-contagem">0</span></a></li>
+                <li><a href="#vitrine" class="active" data-categoria-filtro="todas" aria-current="true"><span class="filtro-nome">Todas as Categorias</span><span class="filtro-contagem">0</span></a></li>
                 <li><a href="#vitrine" data-categoria-filtro="livros"><span class="filtro-nome">Livros e Papelaria</span><span class="filtro-contagem">0</span></a></li>
                 <li><a href="#vitrine" data-categoria-filtro="eletronicos"><span class="filtro-nome">Eletrônicos</span><span class="filtro-contagem">0</span></a></li>
                 <li><a href="#vitrine" data-categoria-filtro="casa"><span class="filtro-nome">Casa e Decoração</span><span class="filtro-contagem">0</span></a></li>
@@ -274,35 +292,176 @@
           <!-- Coluna Principal da Vitrine -->
           <div class="vitrine-conteudo">
             <!-- Barra Superior de Busca e Ordenação -->
-            <div class="vitrine-busca-barra">
-              <form id="formulario-busca-vitrine" class="busca-input-container" role="search">
-                <span class="busca-icone" aria-hidden="true">🔍</span>
-                <input
-                  id="busca-vitrine"
-                  type="search"
-                  placeholder="Buscar por item, categoria ou localização..."
-                  aria-label="Buscar anúncios"
-                  autocomplete="off"
-                />
-              </form>
+            <div class="vitrine-topo">
+              <div class="vitrine-busca-barra">
+                <form id="formulario-busca-vitrine" class="busca-input-container" role="search">
+                  <span class="busca-icone" aria-hidden="true">🔍</span>
+                  <input
+                    id="busca-vitrine"
+                    type="search"
+                    placeholder="Buscar por item, categoria ou localização..."
+                    aria-label="Buscar anúncios"
+                    autocomplete="off"
+                  />
+                </form>
 
-              <div class="vitrine-acoes">
-                <select id="ordenacao-vitrine" class="btn-ordenar" aria-label="Ordenar anúncios">
-                  <option value="recentes">Mais recentes</option>
-                  <option value="menor-preco">Menor preço</option>
-                  <option value="maior-preco">Maior preço</option>
-                  <option value="nome">Nome de A a Z</option>
-                </select>
-                <div class="layout-toggle" aria-label="Modo de visualização">
-                  <button class="btn-layout active" type="button" data-layout="grade" aria-label="Visualização em grade" aria-pressed="true">
-                    <span aria-hidden="true">☷</span>
-                  </button>
-                  <button class="btn-layout" type="button" data-layout="lista" aria-label="Visualização em lista" aria-pressed="false">
-                    <span aria-hidden="true">☰</span>
-                  </button>
+                <div class="vitrine-acoes">
+                  <select id="ordenacao-vitrine" class="btn-ordenar" aria-label="Ordenar anúncios">
+                    <option value="recentes">Mais recentes</option>
+                    <option value="menor-preco">Menor preço</option>
+                    <option value="maior-preco">Maior preço</option>
+                    <option value="nome">Nome de A a Z</option>
+                  </select>
+                  <div class="layout-toggle" aria-label="Modo de visualização">
+                    <button class="btn-layout active" type="button" data-layout="grade" aria-label="Visualização em grade" aria-pressed="true">
+                      <span aria-hidden="true">☷</span>
+                    </button>
+                    <button class="btn-layout" type="button" data-layout="lista" aria-label="Visualização em lista" aria-pressed="false">
+                      <span aria-hidden="true">☰</span>
+                    </button>
+                  </div>
                 </div>
               </div>
+
+              <div class="vitrine-ctas" aria-label="Ações da vitrine">
+                <button
+                  id="botao-abrir-anuncio"
+                  class="vitrine-cta vitrine-cta-primary"
+                  type="button"
+                  aria-expanded="false"
+                  aria-controls="painel-novo-anuncio"
+                >
+                  Anunciar
+                </button>
+                <button
+                  id="botao-criar-colecao"
+                  class="vitrine-cta vitrine-cta-secondary"
+                  type="button"
+                  aria-controls="colecoes-destaque"
+                >
+                  Criar Coleção
+                </button>
+              </div>
             </div>
+
+            <section
+              id="painel-novo-anuncio"
+              class="painel-novo-anuncio"
+              aria-labelledby="titulo-novo-anuncio"
+              hidden
+            >
+              <div class="painel-novo-anuncio-cabecalho">
+                <div>
+                  <p>Seu item, uma nova história</p>
+                  <h3 id="titulo-novo-anuncio">Publique um anúncio</h3>
+                </div>
+                <button
+                  id="botao-fechar-anuncio"
+                  class="botao-fechar-anuncio"
+                  type="button"
+                  aria-label="Fechar formulário de anúncio"
+                >
+                  ×
+                </button>
+              </div>
+
+              <p>Preencha as informações para disponibilizar seu item na comunidade.</p>
+
+              <form id="formulario-novo-anuncio" class="formulario-novo-anuncio" novalidate>
+                <div>
+                  <label for="nome-item">Nome do item</label>
+                  <input
+                    id="nome-item"
+                    name="nome"
+                    type="text"
+                    placeholder="Ex.: Calculadora científica"
+                    required
+                  />
+                </div>
+                <div>
+                  <label for="categoria-item">Categoria</label>
+                  <select id="categoria-item" name="categoria" required>
+                    <option value="" selected disabled>Selecione uma categoria</option>
+                    <option value="livros">Livros e papelaria</option>
+                    <option value="eletronicos">Eletrônicos</option>
+                    <option value="casa">Casa e decoração</option>
+                    <option value="moda">Moda e acessórios</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="condicao-item">Condição</label>
+                  <select id="condicao-item" name="condicao" required>
+                    <option value="" selected disabled>Selecione a condição</option>
+                    <option value="novo">Novo</option>
+                    <option value="seminovo">Seminovo</option>
+                    <option value="usado">Usado</option>
+                  </select>
+                </div>
+                <fieldset>
+                  <legend>Modalidade</legend>
+                  <input id="modalidade-venda" name="modalidade" type="radio" value="venda" required />
+                  <label for="modalidade-venda">Venda</label>
+                  <input id="modalidade-doacao" name="modalidade" type="radio" value="doacao" />
+                  <label for="modalidade-doacao">Doação</label>
+                </fieldset>
+                <div>
+                  <label for="valor-item">Valor</label>
+                  <input
+                    id="valor-item"
+                    name="valor"
+                    type="text"
+                    inputmode="decimal"
+                    placeholder="R$ 0,00"
+                    required
+                  />
+                  <small>Em anúncios de doação, o valor será definido como R$ 0,00.</small>
+                </div>
+                <div>
+                  <label for="localizacao-item">Localização para retirada</label>
+                  <input
+                    id="localizacao-item"
+                    name="localizacao"
+                    type="text"
+                    placeholder="Ex.: Bloco Q, Centro de Convivência"
+                    required
+                  />
+                </div>
+                <div>
+                  <label for="imagem-item">Imagem do item</label>
+                  <input
+                    id="imagem-item"
+                    name="imagem"
+                    type="file"
+                    accept=".png,.jpg,.jpeg,image/png,image/jpeg"
+                    aria-describedby="formato-imagem erro-imagem"
+                    required
+                  />
+                  <div id="formato-imagem" class="instrucoes-imagem">
+                    <ul>
+                      <li>Formatos aceitos: PNG, JPG e JPEG.</li>
+                      <li>Tamanho ideal: 1200 x 900 px (4:3).</li>
+                      <li>Proporção mínima visível: 1:1.</li>
+                      <li>Arquivo de até 5 MB.</li>
+                    </ul>
+                  </div>
+                  <div id="erro-imagem" class="erros-imagem" role="alert" hidden></div>
+                </div>
+                <div>
+                  <label for="descricao-item">Descrição</label>
+                  <textarea
+                    id="descricao-item"
+                    name="descricao"
+                    rows="5"
+                    placeholder="Conte um pouco mais sobre o estado e a utilidade do item."
+                    required
+                  ></textarea>
+                </div>
+                <button id="botao-publicar-anuncio" type="submit" aria-live="polite">
+                  Publicar anúncio
+                </button>
+              </form>
+              <p id="feedback-anuncio" role="status" aria-live="polite"></p>
+            </section>
 
             <!-- Abas do Catálogo -->
             <div class="vitrine-abas-container">
@@ -473,98 +632,6 @@
         </div>
       </section>
 
-      <!-- 7. Formulário de anúncio -->
-      <section id="anunciar" aria-labelledby="titulo-anunciar">
-        
-        <h2 id="titulo-anunciar">Publique um anúncio</h2>
-        <p>Preencha as informações para disponibilizar seu item na comunidade.</p>
-
-        <form id="formulario-anuncio" novalidate>
-          <div>
-            <label for="nome-item">Nome do item</label>
-            <input
-              id="nome-item"
-              name="nome"
-              type="text"
-              placeholder="Ex.: Calculadora científica"
-              required
-            />
-          </div>
-          <div>
-            <label for="categoria-item">Categoria</label>
-            <select id="categoria-item" name="categoria" required>
-              <option value="" selected disabled>Selecione uma categoria</option>
-              <option value="livros">Livros e papelaria</option>
-              <option value="eletronicos">Eletrônicos</option>
-              <option value="casa">Casa e decoração</option>
-              <option value="moda">Moda e acessórios</option>
-            </select>
-          </div>
-          <div>
-            <label for="condicao-item">Condição</label>
-            <select id="condicao-item" name="condicao" required>
-              <option value="" selected disabled>Selecione a condição</option>
-              <option value="novo">Novo</option>
-              <option value="seminovo">Seminovo</option>
-              <option value="usado">Usado</option>
-            </select>
-          </div>
-          <fieldset>
-            <legend>Modalidade</legend>
-            <input id="modalidade-venda" name="modalidade" type="radio" value="venda" required />
-            <label for="modalidade-venda">Venda</label>
-            <input id="modalidade-doacao" name="modalidade" type="radio" value="doacao" />
-            <label for="modalidade-doacao">Doação</label>
-          </fieldset>
-          <div>
-            <label for="valor-item">Valor</label>
-            <input
-              id="valor-item"
-              name="valor"
-              type="text"
-              inputmode="decimal"
-              placeholder="R$ 0,00"
-              required
-            />
-            <small>Em anúncios de doação, o valor será definido como R$ 0,00.</small>
-          </div>
-          <div>
-            <label for="localizacao-item">Localização para retirada</label>
-            <input
-              id="localizacao-item"
-              name="localizacao"
-              type="text"
-              placeholder="Ex.: Bloco Q, Centro de Convivência"
-              required
-            />
-          </div>
-          <div>
-            <label for="imagem-item">Imagem do item</label>
-            <input
-              id="imagem-item"
-              name="imagem"
-              type="file"
-              accept=".png,image/png"
-              aria-describedby="formato-imagem"
-              required
-            />
-            <small id="formato-imagem">Formato aceito: PNG.</small>
-          </div>
-          <div>
-            <label for="descricao-item">Descrição</label>
-            <textarea
-              id="descricao-item"
-              name="descricao"
-              rows="5"
-              placeholder="Conte um pouco mais sobre o estado e a utilidade do item."
-              required
-            ></textarea>
-          </div>
-          <button id="botao-publicar-anuncio" type="submit" aria-live="polite">Publicar anúncio</button>
-        </form>
-        <p id="feedback-anuncio" role="status" aria-live="polite"></p>
-      </section>
-
       <!-- 8. Gerenciador "Meus anúncios" -->
       <section id="meus-anuncios" aria-labelledby="titulo-meus-anuncios">
 
@@ -600,7 +667,7 @@
           <ul>
             <li><a href="#como-funciona">Economia circular</a></li>
             <li><a href="#vitrine">Explorar anúncios</a></li>
-            <li><a href="#anunciar">Criar anúncio</a></li>
+            <li><a href="#vitrine">Criar anúncio</a></li>
           </ul>
         </nav>
         

@@ -1,13 +1,25 @@
 const valorItem = document.querySelector("#valor-item");
 const modalidadeVenda = document.querySelector("#modalidade-venda");
 const modalidadeDoacao = document.querySelector("#modalidade-doacao");
-const formularioAnuncio = document.querySelector("#formulario-anuncio");
+const campoImagem = document.querySelector("#imagem-item");
+const errosImagem = document.querySelector("#erro-imagem");
+const formularioNovoAnuncio = document.querySelector(
+  "#formulario-novo-anuncio",
+);
 const botaoPublicarAnuncio = document.querySelector("#botao-publicar-anuncio");
+const painelNovoAnuncio = document.querySelector("#painel-novo-anuncio");
+const botaoAbrirAnuncio = document.querySelector("#botao-abrir-anuncio");
+const botaoFecharAnuncio = document.querySelector("#botao-fechar-anuncio");
+const botaoCriarColecao = document.querySelector("#botao-criar-colecao");
+const secaoColecoes = document.querySelector("#colecoes-destaque");
 const listaAnuncios = document.querySelector("#lista-anuncios");
 const listaMeusAnuncios = document.querySelector("#lista-meus-anuncios");
 const resultadosContagem = document.querySelector("#resultados-contagem");
 const feedbackAnuncio = document.querySelector("#feedback-anuncio");
-const nomeUsuario = document.querySelector("#nome-usuario");
+const botaoContaUsuario = document.querySelector("#nome-usuario");
+const containerContaUsuario = document.querySelector(".conta-usuario");
+const menuContaUsuario = document.querySelector("#menu-conta");
+const botaoSairConta = document.querySelector("#botao-sair-conta");
 const headerPrincipal = document.querySelector("header");
 const formularioBuscaVitrine = document.querySelector("#formulario-busca-vitrine");
 const campoBuscaVitrine = document.querySelector("#busca-vitrine");
@@ -23,11 +35,41 @@ const tituloModalImagem = document.querySelector("#modal-imagem-titulo");
 const botaoFecharModalImagem = document.querySelector("#fechar-modal-imagem");
 
 const CHAVE_USUARIO = "marketplace-vortex:usuario";
+const MENSAGEM_IMAGEM_OBRIGATORIA = "Escolha uma imagem para o anúncio.";
+const MENSAGEM_IMAGEM_INVALIDA = "Envie uma imagem PNG, JPG ou JPEG.";
+const TAMANHO_MAXIMO_IMAGEM_BYTES = 5 * 1024 * 1024;
+const MENSAGEM_TAMANHO_IMAGEM_INVALIDO =
+  "Envie uma imagem de até 5 MB.";
+const PROPORCAO_MINIMA_IMAGEM = 1;
+const MENSAGEM_PROPORCAO_IMAGEM_INVALIDA =
+  "Use uma imagem menos vertical. Proporção mínima visível: 1:1.";
+const IMAGEM_PADRAO_ANUNCIO =
+  "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80";
 const categorias = {
-  livros: { nome: "Livros e papelaria", emoji: "📚" },
-  eletronicos: { nome: "Eletrônicos", emoji: "🎧" },
-  casa: { nome: "Casa e decoração", emoji: "🪴" },
-  moda: { nome: "Moda e acessórios", emoji: "🎒" },
+  livros: {
+    nome: "Livros e papelaria",
+    emoji: "📚",
+    imagemPadrao:
+      "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=900&q=80",
+  },
+  eletronicos: {
+    nome: "Eletrônicos",
+    emoji: "🎧",
+    imagemPadrao:
+      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=900&q=80",
+  },
+  casa: {
+    nome: "Casa e decoração",
+    emoji: "🪴",
+    imagemPadrao:
+      "https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&w=900&q=80",
+  },
+  moda: {
+    nome: "Moda e acessórios",
+    emoji: "🎒",
+    imagemPadrao:
+      "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=900&q=80",
+  },
 };
 const nomesCondicoes = {
   novo: "Novo",
@@ -40,6 +82,7 @@ let temporizadorFeedback;
 let scrollHeaderAgendado = false;
 let termoBuscaVitrine = "";
 let abaCatalogoAtiva = "todos";
+let categoriaFiltroAtiva = "todas";
 let ordenacaoAtiva = "recentes";
 let anuncios = [
   {
@@ -51,7 +94,8 @@ let anuncios = [
     valor: 45,
     localizacao: "Biblioteca Central",
     descricao: "Livros usados durante o primeiro semestre.",
-    imagemUrl: "",
+    imagemUrl:
+      "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=900&q=80",
     usuarioId: "usuario-ana",
     usuarioNome: "Ana",
   },
@@ -64,7 +108,8 @@ let anuncios = [
     valor: 220,
     localizacao: "Centro de Convivência",
     descricao: "Fone funcionando e com marcas leves de uso.",
-    imagemUrl: "",
+    imagemUrl:
+      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=900&q=80",
     usuarioId: "usuario-carla",
     usuarioNome: "Carla",
   },
@@ -77,7 +122,8 @@ let anuncios = [
     valor: 0,
     localizacao: "Bloco H",
     descricao: "Conjunto de vasos disponível para doação.",
-    imagemUrl: "",
+    imagemUrl:
+      "https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&w=900&q=80",
     usuarioId: "usuario-elisa",
     usuarioNome: "Elisa",
   },
@@ -90,7 +136,8 @@ let anuncios = [
     valor: 60,
     localizacao: "Bloco Q",
     descricao: "Mochila nova com compartimento acolchoado.",
-    imagemUrl: "",
+    imagemUrl:
+      "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=900&q=80",
     usuarioId: "usuario-lucas",
     usuarioNome: "Lucas",
   },
@@ -146,25 +193,154 @@ function salvarUsuario(usuario) {
   }
 }
 
-function obterUsuarioAtual() {
-  const usuarioSalvo = lerUsuarioSalvo();
+function removerUsuarioSalvo() {
+  try {
+    window.localStorage.removeItem(CHAVE_USUARIO);
+  } catch (erro) {
+    console.warn("Não foi possível remover o usuário salvo.", erro);
+  }
+}
 
-  if (usuarioSalvo) {
-    return usuarioSalvo;
+let usuarioAtual = lerUsuarioSalvo();
+
+function obterIniciaisDoUsuario(nome) {
+  return nome
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((parte) => parte.charAt(0).toUpperCase())
+    .join("");
+}
+
+function fecharMenuConta({ devolverFoco = false } = {}) {
+  if (!menuContaUsuario || !botaoContaUsuario) {
+    return;
   }
 
+  menuContaUsuario.hidden = true;
+  botaoContaUsuario.setAttribute("aria-expanded", "false");
+
+  if (devolverFoco) {
+    botaoContaUsuario.focus();
+  }
+}
+
+function atualizarContaNoHeader() {
+  if (!botaoContaUsuario) {
+    return;
+  }
+
+  const usuarioEstaLogado = Boolean(usuarioAtual);
+  botaoContaUsuario.replaceChildren();
+  botaoContaUsuario.classList.toggle("is-autenticado", usuarioEstaLogado);
+  botaoContaUsuario.setAttribute("aria-expanded", "false");
+
+  if (!usuarioEstaLogado) {
+    const icone = document.createElement("span");
+    const rotulo = document.createElement("span");
+    const indicador = document.createElement("span");
+
+    icone.className = "icone-conta-cta";
+    icone.setAttribute("aria-hidden", "true");
+    rotulo.className = "rotulo-conta-cta";
+    rotulo.textContent = "Entrar na conta";
+    indicador.className = "indicador-conta-cta";
+    indicador.textContent = "→";
+    indicador.setAttribute("aria-hidden", "true");
+
+    botaoContaUsuario.append(icone, rotulo, indicador);
+    botaoContaUsuario.setAttribute("aria-label", "Entrar na conta");
+    botaoContaUsuario.removeAttribute("aria-haspopup");
+    menuContaUsuario.hidden = true;
+    return;
+  }
+
+  const avatar = document.createElement("span");
+  const saudacao = document.createElement("span");
+  const seta = document.createElement("span");
+
+  avatar.className = "avatar-usuario";
+  avatar.textContent = obterIniciaisDoUsuario(usuarioAtual.nome);
+  avatar.setAttribute("aria-hidden", "true");
+  saudacao.className = "saudacao-usuario";
+  saudacao.textContent = `Olá, ${usuarioAtual.nome}`;
+  saudacao.title = `Olá, ${usuarioAtual.nome}`;
+  seta.className = "seta-conta";
+  seta.setAttribute("aria-hidden", "true");
+
+  botaoContaUsuario.append(avatar, saudacao, seta);
+  botaoContaUsuario.setAttribute("aria-label", `Abrir opções da conta de ${usuarioAtual.nome}`);
+  botaoContaUsuario.setAttribute("aria-haspopup", "menu");
+  menuContaUsuario.hidden = true;
+}
+
+function entrarNaConta() {
   const resposta = window.prompt("Qual é o seu nome?");
-  const nome = resposta?.trim() || "Visitante";
-  const novoUsuario = {
+  const nome = resposta?.trim();
+
+  if (!nome) {
+    if (resposta !== null) {
+      mostrarFeedback("Informe seu nome para entrar.");
+    }
+    return;
+  }
+
+  usuarioAtual = {
     id: gerarId("usuario"),
     nome,
   };
-
-  salvarUsuario(novoUsuario);
-  return novoUsuario;
+  salvarUsuario(usuarioAtual);
+  atualizarContaNoHeader();
+  renderizarMeusAnuncios();
+  mostrarFeedback(`Olá, ${usuarioAtual.nome}. Você entrou na sua conta.`);
 }
 
-const usuarioAtual = obterUsuarioAtual();
+function sairDaConta() {
+  removerUsuarioSalvo();
+  usuarioAtual = null;
+  fecharMenuConta();
+  atualizarContaNoHeader();
+  renderizarMeusAnuncios();
+  mostrarFeedback("Você saiu da sua conta.");
+  botaoContaUsuario?.focus();
+}
+
+function inicializarContaUsuario() {
+  if (!botaoContaUsuario) {
+    return;
+  }
+
+  botaoContaUsuario.addEventListener("click", () => {
+    if (!usuarioAtual) {
+      entrarNaConta();
+      return;
+    }
+
+    const menuEstaAberto = !menuContaUsuario.hidden;
+    menuContaUsuario.hidden = menuEstaAberto;
+    botaoContaUsuario.setAttribute("aria-expanded", String(!menuEstaAberto));
+  });
+
+  botaoSairConta?.addEventListener("click", sairDaConta);
+
+  document.addEventListener("click", (evento) => {
+    if (
+      usuarioAtual &&
+      !menuContaUsuario.hidden &&
+      !containerContaUsuario?.contains(evento.target)
+    ) {
+      fecharMenuConta();
+    }
+  });
+
+  document.addEventListener("keydown", (evento) => {
+    if (evento.key === "Escape" && !menuContaUsuario.hidden) {
+      fecharMenuConta({ devolverFoco: true });
+    }
+  });
+
+  atualizarContaNoHeader();
+}
 
 function obterValorNumerico(valor) {
   const valorNormalizado = valor
@@ -239,10 +415,10 @@ function campoEstaPreenchido(campo) {
 }
 
 function obterPrimeiroCampoIncompleto() {
-  const camposObrigatorios = formularioAnuncio.querySelectorAll(
+  const camposObrigatorios = formularioNovoAnuncio.querySelectorAll(
     "input[required]:not([type='radio']), select[required], textarea[required]",
   );
-  const modalidadeSelecionada = formularioAnuncio.querySelector(
+  const modalidadeSelecionada = formularioNovoAnuncio.querySelector(
     "input[name='modalidade']:checked",
   );
 
@@ -284,6 +460,145 @@ function mostrarFeedback(mensagem) {
   }, 5000);
 }
 
+function arquivoEhImagemPermitida(arquivo) {
+  const tiposPermitidos = ["image/jpeg", "image/png"];
+  const extensoesPermitidas = [".jpeg", ".jpg", ".png"];
+
+  return (
+    arquivo instanceof File &&
+    tiposPermitidos.includes(arquivo.type.toLowerCase()) &&
+    extensoesPermitidas.some((extensao) =>
+      arquivo.name.toLowerCase().endsWith(extensao),
+    )
+  );
+}
+
+function lerDimensoesDaImagem(arquivo) {
+  return new Promise((resolve, reject) => {
+    const imagem = new Image();
+    const url = URL.createObjectURL(arquivo);
+
+    imagem.addEventListener(
+      "load",
+      () => {
+        URL.revokeObjectURL(url);
+        resolve({
+          altura: imagem.naturalHeight,
+          largura: imagem.naturalWidth,
+        });
+      },
+      { once: true },
+    );
+
+    imagem.addEventListener(
+      "error",
+      () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("Não foi possível ler as dimensões da imagem."));
+      },
+      { once: true },
+    );
+
+    imagem.src = url;
+  });
+}
+
+async function obterErrosImagem(
+  arquivo,
+  { imagemObrigatoria = false } = {},
+) {
+  if (!arquivo) {
+    return imagemObrigatoria ? [MENSAGEM_IMAGEM_OBRIGATORIA] : [];
+  }
+
+  const erros = [];
+  const formatoPermitido = arquivoEhImagemPermitida(arquivo);
+
+  if (!formatoPermitido) {
+    erros.push(MENSAGEM_IMAGEM_INVALIDA);
+  }
+
+  if (arquivo.size > TAMANHO_MAXIMO_IMAGEM_BYTES) {
+    erros.push(MENSAGEM_TAMANHO_IMAGEM_INVALIDO);
+  }
+
+  if (!formatoPermitido) {
+    return erros;
+  }
+
+  try {
+    const { altura, largura } = await lerDimensoesDaImagem(arquivo);
+    const proporcao = largura / altura;
+
+    if (!Number.isFinite(proporcao) || proporcao < PROPORCAO_MINIMA_IMAGEM) {
+      erros.push(MENSAGEM_PROPORCAO_IMAGEM_INVALIDA);
+    }
+  } catch (erro) {
+    console.warn("Não foi possível validar a proporção da imagem.", erro);
+    erros.push(
+      "Não foi possível validar a imagem. Escolha outro arquivo PNG, JPG ou JPEG.",
+    );
+  }
+
+  return erros;
+}
+
+function exibirErrosDaImagem(erros) {
+  if (!errosImagem) {
+    return;
+  }
+
+  errosImagem.replaceChildren();
+  errosImagem.hidden = erros.length === 0;
+
+  if (erros.length === 0) {
+    return;
+  }
+
+  const titulo = document.createElement("strong");
+  titulo.textContent = "Corrija os itens abaixo antes de enviar:";
+  const lista = document.createElement("ul");
+
+  erros.forEach((erro) => {
+    const item = document.createElement("li");
+    item.textContent = erro;
+    lista.append(item);
+  });
+
+  errosImagem.append(titulo, lista);
+}
+
+async function atualizarValidacaoDaImagem(
+  { anunciarErro = false, imagemObrigatoria = false } = {},
+) {
+  if (!campoImagem) {
+    return false;
+  }
+
+  const arquivo = campoImagem.files[0];
+  const erros = await obterErrosImagem(arquivo, { imagemObrigatoria });
+  const mensagemErro = erros.join(" ");
+  const arquivoInvalido = erros.length > 0;
+
+  campoImagem.setCustomValidity(mensagemErro);
+  campoImagem.classList.toggle("is-invalid", Boolean(arquivoInvalido));
+
+  if (arquivoInvalido) {
+    campoImagem.setAttribute("aria-invalid", "true");
+  } else {
+    campoImagem.removeAttribute("aria-invalid");
+  }
+
+  exibirErrosDaImagem(erros);
+
+  if (arquivoInvalido && anunciarErro) {
+    mostrarFeedback(mensagemErro);
+    campoImagem.reportValidity();
+  }
+
+  return Boolean(arquivo) && !arquivoInvalido;
+}
+
 function criarElemento(tag, classe, texto) {
   const elemento = document.createElement(tag);
 
@@ -302,18 +617,28 @@ function obterDadosVisuaisCategoria(categoria) {
   return categorias[categoria] || {
     nome: "Outros",
     emoji: "♻️",
+    imagemPadrao: IMAGEM_PADRAO_ANUNCIO,
   };
 }
 
+function obterImagemDoAnuncio(anuncio) {
+  if (typeof anuncio.imagemUrl === "string" && anuncio.imagemUrl.trim() !== "") {
+    return anuncio.imagemUrl;
+  }
+
+  return obterDadosVisuaisCategoria(anuncio.categoria).imagemPadrao;
+}
+
 function criarMediaDoAnuncio(anuncio, classe) {
-  const media = anuncio.imagemUrl
+  const imagemUrl = obterImagemDoAnuncio(anuncio);
+  const media = imagemUrl
     ? criarElemento("button", `${classe} botao-ampliar-imagem`)
     : criarElemento("div", classe);
 
-  if (anuncio.imagemUrl) {
+  if (imagemUrl) {
     media.type = "button";
     media.dataset.anuncioId = anuncio.id;
-    media.style.backgroundImage = `url("${anuncio.imagemUrl}")`;
+    media.style.backgroundImage = `url("${imagemUrl}")`;
     media.style.backgroundPosition = "center";
     media.style.backgroundSize = "cover";
     media.setAttribute("aria-label", `Ampliar imagem de ${anuncio.nome}`);
@@ -336,13 +661,14 @@ function criarMediaDoAnuncio(anuncio, classe) {
 
 function abrirImagemDoAnuncio(id, elementoAcionador) {
   const anuncio = anuncios.find((item) => item.id === String(id));
+  const imagemUrl = anuncio ? obterImagemDoAnuncio(anuncio) : "";
 
-  if (!anuncio?.imagemUrl || !modalImagem || !imagemAmpliada || !tituloModalImagem) {
+  if (!imagemUrl || !modalImagem || !imagemAmpliada || !tituloModalImagem) {
     return;
   }
 
   modalImagem.elementoAcionador = elementoAcionador;
-  imagemAmpliada.src = anuncio.imagemUrl;
+  imagemAmpliada.src = imagemUrl;
   imagemAmpliada.alt = `Imagem ampliada de ${anuncio.nome}`;
   tituloModalImagem.textContent = anuncio.nome;
   document.body.classList.add("modal-aberto");
@@ -477,6 +803,16 @@ function normalizarTexto(texto) {
 function obterAnunciosVisiveis() {
   const termoNormalizado = normalizarTexto(termoBuscaVitrine);
   let itens = anuncios.map((anuncio, indice) => ({ anuncio, indice }));
+
+  if (categoriaFiltroAtiva !== "todas") {
+    itens = itens.filter(({ anuncio }) => {
+      const categoriaDoAnuncio = Object.hasOwn(categorias, anuncio.categoria)
+        ? anuncio.categoria
+        : "outros";
+
+      return categoriaDoAnuncio === categoriaFiltroAtiva;
+    });
+  }
 
   if (abaCatalogoAtiva === "recentes") {
     const primeiroIndiceRecente = Math.max(0, anuncios.length - 3);
@@ -652,6 +988,26 @@ function inicializarControlesDaVitrine() {
     renderizarAnuncios();
   });
 
+  filtrosCategoria.forEach((filtro) => {
+    filtro.addEventListener("click", (evento) => {
+      evento.preventDefault();
+      categoriaFiltroAtiva = filtro.dataset.categoriaFiltro;
+
+      filtrosCategoria.forEach((item) => {
+        const estaAtivo = item === filtro;
+        item.classList.toggle("active", estaAtivo);
+
+        if (estaAtivo) {
+          item.setAttribute("aria-current", "true");
+        } else {
+          item.removeAttribute("aria-current");
+        }
+      });
+
+      renderizarAnuncios();
+    });
+  });
+
   abasCatalogo.forEach((aba) => {
     aba.addEventListener("click", () => {
       abaCatalogoAtiva = aba.dataset.abaCatalogo;
@@ -688,11 +1044,18 @@ function renderizarMeusAnuncios() {
     return;
   }
 
+  listaMeusAnuncios.replaceChildren();
+
+  if (!usuarioAtual) {
+    listaMeusAnuncios.append(
+      criarEstadoVazio("Entre para acompanhar os seus anúncios."),
+    );
+    return;
+  }
+
   const meusAnuncios = anuncios.filter(
     (anuncio) => anuncio.usuarioId === usuarioAtual.id,
   );
-
-  listaMeusAnuncios.replaceChildren();
 
   if (meusAnuncios.length === 0) {
     listaMeusAnuncios.append(
@@ -711,20 +1074,21 @@ function renderizarMeusAnuncios() {
 }
 
 function criarAnuncio() {
-  const dados = new FormData(formularioAnuncio);
+  if (!usuarioAtual) {
+    mostrarFeedback("Entre na sua conta para publicar um anúncio.");
+    botaoContaUsuario?.focus();
+    return false;
+  }
+
+  const dados = new FormData(formularioNovoAnuncio);
   const arquivoImagem = dados.get("imagem");
   const modalidade = dados.get("modalidade");
   const valor =
     modalidade === "doacao" ? 0 : obterValorNumerico(dados.get("valor"));
 
-  const arquivoEhPng =
-    arquivoImagem instanceof File &&
-    arquivoImagem.type === "image/png" &&
-    arquivoImagem.name.toLowerCase().endsWith(".png");
-
-  if (!arquivoEhPng) {
-    mostrarFeedback("Escolha uma imagem no formato PNG.");
-    document.querySelector("#imagem-item")?.focus();
+  if (!arquivoEhImagemPermitida(arquivoImagem)) {
+    void atualizarValidacaoDaImagem({ anunciarErro: true });
+    campoImagem?.focus();
     return false;
   }
 
@@ -751,7 +1115,7 @@ function criarAnuncio() {
   anuncios.push(novoAnuncio);
   renderizarAnuncios();
   renderizarMeusAnuncios();
-  formularioAnuncio.reset();
+  formularioNovoAnuncio.reset();
   mostrarFeedback(`Anúncio “${novoAnuncio.nome}” publicado com sucesso.`);
   botaoPublicarAnuncio.textContent =
     botaoPublicarAnuncio.dataset.textoOriginal;
@@ -768,7 +1132,7 @@ function excluirAnuncio(id) {
     return false;
   }
 
-  if (anuncio.usuarioId !== usuarioAtual.id) {
+  if (!usuarioAtual || anuncio.usuarioId !== usuarioAtual.id) {
     mostrarFeedback("Você só pode excluir os seus próprios anúncios.");
     return false;
   }
@@ -783,7 +1147,10 @@ function excluirAnuncio(id) {
 
   anuncios = anuncios.filter((item) => item.id !== anuncio.id);
 
-  if (anuncio.imagemUrl.startsWith("blob:")) {
+  if (
+    typeof anuncio.imagemUrl === "string" &&
+    anuncio.imagemUrl.startsWith("blob:")
+  ) {
     URL.revokeObjectURL(anuncio.imagemUrl);
   }
 
@@ -795,15 +1162,28 @@ function excluirAnuncio(id) {
 }
 
 function inicializarFormularioDeAnuncio() {
-  if (!formularioAnuncio || !botaoPublicarAnuncio) {
+  if (!formularioNovoAnuncio || !botaoPublicarAnuncio) {
     return;
   }
 
   botaoPublicarAnuncio.dataset.textoOriginal =
     botaoPublicarAnuncio.textContent;
 
-  formularioAnuncio.addEventListener("submit", (evento) => {
+  campoImagem?.addEventListener("change", () => {
+    void atualizarValidacaoDaImagem({ anunciarErro: true });
+  });
+
+  formularioNovoAnuncio.addEventListener("submit", async (evento) => {
     evento.preventDefault();
+
+    if (!(await atualizarValidacaoDaImagem({ imagemObrigatoria: true }))) {
+      mostrarFeedback(
+        campoImagem.validationMessage || MENSAGEM_IMAGEM_INVALIDA,
+      );
+      campoImagem.focus();
+      campoImagem.reportValidity();
+      return;
+    }
 
     const primeiroCampoIncompleto = obterPrimeiroCampoIncompleto();
 
@@ -816,6 +1196,66 @@ function inicializarFormularioDeAnuncio() {
     formatarValorComoMoeda();
     criarAnuncio();
   });
+}
+
+function definirPainelAnuncioAberto(aberto, { moverFoco = true } = {}) {
+  if (!painelNovoAnuncio || !botaoAbrirAnuncio) {
+    return;
+  }
+
+  painelNovoAnuncio.hidden = !aberto;
+  botaoAbrirAnuncio.setAttribute("aria-expanded", String(aberto));
+  botaoAbrirAnuncio.textContent = aberto ? "Fechar formulário" : "Anunciar";
+
+  if (!moverFoco) {
+    return;
+  }
+
+  if (aberto) {
+    const reduzirMovimento = window.matchMedia?.(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    painelNovoAnuncio.scrollIntoView({
+      behavior: reduzirMovimento ? "auto" : "smooth",
+      block: "start",
+    });
+    document.querySelector("#nome-item")?.focus({ preventScroll: true });
+  } else {
+    botaoAbrirAnuncio.focus();
+  }
+}
+
+function inicializarPainelNovoAnuncio() {
+  if (!painelNovoAnuncio || !botaoAbrirAnuncio) {
+    return;
+  }
+
+  botaoAbrirAnuncio.addEventListener("click", () => {
+    definirPainelAnuncioAberto(painelNovoAnuncio.hidden);
+  });
+
+  botaoFecharAnuncio?.addEventListener("click", () => {
+    definirPainelAnuncioAberto(false);
+  });
+
+  botaoCriarColecao?.addEventListener("click", () => {
+    const reduzirMovimento = window.matchMedia?.(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    secaoColecoes?.scrollIntoView({
+      behavior: reduzirMovimento ? "auto" : "smooth",
+      block: "start",
+    });
+  });
+
+  document.addEventListener("keydown", (evento) => {
+    if (evento.key === "Escape" && !painelNovoAnuncio.hidden) {
+      definirPainelAnuncioAberto(false);
+    }
+  });
+
 }
 
 function inicializarExclusaoDeAnuncios() {
@@ -864,20 +1304,20 @@ function inicializarHeaderFixo() {
   atualizarEstadoDoHeader();
 }
 
-if (nomeUsuario) {
-  nomeUsuario.textContent = `Olá, ${usuarioAtual.nome}`;
-  nomeUsuario.href = "#meus-anuncios";
-}
-
 window.addEventListener("beforeunload", () => {
   anuncios.forEach((anuncio) => {
-    if (anuncio.imagemUrl.startsWith("blob:")) {
+    if (
+      typeof anuncio.imagemUrl === "string" &&
+      anuncio.imagemUrl.startsWith("blob:")
+    ) {
       URL.revokeObjectURL(anuncio.imagemUrl);
     }
   });
 });
 
 sincronizarModalidadeComValor();
+inicializarContaUsuario();
+inicializarPainelNovoAnuncio();
 inicializarFormularioDeAnuncio();
 inicializarExclusaoDeAnuncios();
 inicializarVisualizacaoDeImagens();
