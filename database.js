@@ -46,6 +46,26 @@ const listarAnunciosStatement = database.prepare(`
   ORDER BY criadoEm DESC, id DESC
 `);
 
+const filtrarAnunciosStatement = database.prepare(`
+  SELECT
+    id,
+    nome,
+    categoria,
+    condicao,
+    modalidade,
+    valor,
+    localizacao,
+    descricao,
+    imagemUrl,
+    usuarioId,
+    usuarioNome,
+    criadoEm
+  FROM anuncios
+  WHERE (? IS NULL OR categoria = ?)
+    AND (? IS NULL OR usuarioId = ?)
+  ORDER BY criadoEm DESC, id DESC
+`);
+
 const buscarAnuncioPorIdStatement = database.prepare(`
   SELECT
     id,
@@ -80,8 +100,25 @@ const criarAnuncioStatement = database.prepare(`
   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
 
-function listarAnuncios() {
-  return listarAnunciosStatement.all();
+const excluirAnuncioPorIdStatement = database.prepare(`
+  DELETE FROM anuncios
+  WHERE id = ?
+`);
+
+function listarAnuncios(filtros = {}) {
+  const categoria = filtros.categoria ?? null;
+  const usuarioId = filtros.usuarioId ?? null;
+
+  if (categoria === null && usuarioId === null) {
+    return listarAnunciosStatement.all();
+  }
+
+  return filtrarAnunciosStatement.all(
+    categoria,
+    categoria,
+    usuarioId,
+    usuarioId,
+  );
 }
 
 function criarAnuncio(dados) {
@@ -101,7 +138,13 @@ function criarAnuncio(dados) {
   return buscarAnuncioPorIdStatement.get(Number(resultado.lastInsertRowid));
 }
 
+function excluirAnuncioPorId(id) {
+  const resultado = excluirAnuncioPorIdStatement.run(id);
+  return resultado.changes > 0;
+}
+
 module.exports = {
   listarAnuncios,
   criarAnuncio,
+  excluirAnuncioPorId,
 };

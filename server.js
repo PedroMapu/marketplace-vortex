@@ -1,6 +1,10 @@
 const express = require("express");
 const path = require("path");
-const { listarAnuncios, criarAnuncio } = require("./database");
+const {
+  listarAnuncios,
+  criarAnuncio,
+  excluirAnuncioPorId,
+} = require("./database");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,7 +18,7 @@ const CATEGORIAS_VALIDAS = new Set([
 const CONDICOES_VALIDAS = new Set(["novo", "seminovo", "usado"]);
 const MODALIDADES_VALIDAS = new Set(["venda", "doacao"]);
 
-app.use(express.json());
+app.use(express.json({ limit: "8mb" }));
 
 app.get("/api/status", (request, response) => {
   response.json({
@@ -24,6 +28,35 @@ app.get("/api/status", (request, response) => {
 
 function textoObrigatorio(valor) {
   return typeof valor === "string" && valor.trim() !== "";
+}
+
+function validarFiltrosAnuncios(query) {
+  const erros = {};
+  const filtros = {};
+
+  if (query.categoria !== undefined) {
+    if (!textoObrigatorio(query.categoria)) {
+      erros.categoria = "A categoria deve conter texto.";
+    } else {
+      const categoria = query.categoria.trim();
+
+      if (!CATEGORIAS_VALIDAS.has(categoria)) {
+        erros.categoria = "Categoria inválida.";
+      } else {
+        filtros.categoria = categoria;
+      }
+    }
+  }
+
+  if (query.usuarioId !== undefined) {
+    if (!textoObrigatorio(query.usuarioId)) {
+      erros.usuarioId = "O ID do usuário deve conter texto.";
+    } else {
+      filtros.usuarioId = query.usuarioId.trim();
+    }
+  }
+
+  return { erros, filtros };
 }
 
 function validarAnuncio(dados) {
@@ -113,7 +146,16 @@ function normalizarAnuncio(dados) {
 
 app.get("/api/anuncios", (request, response, next) => {
   try {
-    const anuncios = listarAnuncios();
+    const { erros, filtros } = validarFiltrosAnuncios(request.query);
+
+    if (Object.keys(erros).length > 0) {
+      return response.status(400).json({
+        erro: "Filtros de anúncios inválidos.",
+        campos: erros,
+      });
+    }
+
+    const anuncios = listarAnuncios(filtros);
     response.status(200).json(anuncios);
   } catch (erro) {
     next(erro);
@@ -133,6 +175,33 @@ app.post("/api/anuncios", (request, response, next) => {
 
     const anuncio = criarAnuncio(normalizarAnuncio(request.body));
     return response.status(201).json(anuncio);
+  } catch (erro) {
+    return next(erro);
+  }
+});
+
+app.delete("/api/anuncios/:id", (request, response, next) => {
+  try {
+    const id = Number(request.params.id);
+    const idValido =
+      /^[1-9]\d*$/.test(request.params.id) && Number.isSafeInteger(id);
+
+    if (!idValido) {
+      return response.status(400).json({
+        erro: "O ID deve ser um número inteiro positivo.",
+      });
+    }
+
+    if (!excluirAnuncioPorId(id)) {
+      return response.status(404).json({
+        erro: "Anúncio não encontrado.",
+      });
+    }
+
+    return response.status(200).json({
+      mensagem: "Anúncio excluído com sucesso.",
+      id,
+    });
   } catch (erro) {
     return next(erro);
   }

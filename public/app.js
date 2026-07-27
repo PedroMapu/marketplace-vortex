@@ -84,64 +84,15 @@ let termoBuscaVitrine = "";
 let abaCatalogoAtiva = "todos";
 let categoriaFiltroAtiva = "todas";
 let ordenacaoAtiva = "recentes";
-let anuncios = [
-  {
-    id: "anuncio-exemplo-1",
-    nome: "Kit de livros para Cálculo I",
-    categoria: "livros",
-    condicao: "seminovo",
-    modalidade: "venda",
-    valor: 45,
-    localizacao: "Biblioteca Central",
-    descricao: "Livros usados durante o primeiro semestre.",
-    imagemUrl:
-      "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=900&q=80",
-    usuarioId: "usuario-ana",
-    usuarioNome: "Ana",
-  },
-  {
-    id: "anuncio-exemplo-2",
-    nome: "Fone de ouvido Bluetooth",
-    categoria: "eletronicos",
-    condicao: "usado",
-    modalidade: "venda",
-    valor: 220,
-    localizacao: "Centro de Convivência",
-    descricao: "Fone funcionando e com marcas leves de uso.",
-    imagemUrl:
-      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=900&q=80",
-    usuarioId: "usuario-carla",
-    usuarioNome: "Carla",
-  },
-  {
-    id: "anuncio-exemplo-3",
-    nome: "Vasos decorativos",
-    categoria: "casa",
-    condicao: "seminovo",
-    modalidade: "doacao",
-    valor: 0,
-    localizacao: "Bloco H",
-    descricao: "Conjunto de vasos disponível para doação.",
-    imagemUrl:
-      "https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&w=900&q=80",
-    usuarioId: "usuario-elisa",
-    usuarioNome: "Elisa",
-  },
-  {
-    id: "anuncio-exemplo-4",
-    nome: "Mochila para notebook",
-    categoria: "moda",
-    condicao: "novo",
-    modalidade: "venda",
-    valor: 60,
-    localizacao: "Bloco Q",
-    descricao: "Mochila nova com compartimento acolchoado.",
-    imagemUrl:
-      "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=900&q=80",
-    usuarioId: "usuario-lucas",
-    usuarioNome: "Lucas",
-  },
-];
+// Snapshots de leitura preenchidos exclusivamente pelas respostas da API.
+// Toda alteração persistente deve ser seguida por um novo carregamento do servidor.
+let cacheCatalogoApi = [];
+let cacheAnunciosUsuarioApi = [];
+let cacheContagemApi = [];
+let sequenciaRequisicaoCatalogo = 0;
+let sequenciaRequisicaoUsuario = 0;
+const idsEmExclusao = new Set();
+let publicacaoEmAndamento = false;
 
 const formatadorMoeda = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -150,6 +101,237 @@ const formatadorMoeda = new Intl.NumberFormat("pt-BR", {
 const ordenadorAlfabetico = new Intl.Collator("pt-BR", {
   sensitivity: "base",
 });
+
+async function requisitarApi(caminho, opcoes = {}) {
+  const { headers = {}, ...demaisOpcoes } = opcoes;
+  const resposta = await fetch(caminho, {
+    ...demaisOpcoes,
+    headers: {
+      Accept: "application/json",
+      ...headers,
+    },
+  });
+
+  let dados = null;
+
+  try {
+    dados = await resposta.json();
+  } catch {
+    // Uma resposta sem JSON será tratada pela mensagem genérica abaixo.
+  }
+
+  if (!resposta.ok) {
+    const erro = new Error(
+      dados?.erro || "Não foi possível concluir a solicitação.",
+    );
+    erro.status = resposta.status;
+    erro.dados = dados;
+    throw erro;
+  }
+
+  return dados;
+}
+
+function normalizarAnuncioDaApi(anuncio) {
+  const id = Number(anuncio?.id);
+  const valor = Number(anuncio?.valor);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new TypeError("A API retornou um anúncio com ID inválido.");
+  }
+
+  return {
+    ...anuncio,
+    id,
+    valor: Number.isFinite(valor) ? valor : 0,
+  };
+}
+
+function criarUrlDaApiDeAnuncios({ categoria, usuarioId } = {}) {
+  const parametros = new URLSearchParams();
+
+  if (categoria && categoria !== "todas") {
+    parametros.set("categoria", categoria);
+  }
+
+  if (usuarioId) {
+    parametros.set("usuarioId", usuarioId);
+  }
+
+  const queryString = parametros.toString();
+  return `/api/anuncios${queryString ? `?${queryString}` : ""}`;
+}
+
+function normalizarListaDeAnuncios(resposta) {
+  if (!Array.isArray(resposta)) {
+    throw new TypeError("A API retornou uma lista de anúncios inválida.");
+  }
+
+  // A API entrega os mais recentes primeiro; o cache mantém a ordem histórica
+  // esperada pelas rotinas atuais de renderização.
+  return resposta.map(normalizarAnuncioDaApi).reverse();
+}
+
+function exibirEstadoDeCarregamento() {
+  const mensagem = criarEstadoVazio("Carregando anúncios...");
+
+  listaAnuncios?.replaceChildren(mensagem);
+  listaAnuncios?.setAttribute("aria-busy", "true");
+
+  if (resultadosContagem) {
+    resultadosContagem.textContent = "Carregando resultados...";
+  }
+}
+
+function exibirEstadoDeCarregamentoDoUsuario() {
+  if (listaMeusAnuncios) {
+    listaMeusAnuncios.replaceChildren(
+      criarEstadoVazio("Carregando seus anúncios..."),
+    );
+    listaMeusAnuncios.setAttribute("aria-busy", "true");
+  }
+}
+
+function exibirErroAoCarregarAnuncios() {
+  if (listaAnuncios) {
+    const estado = criarElemento("div", "estado-vazio");
+    const mensagem = criarElemento(
+      "p",
+      "",
+      "Não foi possível carregar os anúncios. Verifique sua conexão e tente novamente.",
+    );
+    const botaoTentarNovamente = criarElemento(
+      "button",
+      "btn-detalhes",
+      "Tentar novamente",
+    );
+
+    botaoTentarNovamente.type = "button";
+    botaoTentarNovamente.addEventListener("click", carregarAnunciosDaApi);
+    estado.append(mensagem, botaoTentarNovamente);
+    listaAnuncios.replaceChildren(estado);
+    listaAnuncios.removeAttribute("aria-busy");
+  }
+
+  if (resultadosContagem) {
+    resultadosContagem.textContent = "Anúncios indisponíveis";
+  }
+}
+
+function exibirErroAoCarregarAnunciosDoUsuario() {
+  if (listaMeusAnuncios) {
+    const estado = criarElemento("div", "estado-vazio");
+    const mensagem = criarElemento(
+      "p",
+      "",
+      "Não foi possível carregar seus anúncios.",
+    );
+    const botaoTentarNovamente = criarElemento(
+      "button",
+      "btn-detalhes",
+      "Tentar novamente",
+    );
+
+    botaoTentarNovamente.type = "button";
+    botaoTentarNovamente.addEventListener(
+      "click",
+      carregarMeusAnunciosDaApi,
+    );
+    estado.append(mensagem, botaoTentarNovamente);
+    listaMeusAnuncios.replaceChildren(estado);
+    listaMeusAnuncios.removeAttribute("aria-busy");
+  }
+}
+
+async function carregarAnunciosDaApi({ mostrarCarregamento = true } = {}) {
+  const sequenciaDestaRequisicao = ++sequenciaRequisicaoCatalogo;
+  const categoria = categoriaFiltroAtiva;
+
+  if (mostrarCarregamento) {
+    exibirEstadoDeCarregamento();
+  }
+
+  try {
+    const urlCatalogo = criarUrlDaApiDeAnuncios({ categoria });
+    const precisaCarregarContagensGerais = categoria !== "todas";
+    const [resposta, respostaParaContagem] = await Promise.all([
+      requisitarApi(urlCatalogo),
+      precisaCarregarContagensGerais
+        ? requisitarApi(criarUrlDaApiDeAnuncios())
+        : Promise.resolve(null),
+    ]);
+
+    if (sequenciaDestaRequisicao !== sequenciaRequisicaoCatalogo) {
+      return false;
+    }
+
+    cacheCatalogoApi = normalizarListaDeAnuncios(resposta);
+    cacheContagemApi = respostaParaContagem
+      ? normalizarListaDeAnuncios(respostaParaContagem)
+      : [...cacheCatalogoApi];
+    listaAnuncios?.removeAttribute("aria-busy");
+    renderizarAnuncios();
+    return true;
+  } catch (erro) {
+    if (sequenciaDestaRequisicao !== sequenciaRequisicaoCatalogo) {
+      return false;
+    }
+
+    console.error("Não foi possível carregar os anúncios da API.", erro);
+    cacheCatalogoApi = [];
+    cacheContagemApi = [];
+    exibirErroAoCarregarAnuncios();
+    return false;
+  }
+}
+
+async function carregarMeusAnunciosDaApi(
+  { mostrarCarregamento = true } = {},
+) {
+  const sequenciaDestaRequisicao = ++sequenciaRequisicaoUsuario;
+  const usuarioDaRequisicao = usuarioAtual;
+
+  if (!usuarioDaRequisicao) {
+    cacheAnunciosUsuarioApi = [];
+    listaMeusAnuncios?.removeAttribute("aria-busy");
+    renderizarMeusAnuncios();
+    return true;
+  }
+
+  if (mostrarCarregamento) {
+    exibirEstadoDeCarregamentoDoUsuario();
+  }
+
+  try {
+    const resposta = await requisitarApi(
+      criarUrlDaApiDeAnuncios({ usuarioId: usuarioDaRequisicao.id }),
+    );
+
+    if (
+      sequenciaDestaRequisicao !== sequenciaRequisicaoUsuario ||
+      usuarioAtual?.id !== usuarioDaRequisicao.id
+    ) {
+      return false;
+    }
+
+    cacheAnunciosUsuarioApi = normalizarListaDeAnuncios(resposta);
+    listaMeusAnuncios?.removeAttribute("aria-busy");
+    renderizarMeusAnuncios();
+    return true;
+  } catch (erro) {
+    if (
+      sequenciaDestaRequisicao !== sequenciaRequisicaoUsuario ||
+      usuarioAtual?.id !== usuarioDaRequisicao.id
+    ) {
+      return false;
+    }
+
+    console.error("Não foi possível carregar os anúncios do usuário.", erro);
+    cacheAnunciosUsuarioApi = [];
+    exibirErroAoCarregarAnunciosDoUsuario();
+    return false;
+  }
+}
 
 function gerarId(prefixo) {
   if (window.crypto && typeof window.crypto.randomUUID === "function") {
@@ -291,13 +473,15 @@ function entrarNaConta() {
   };
   salvarUsuario(usuarioAtual);
   atualizarContaNoHeader();
-  renderizarMeusAnuncios();
+  void carregarMeusAnunciosDaApi();
   mostrarFeedback(`Olá, ${usuarioAtual.nome}. Você entrou na sua conta.`);
 }
 
 function sairDaConta() {
   removerUsuarioSalvo();
   usuarioAtual = null;
+  sequenciaRequisicaoUsuario += 1;
+  cacheAnunciosUsuarioApi = [];
   fecharMenuConta();
   atualizarContaNoHeader();
   renderizarMeusAnuncios();
@@ -471,6 +655,43 @@ function arquivoEhImagemPermitida(arquivo) {
       arquivo.name.toLowerCase().endsWith(extensao),
     )
   );
+}
+
+function converterArquivoParaDataUrl(arquivo) {
+  return new Promise((resolve, reject) => {
+    const leitor = new FileReader();
+
+    leitor.addEventListener(
+      "load",
+      () => {
+        if (typeof leitor.result === "string") {
+          resolve(leitor.result);
+          return;
+        }
+
+        reject(new Error("A imagem não pôde ser convertida para envio."));
+      },
+      { once: true },
+    );
+
+    leitor.addEventListener(
+      "error",
+      () => {
+        reject(new Error("A imagem não pôde ser lida para envio."));
+      },
+      { once: true },
+    );
+
+    leitor.addEventListener(
+      "abort",
+      () => {
+        reject(new Error("A leitura da imagem foi interrompida."));
+      },
+      { once: true },
+    );
+
+    leitor.readAsDataURL(arquivo);
+  });
 }
 
 function lerDimensoesDaImagem(arquivo) {
@@ -660,7 +881,9 @@ function criarMediaDoAnuncio(anuncio, classe) {
 }
 
 function abrirImagemDoAnuncio(id, elementoAcionador) {
-  const anuncio = anuncios.find((item) => item.id === String(id));
+  const anuncio = [...cacheCatalogoApi, ...cacheAnunciosUsuarioApi].find(
+    (item) => String(item.id) === String(id),
+  );
   const imagemUrl = anuncio ? obterImagemDoAnuncio(anuncio) : "";
 
   if (!imagemUrl || !modalImagem || !imagemAmpliada || !tituloModalImagem) {
@@ -802,20 +1025,13 @@ function normalizarTexto(texto) {
 
 function obterAnunciosVisiveis() {
   const termoNormalizado = normalizarTexto(termoBuscaVitrine);
-  let itens = anuncios.map((anuncio, indice) => ({ anuncio, indice }));
-
-  if (categoriaFiltroAtiva !== "todas") {
-    itens = itens.filter(({ anuncio }) => {
-      const categoriaDoAnuncio = Object.hasOwn(categorias, anuncio.categoria)
-        ? anuncio.categoria
-        : "outros";
-
-      return categoriaDoAnuncio === categoriaFiltroAtiva;
-    });
-  }
+  let itens = cacheCatalogoApi.map((anuncio, indice) => ({
+    anuncio,
+    indice,
+  }));
 
   if (abaCatalogoAtiva === "recentes") {
-    const primeiroIndiceRecente = Math.max(0, anuncios.length - 3);
+    const primeiroIndiceRecente = Math.max(0, cacheCatalogoApi.length - 3);
     itens = itens.filter(({ indice }) => indice >= primeiroIndiceRecente);
   } else if (abaCatalogoAtiva === "venda" || abaCatalogoAtiva === "doacao") {
     itens = itens.filter(
@@ -869,7 +1085,7 @@ function obterAnunciosVisiveis() {
 
 function atualizarContadoresDosFiltros() {
   const contagensCategoria = {
-    todas: anuncios.length,
+    todas: cacheContagemApi.length,
     livros: 0,
     eletronicos: 0,
     casa: 0,
@@ -877,24 +1093,26 @@ function atualizarContadoresDosFiltros() {
     outros: 0,
   };
   const contagensCondicao = {
-    todas: anuncios.length,
+    todas: cacheCatalogoApi.length,
     novo: 0,
     seminovo: 0,
     usado: 0,
   };
   const contagensModalidade = {
-    todas: anuncios.length,
+    todas: cacheCatalogoApi.length,
     venda: 0,
     doacao: 0,
   };
 
-  anuncios.forEach((anuncio) => {
+  cacheContagemApi.forEach((anuncio) => {
     const categoria = Object.hasOwn(categorias, anuncio.categoria)
       ? anuncio.categoria
       : "outros";
 
     contagensCategoria[categoria] += 1;
+  });
 
+  cacheCatalogoApi.forEach((anuncio) => {
     if (Object.hasOwn(contagensCondicao, anuncio.condicao)) {
       contagensCondicao[anuncio.condicao] += 1;
     }
@@ -958,7 +1176,7 @@ function renderizarAnuncios() {
 
   if (resultadosContagem) {
     const totalVisivel = anunciosVisiveis.length;
-    const totalGeral = anuncios.length;
+    const totalGeral = cacheCatalogoApi.length;
 
     if (totalVisivel === totalGeral) {
       resultadosContagem.textContent =
@@ -1004,7 +1222,7 @@ function inicializarControlesDaVitrine() {
         }
       });
 
-      renderizarAnuncios();
+      void carregarAnunciosDaApi();
     });
   });
 
@@ -1053,11 +1271,7 @@ function renderizarMeusAnuncios() {
     return;
   }
 
-  const meusAnuncios = anuncios.filter(
-    (anuncio) => anuncio.usuarioId === usuarioAtual.id,
-  );
-
-  if (meusAnuncios.length === 0) {
+  if (cacheAnunciosUsuarioApi.length === 0) {
     listaMeusAnuncios.append(
       criarEstadoVazio("Você ainda não publicou nenhum anúncio."),
     );
@@ -1066,20 +1280,25 @@ function renderizarMeusAnuncios() {
 
   const fragmento = document.createDocumentFragment();
 
-  meusAnuncios.forEach((anuncio) => {
+  cacheAnunciosUsuarioApi.forEach((anuncio) => {
     fragmento.append(criarCardDoUsuario(anuncio));
   });
 
   listaMeusAnuncios.append(fragmento);
 }
 
-function criarAnuncio() {
+async function criarAnuncio() {
+  if (publicacaoEmAndamento) {
+    return false;
+  }
+
   if (!usuarioAtual) {
     mostrarFeedback("Entre na sua conta para publicar um anúncio.");
     botaoContaUsuario?.focus();
     return false;
   }
 
+  const usuarioDoAnuncio = usuarioAtual;
   const dados = new FormData(formularioNovoAnuncio);
   const arquivoImagem = dados.get("imagem");
   const modalidade = dados.get("modalidade");
@@ -1098,34 +1317,90 @@ function criarAnuncio() {
     return false;
   }
 
-  const novoAnuncio = {
-    id: gerarId("anuncio"),
-    nome: dados.get("nome").trim(),
-    categoria: dados.get("categoria"),
-    condicao: dados.get("condicao"),
-    modalidade,
-    valor,
-    localizacao: dados.get("localizacao").trim(),
-    descricao: dados.get("descricao").trim(),
-    imagemUrl: URL.createObjectURL(arquivoImagem),
-    usuarioId: usuarioAtual.id,
-    usuarioNome: usuarioAtual.nome,
-  };
-
-  anuncios.push(novoAnuncio);
-  renderizarAnuncios();
-  renderizarMeusAnuncios();
-  formularioNovoAnuncio.reset();
-  mostrarFeedback(`Anúncio “${novoAnuncio.nome}” publicado com sucesso.`);
-  botaoPublicarAnuncio.textContent =
-    botaoPublicarAnuncio.dataset.textoOriginal;
+  window.clearTimeout(temporizadorAvisoBotao);
+  publicacaoEmAndamento = true;
+  botaoPublicarAnuncio.disabled = true;
+  botaoPublicarAnuncio.setAttribute("aria-busy", "true");
+  botaoPublicarAnuncio.textContent = "Publicando...";
   botaoPublicarAnuncio.classList.remove("is-warning");
 
-  return true;
+  try {
+    const imagemUrl = await converterArquivoParaDataUrl(arquivoImagem);
+    const dadosDoAnuncio = {
+      nome: dados.get("nome").trim(),
+      categoria: dados.get("categoria"),
+      condicao: dados.get("condicao"),
+      modalidade,
+      valor,
+      localizacao: dados.get("localizacao").trim(),
+      descricao: dados.get("descricao").trim(),
+      imagemUrl,
+      usuarioId: usuarioDoAnuncio.id,
+      usuarioNome: usuarioDoAnuncio.nome,
+    };
+    const resposta = await requisitarApi("/api/anuncios", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(dadosDoAnuncio),
+    });
+    const novoAnuncio = normalizarAnuncioDaApi(resposta);
+
+    await Promise.all([
+      carregarAnunciosDaApi({ mostrarCarregamento: false }),
+      carregarMeusAnunciosDaApi({ mostrarCarregamento: false }),
+    ]);
+    formularioNovoAnuncio.reset();
+    campoImagem?.setCustomValidity("");
+    campoImagem?.classList.remove("is-invalid");
+    campoImagem?.removeAttribute("aria-invalid");
+    exibirErrosDaImagem([]);
+    mostrarFeedback(`Anúncio “${novoAnuncio.nome}” publicado com sucesso.`);
+    definirPainelAnuncioAberto(false);
+
+    return true;
+  } catch (erro) {
+    console.error("Não foi possível publicar o anúncio.", erro);
+
+    if (erro.status === 400) {
+      const primeiroErroDeCampo = Object.values(
+        erro.dados?.campos || {},
+      ).find((mensagem) => typeof mensagem === "string");
+      mostrarFeedback(
+        primeiroErroDeCampo ||
+          erro.dados?.erro ||
+          "Revise os dados do anúncio e tente novamente.",
+      );
+    } else if (erro.status >= 500) {
+      mostrarFeedback(
+        "O servidor não conseguiu publicar o anúncio. Tente novamente.",
+      );
+    } else if (erro instanceof TypeError) {
+      mostrarFeedback(
+        "Não foi possível acessar o servidor. Verifique sua conexão e tente novamente.",
+      );
+    } else {
+      mostrarFeedback(
+        erro.message || "Não foi possível publicar o anúncio. Tente novamente.",
+      );
+    }
+
+    return false;
+  } finally {
+    publicacaoEmAndamento = false;
+    botaoPublicarAnuncio.disabled = false;
+    botaoPublicarAnuncio.removeAttribute("aria-busy");
+    botaoPublicarAnuncio.textContent =
+      botaoPublicarAnuncio.dataset.textoOriginal;
+  }
 }
 
-function excluirAnuncio(id) {
-  const anuncio = anuncios.find((item) => item.id === String(id));
+async function excluirAnuncio(id, botaoExcluir) {
+  const idNormalizado = String(id);
+  const anuncio = cacheAnunciosUsuarioApi.find(
+    (item) => String(item.id) === idNormalizado,
+  );
 
   if (!anuncio) {
     mostrarFeedback("O anúncio não foi encontrado.");
@@ -1137,6 +1412,10 @@ function excluirAnuncio(id) {
     return false;
   }
 
+  if (idsEmExclusao.has(idNormalizado)) {
+    return false;
+  }
+
   const confirmouExclusao = window.confirm(
     `Deseja excluir o anúncio “${anuncio.nome}”?`,
   );
@@ -1145,20 +1424,64 @@ function excluirAnuncio(id) {
     return false;
   }
 
-  anuncios = anuncios.filter((item) => item.id !== anuncio.id);
+  idsEmExclusao.add(idNormalizado);
 
-  if (
-    typeof anuncio.imagemUrl === "string" &&
-    anuncio.imagemUrl.startsWith("blob:")
-  ) {
-    URL.revokeObjectURL(anuncio.imagemUrl);
+  if (botaoExcluir) {
+    botaoExcluir.disabled = true;
+    botaoExcluir.setAttribute("aria-busy", "true");
+    botaoExcluir.textContent = "Excluindo...";
   }
 
-  renderizarAnuncios();
-  renderizarMeusAnuncios();
-  mostrarFeedback(`Anúncio “${anuncio.nome}” excluído.`);
+  try {
+    await requisitarApi(`/api/anuncios/${encodeURIComponent(idNormalizado)}`, {
+      method: "DELETE",
+    });
 
-  return true;
+    const [catalogoAtualizado, anunciosDoUsuarioAtualizados] =
+      await Promise.all([
+        carregarAnunciosDaApi({ mostrarCarregamento: false }),
+        carregarMeusAnunciosDaApi({ mostrarCarregamento: false }),
+      ]);
+
+    mostrarFeedback(
+      catalogoAtualizado && anunciosDoUsuarioAtualizados
+        ? `Anúncio “${anuncio.nome}” excluído.`
+        : `Anúncio “${anuncio.nome}” excluído, mas não foi possível atualizar todas as listas.`,
+    );
+    return true;
+  } catch (erro) {
+    console.error("Não foi possível excluir o anúncio.", erro);
+
+    if (erro.status === 400) {
+      mostrarFeedback("O ID do anúncio é inválido.");
+    } else if (erro.status === 404) {
+      mostrarFeedback(
+        "Este anúncio não foi encontrado no servidor. Atualize a lista e tente novamente.",
+      );
+    } else if (erro.status >= 500) {
+      mostrarFeedback(
+        "O servidor não conseguiu excluir o anúncio. Tente novamente.",
+      );
+    } else if (erro instanceof TypeError) {
+      mostrarFeedback(
+        "Não foi possível acessar o servidor. Verifique sua conexão e tente novamente.",
+      );
+    } else {
+      mostrarFeedback(
+        erro.message || "Não foi possível excluir o anúncio. Tente novamente.",
+      );
+    }
+
+    return false;
+  } finally {
+    idsEmExclusao.delete(idNormalizado);
+
+    if (botaoExcluir?.isConnected) {
+      botaoExcluir.disabled = false;
+      botaoExcluir.removeAttribute("aria-busy");
+      botaoExcluir.textContent = "Excluir";
+    }
+  }
 }
 
 function inicializarFormularioDeAnuncio() {
@@ -1194,7 +1517,7 @@ function inicializarFormularioDeAnuncio() {
     }
 
     formatarValorComoMoeda();
-    criarAnuncio();
+    await criarAnuncio();
   });
 }
 
@@ -1270,7 +1593,7 @@ function inicializarExclusaoDeAnuncios() {
       return;
     }
 
-    excluirAnuncio(botaoExcluir.dataset.id);
+    void excluirAnuncio(botaoExcluir.dataset.id, botaoExcluir);
   });
 }
 
@@ -1304,17 +1627,6 @@ function inicializarHeaderFixo() {
   atualizarEstadoDoHeader();
 }
 
-window.addEventListener("beforeunload", () => {
-  anuncios.forEach((anuncio) => {
-    if (
-      typeof anuncio.imagemUrl === "string" &&
-      anuncio.imagemUrl.startsWith("blob:")
-    ) {
-      URL.revokeObjectURL(anuncio.imagemUrl);
-    }
-  });
-});
-
 sincronizarModalidadeComValor();
 inicializarContaUsuario();
 inicializarPainelNovoAnuncio();
@@ -1323,5 +1635,5 @@ inicializarExclusaoDeAnuncios();
 inicializarVisualizacaoDeImagens();
 inicializarControlesDaVitrine();
 inicializarHeaderFixo();
-renderizarAnuncios();
-renderizarMeusAnuncios();
+void carregarAnunciosDaApi();
+void carregarMeusAnunciosDaApi();
