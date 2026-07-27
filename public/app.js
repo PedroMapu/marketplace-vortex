@@ -11,7 +11,20 @@ const painelNovoAnuncio = document.querySelector("#painel-novo-anuncio");
 const botaoAbrirAnuncio = document.querySelector("#botao-abrir-anuncio");
 const botaoFecharAnuncio = document.querySelector("#botao-fechar-anuncio");
 const botaoCriarColecao = document.querySelector("#botao-criar-colecao");
+const painelNovaColecao = document.querySelector("#painel-nova-colecao");
+const botaoFecharColecao = document.querySelector("#botao-fechar-colecao");
+const formularioNovaColecao = document.querySelector(
+  "#formulario-nova-colecao",
+);
+const campoNomeColecao = document.querySelector("#nome-colecao");
+const listaItensColecao = document.querySelector("#lista-itens-colecao");
+const botaoAdicionarItemColecao = document.querySelector(
+  "#botao-adicionar-item-colecao",
+);
+const botaoSalvarColecao = document.querySelector("#botao-salvar-colecao");
+const feedbackColecao = document.querySelector("#feedback-colecao");
 const secaoColecoes = document.querySelector("#colecoes-destaque");
+const gradeColecoes = secaoColecoes?.querySelector(".colecoes-grid");
 const listaAnuncios = document.querySelector("#lista-anuncios");
 const listaMeusAnuncios = document.querySelector("#lista-meus-anuncios");
 const resultadosContagem = document.querySelector("#resultados-contagem");
@@ -21,6 +34,9 @@ const containerContaUsuario = document.querySelector(".conta-usuario");
 const menuContaUsuario = document.querySelector("#menu-conta");
 const botaoSairConta = document.querySelector("#botao-sair-conta");
 const headerPrincipal = document.querySelector("header");
+const botaoMenuPrincipal = document.querySelector("#botao-menu-principal");
+const navegacaoPrincipal = document.querySelector("#navegacao-principal");
+const mediaMenuCompacto = window.matchMedia("(max-width: 68rem)");
 const formularioBuscaVitrine = document.querySelector("#formulario-busca-vitrine");
 const campoBuscaVitrine = document.querySelector("#busca-vitrine");
 const ordenacaoVitrine = document.querySelector("#ordenacao-vitrine");
@@ -35,14 +51,12 @@ const tituloModalImagem = document.querySelector("#modal-imagem-titulo");
 const botaoFecharModalImagem = document.querySelector("#fechar-modal-imagem");
 
 const CHAVE_USUARIO = "marketplace-vortex:usuario";
+const CHAVE_COLECOES = "marketplace-vortex:colecoes";
 const MENSAGEM_IMAGEM_OBRIGATORIA = "Escolha uma imagem para o anúncio.";
 const MENSAGEM_IMAGEM_INVALIDA = "Envie uma imagem PNG, JPG ou JPEG.";
 const TAMANHO_MAXIMO_IMAGEM_BYTES = 5 * 1024 * 1024;
 const MENSAGEM_TAMANHO_IMAGEM_INVALIDO =
   "Envie uma imagem de até 5 MB.";
-const PROPORCAO_MINIMA_IMAGEM = 1;
-const MENSAGEM_PROPORCAO_IMAGEM_INVALIDA =
-  "Use uma imagem menos vertical. Proporção mínima visível: 1:1.";
 const IMAGEM_PADRAO_ANUNCIO =
   "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80";
 const categorias = {
@@ -70,6 +84,11 @@ const categorias = {
     imagemPadrao:
       "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=900&q=80",
   },
+  outros: {
+    nome: "Outros",
+    emoji: "♻️",
+    imagemPadrao: IMAGEM_PADRAO_ANUNCIO,
+  },
 };
 const nomesCondicoes = {
   novo: "Novo",
@@ -93,6 +112,8 @@ let sequenciaRequisicaoCatalogo = 0;
 let sequenciaRequisicaoUsuario = 0;
 const idsEmExclusao = new Set();
 let publicacaoEmAndamento = false;
+let sequenciaItemColecao = 0;
+let temporizadorFeedbackColecao;
 
 const formatadorMoeda = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -385,6 +406,141 @@ function removerUsuarioSalvo() {
 
 let usuarioAtual = lerUsuarioSalvo();
 
+function colecaoSalvaEhValida(colecao) {
+  return (
+    colecao &&
+    typeof colecao.id === "string" &&
+    typeof colecao.usuarioId === "string" &&
+    typeof colecao.usuarioNome === "string" &&
+    typeof colecao.nome === "string" &&
+    colecao.nome.trim() !== "" &&
+    Array.isArray(colecao.itens) &&
+    colecao.itens.length > 0 &&
+    colecao.itens.every(
+      (item) =>
+        item &&
+        typeof item.nome === "string" &&
+        item.nome.trim() !== "" &&
+        typeof item.categoria === "string" &&
+        Object.hasOwn(categorias, item.categoria),
+    )
+  );
+}
+
+function lerColecoesSalvas() {
+  try {
+    const conteudoSalvo = window.localStorage.getItem(CHAVE_COLECOES);
+
+    if (!conteudoSalvo) {
+      return [];
+    }
+
+    const colecoes = JSON.parse(conteudoSalvo);
+    return Array.isArray(colecoes)
+      ? colecoes.filter(colecaoSalvaEhValida)
+      : [];
+  } catch (erro) {
+    console.warn("Não foi possível recuperar as coleções salvas.", erro);
+    return [];
+  }
+}
+
+function salvarColecoes(colecoes) {
+  try {
+    window.localStorage.setItem(CHAVE_COLECOES, JSON.stringify(colecoes));
+    return true;
+  } catch (erro) {
+    console.warn("Não foi possível salvar a coleção neste navegador.", erro);
+    return false;
+  }
+}
+
+function criarCardColecaoUsuario(colecao) {
+  const card = criarElemento("article", "card-colecao card-colecao-usuario");
+  const cabecalho = criarElemento("div", "colecao-header");
+  const avatar = document.createElement("img");
+  const dadosAutor = document.createElement("div");
+  const titulo = criarElemento("h3", "", colecao.nome);
+  const autor = criarElemento(
+    "p",
+    "",
+    `Por ${colecao.usuarioNome} · ${colecao.itens.length} ${
+      colecao.itens.length === 1 ? "item" : "itens"
+    }`,
+  );
+  const nomesItens = colecao.itens.map((item) => item.nome);
+  const nomesNoResumo = nomesItens.slice(0, 3);
+  const complementoDoResumo =
+    nomesItens.length > 3 ? ` e mais ${nomesItens.length - 3}` : "";
+  const descricao = criarElemento(
+    "p",
+    "colecao-desc",
+    `Inclui ${nomesNoResumo.join(", ")}${complementoDoResumo}.`,
+  );
+  const previa = criarElemento("div", "colecao-preview");
+  const itensNaPrevia =
+    colecao.itens.length > 3 ? colecao.itens.slice(0, 2) : colecao.itens;
+
+  card.dataset.colecaoUsuario = "true";
+  card.dataset.id = colecao.id;
+  card.setAttribute("aria-label", `Coleção ${colecao.nome}`);
+  avatar.className = "colecao-avatar";
+  avatar.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(colecao.usuarioNome)}`;
+  avatar.alt = "";
+
+  itensNaPrevia.forEach((item) => {
+    const categoria = categorias[item.categoria];
+    const miniatura = criarElemento(
+      "div",
+      "colecao-img-mini",
+      categoria.emoji,
+    );
+    miniatura.setAttribute("aria-hidden", "true");
+    previa.append(miniatura);
+  });
+
+  if (colecao.itens.length > 3) {
+    const quantidadeRestante = criarElemento(
+      "div",
+      "colecao-img-mini overlay",
+      `+${colecao.itens.length - 2}`,
+    );
+    quantidadeRestante.setAttribute("aria-hidden", "true");
+    previa.append(quantidadeRestante);
+  }
+
+  dadosAutor.append(titulo, autor);
+  cabecalho.append(avatar, dadosAutor);
+  card.append(cabecalho, descricao, previa);
+
+  return card;
+}
+
+function renderizarColecoesDoUsuario() {
+  if (!gradeColecoes) {
+    return;
+  }
+
+  gradeColecoes
+    .querySelectorAll('[data-colecao-usuario="true"]')
+    .forEach((card) => card.remove());
+
+  if (!usuarioAtual) {
+    return;
+  }
+
+  const colecoesDoUsuario = lerColecoesSalvas()
+    .filter((colecao) => colecao.usuarioId === usuarioAtual.id)
+    .reverse();
+  const fragmento = document.createDocumentFragment();
+
+  colecoesDoUsuario.forEach((colecao) => {
+    fragmento.append(criarCardColecaoUsuario(colecao));
+  });
+
+  gradeColecoes.insertBefore(fragmento, gradeColecoes.firstChild);
+}
+
 function obterIniciaisDoUsuario(nome) {
   return nome
     .trim()
@@ -473,6 +629,7 @@ function entrarNaConta() {
   };
   salvarUsuario(usuarioAtual);
   atualizarContaNoHeader();
+  renderizarColecoesDoUsuario();
   void carregarMeusAnunciosDaApi();
   mostrarFeedback(`Olá, ${usuarioAtual.nome}. Você entrou na sua conta.`);
 }
@@ -485,6 +642,7 @@ function sairDaConta() {
   fecharMenuConta();
   atualizarContaNoHeader();
   renderizarMeusAnuncios();
+  renderizarColecoesDoUsuario();
   mostrarFeedback("Você saiu da sua conta.");
   botaoContaUsuario?.focus();
 }
@@ -598,31 +756,155 @@ function campoEstaPreenchido(campo) {
   return campo.value.trim() !== "";
 }
 
-function obterPrimeiroCampoIncompleto() {
-  const camposObrigatorios = formularioNovoAnuncio.querySelectorAll(
-    "input[required]:not([type='radio']), select[required], textarea[required]",
-  );
-  const modalidadeSelecionada = formularioNovoAnuncio.querySelector(
-    "input[name='modalidade']:checked",
-  );
+function obterMensagemDeCampo(campo) {
+  const mensagensObrigatorias = {
+    nome: "Informe o nome do item.",
+    categoria: "Selecione uma categoria.",
+    condicao: "Selecione a condição do item.",
+    modalidade: "Escolha entre venda e doação.",
+    valor: "Informe o valor do anúncio.",
+    localizacao: "Informe o local de retirada.",
+    descricao: "Descreva o estado e a utilidade do item.",
+  };
 
-  for (const campo of camposObrigatorios) {
-    if (!campoEstaPreenchido(campo)) {
-      return campo;
+  if (campo.type === "radio") {
+    const selecionado = formularioNovoAnuncio.querySelector(
+      `input[name="${campo.name}"]:checked`,
+    );
+    return selecionado ? "" : mensagensObrigatorias[campo.name];
+  }
+
+  if (!campoEstaPreenchido(campo)) {
+    return mensagensObrigatorias[campo.name] || "Preencha este campo.";
+  }
+
+  if (campo === valorItem) {
+    const valorNumerico = obterValorNumerico(campo.value);
+
+    if (valorNumerico < 0) {
+      return "Informe um valor igual ou maior que zero.";
+    }
+
+    if (modalidadeVenda?.checked && valorNumerico === 0) {
+      return "Para venda, informe um valor maior que zero.";
     }
   }
 
-  if (!modalidadeSelecionada) {
-    return modalidadeVenda;
+  return "";
+}
+
+function obterCamposRelacionados(campo) {
+  if (campo.type !== "radio") {
+    return [campo];
   }
 
-  return null;
+  return [
+    ...formularioNovoAnuncio.querySelectorAll(
+      `input[name="${campo.name}"]`,
+    ),
+  ];
+}
+
+function obterElementoErroCampo(campo) {
+  const identificador = campo.type === "radio" ? campo.name : campo.id;
+  const idErro = `erro-${identificador}`;
+  let elementoErro = formularioNovoAnuncio.querySelector(`#${idErro}`);
+
+  if (!elementoErro) {
+    elementoErro = document.createElement("p");
+    elementoErro.id = idErro;
+    elementoErro.className = "erro-campo";
+    elementoErro.hidden = true;
+
+    const container =
+      campo.type === "radio" ? campo.closest("fieldset") : campo.parentElement;
+    container?.append(elementoErro);
+  }
+
+  for (const campoRelacionado of obterCamposRelacionados(campo)) {
+    const descricoes = new Set(
+      (campoRelacionado.getAttribute("aria-describedby") || "")
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    descricoes.add(idErro);
+    campoRelacionado.setAttribute(
+      "aria-describedby",
+      [...descricoes].join(" "),
+    );
+  }
+
+  return elementoErro;
+}
+
+function definirErroCampo(campo, mensagem) {
+  const elementoErro = obterElementoErroCampo(campo);
+
+  for (const campoRelacionado of obterCamposRelacionados(campo)) {
+    campoRelacionado.setCustomValidity(mensagem);
+    if (mensagem) {
+      campoRelacionado.setAttribute("aria-invalid", "true");
+    } else {
+      campoRelacionado.removeAttribute("aria-invalid");
+    }
+  }
+
+  elementoErro.textContent = mensagem;
+  elementoErro.hidden = !mensagem;
+}
+
+function validarCampo(campo) {
+  const mensagem = obterMensagemDeCampo(campo);
+  definirErroCampo(campo, mensagem);
+  return mensagem === "";
+}
+
+function validarCamposDoFormulario() {
+  let primeiroCampoInvalido = null;
+  const gruposValidados = new Set();
+
+  for (const campo of formularioNovoAnuncio.elements) {
+    if (!(campo instanceof HTMLElement) || campo.type === "file") {
+      continue;
+    }
+
+    if (campo.type === "radio") {
+      if (gruposValidados.has(campo.name)) {
+        continue;
+      }
+      gruposValidados.add(campo.name);
+    } else if (!campo.required) {
+      continue;
+    }
+
+    if (!validarCampo(campo) && !primeiroCampoInvalido) {
+      primeiroCampoInvalido = campo;
+    }
+  }
+
+  return primeiroCampoInvalido;
+}
+
+function limparErrosDosCampos() {
+  formularioNovoAnuncio
+    .querySelectorAll(".erro-campo")
+    .forEach((elementoErro) => {
+      elementoErro.textContent = "";
+      elementoErro.hidden = true;
+    });
+
+  formularioNovoAnuncio
+    .querySelectorAll('[aria-invalid="true"]:not(#imagem-item)')
+    .forEach((campo) => {
+      campo.removeAttribute("aria-invalid");
+      campo.setCustomValidity("");
+    });
 }
 
 function mostrarAvisoNoBotao() {
   const textoOriginal = botaoPublicarAnuncio.dataset.textoOriginal;
 
-  botaoPublicarAnuncio.textContent = "Preencha tudo antes de publicar";
+  botaoPublicarAnuncio.textContent = "Revise os campos destacados";
   botaoPublicarAnuncio.classList.add("is-warning");
 
   window.clearTimeout(temporizadorAvisoBotao);
@@ -694,36 +976,6 @@ function converterArquivoParaDataUrl(arquivo) {
   });
 }
 
-function lerDimensoesDaImagem(arquivo) {
-  return new Promise((resolve, reject) => {
-    const imagem = new Image();
-    const url = URL.createObjectURL(arquivo);
-
-    imagem.addEventListener(
-      "load",
-      () => {
-        URL.revokeObjectURL(url);
-        resolve({
-          altura: imagem.naturalHeight,
-          largura: imagem.naturalWidth,
-        });
-      },
-      { once: true },
-    );
-
-    imagem.addEventListener(
-      "error",
-      () => {
-        URL.revokeObjectURL(url);
-        reject(new Error("Não foi possível ler as dimensões da imagem."));
-      },
-      { once: true },
-    );
-
-    imagem.src = url;
-  });
-}
-
 async function obterErrosImagem(
   arquivo,
   { imagemObrigatoria = false } = {},
@@ -745,20 +997,6 @@ async function obterErrosImagem(
 
   if (!formatoPermitido) {
     return erros;
-  }
-
-  try {
-    const { altura, largura } = await lerDimensoesDaImagem(arquivo);
-    const proporcao = largura / altura;
-
-    if (!Number.isFinite(proporcao) || proporcao < PROPORCAO_MINIMA_IMAGEM) {
-      erros.push(MENSAGEM_PROPORCAO_IMAGEM_INVALIDA);
-    }
-  } catch (erro) {
-    console.warn("Não foi possível validar a proporção da imagem.", erro);
-    erros.push(
-      "Não foi possível validar a imagem. Escolha outro arquivo PNG, JPG ou JPEG.",
-    );
   }
 
   return erros;
@@ -1352,6 +1590,7 @@ async function criarAnuncio() {
       carregarMeusAnunciosDaApi({ mostrarCarregamento: false }),
     ]);
     formularioNovoAnuncio.reset();
+    limparErrosDosCampos();
     campoImagem?.setCustomValidity("");
     campoImagem?.classList.remove("is-invalid");
     campoImagem?.removeAttribute("aria-invalid");
@@ -1496,23 +1735,64 @@ function inicializarFormularioDeAnuncio() {
     void atualizarValidacaoDaImagem({ anunciarErro: true });
   });
 
+  formularioNovoAnuncio.addEventListener("input", (evento) => {
+    const campo = evento.target;
+
+    if (
+      campo instanceof HTMLInputElement ||
+      campo instanceof HTMLSelectElement ||
+      campo instanceof HTMLTextAreaElement
+    ) {
+      if (campo.type !== "file" && campo.getAttribute("aria-invalid") === "true") {
+        validarCampo(campo);
+      }
+
+      if (
+        campo === valorItem &&
+        modalidadeVenda?.getAttribute("aria-invalid") === "true"
+      ) {
+        validarCampo(modalidadeVenda);
+      }
+    }
+  });
+
+  formularioNovoAnuncio.addEventListener("change", (evento) => {
+    const campo = evento.target;
+
+    if (
+      (campo instanceof HTMLInputElement ||
+        campo instanceof HTMLSelectElement) &&
+      campo.type !== "file"
+    ) {
+      validarCampo(campo);
+
+      if (
+        campo.type === "radio" &&
+        valorItem?.getAttribute("aria-invalid") === "true"
+      ) {
+        validarCampo(valorItem);
+      }
+    }
+  });
+
   formularioNovoAnuncio.addEventListener("submit", async (evento) => {
     evento.preventDefault();
 
-    if (!(await atualizarValidacaoDaImagem({ imagemObrigatoria: true }))) {
-      mostrarFeedback(
-        campoImagem.validationMessage || MENSAGEM_IMAGEM_INVALIDA,
-      );
-      campoImagem.focus();
-      campoImagem.reportValidity();
-      return;
-    }
+    const primeiroCampoIncompleto = validarCamposDoFormulario();
+    const imagemValida = await atualizarValidacaoDaImagem({
+      imagemObrigatoria: true,
+    });
 
-    const primeiroCampoIncompleto = obterPrimeiroCampoIncompleto();
-
-    if (primeiroCampoIncompleto) {
-      primeiroCampoIncompleto.focus();
+    if (primeiroCampoIncompleto || !imagemValida) {
+      const primeiroCampoComErro =
+        primeiroCampoIncompleto || campoImagem;
+      primeiroCampoComErro?.focus();
       mostrarAvisoNoBotao();
+      mostrarFeedback(
+        primeiroCampoIncompleto
+          ? "Revise os campos destacados e tente publicar novamente."
+          : campoImagem.validationMessage || MENSAGEM_IMAGEM_INVALIDA,
+      );
       return;
     }
 
@@ -1549,12 +1829,369 @@ function definirPainelAnuncioAberto(aberto, { moverFoco = true } = {}) {
   }
 }
 
+function mostrarFeedbackDaColecao(mensagem, { persistente = false } = {}) {
+  if (!feedbackColecao) {
+    return;
+  }
+
+  feedbackColecao.textContent = mensagem;
+  window.clearTimeout(temporizadorFeedbackColecao);
+
+  if (!persistente) {
+    temporizadorFeedbackColecao = window.setTimeout(() => {
+      feedbackColecao.textContent = "";
+    }, 5000);
+  }
+}
+
+function atualizarNumeracaoDosItens() {
+  const itens = [...listaItensColecao.querySelectorAll(".item-colecao-linha")];
+  const unicoItem = itens.length === 1;
+
+  itens.forEach((item, indice) => {
+    const numero = indice + 1;
+    const titulo = item.querySelector(".item-colecao-titulo");
+    const botaoRemover = item.querySelector(".botao-remover-item-colecao");
+
+    if (titulo) {
+      titulo.textContent = `Item ${numero}`;
+    }
+
+    if (botaoRemover) {
+      botaoRemover.disabled = unicoItem;
+      botaoRemover.setAttribute(
+        "aria-label",
+        unicoItem
+          ? "Mantenha ao menos um item na coleção"
+          : `Remover item ${numero}`,
+      );
+    }
+  });
+}
+
+function criarLinhaDeItemColecao() {
+  sequenciaItemColecao += 1;
+  const identificador = sequenciaItemColecao;
+  const linha = criarElemento("div", "item-colecao-linha");
+  const cabecalho = criarElemento("div", "item-colecao-cabecalho");
+  const titulo = criarElemento("h4", "item-colecao-titulo");
+  const botaoRemover = criarElemento(
+    "button",
+    "botao-remover-item-colecao",
+    "Remover",
+  );
+  const campos = criarElemento("div", "item-colecao-campos");
+  const grupoNome = document.createElement("div");
+  const rotuloNome = document.createElement("label");
+  const campoNome = document.createElement("input");
+  const erroNome = criarElemento("p", "erro-campo-colecao");
+  const grupoCategoria = document.createElement("div");
+  const rotuloCategoria = document.createElement("label");
+  const campoCategoria = document.createElement("select");
+  const erroCategoria = criarElemento("p", "erro-campo-colecao");
+  const opcoesCategoria = [
+    ["", "Selecione uma categoria"],
+    ["livros", "Livros e papelaria"],
+    ["eletronicos", "Eletrônicos"],
+    ["casa", "Casa e decoração"],
+    ["moda", "Moda e acessórios"],
+    ["outros", "Outros"],
+  ];
+  const idNome = `nome-item-colecao-${identificador}`;
+  const idCategoria = `categoria-item-colecao-${identificador}`;
+  const idErroNome = `erro-${idNome}`;
+  const idErroCategoria = `erro-${idCategoria}`;
+
+  linha.dataset.itemColecao = String(identificador);
+  botaoRemover.type = "button";
+  rotuloNome.htmlFor = idNome;
+  rotuloNome.textContent = "Nome do item";
+  campoNome.id = idNome;
+  campoNome.name = `itemNome-${identificador}`;
+  campoNome.type = "text";
+  campoNome.required = true;
+  campoNome.maxLength = 80;
+  campoNome.autocomplete = "off";
+  campoNome.setAttribute("autocapitalize", "sentences");
+  campoNome.placeholder = "Ex.: Livro de cálculo";
+  campoNome.dataset.tipoCampoColecao = "nomeItem";
+  campoNome.setAttribute("aria-describedby", idErroNome);
+  erroNome.id = idErroNome;
+  erroNome.hidden = true;
+
+  rotuloCategoria.htmlFor = idCategoria;
+  rotuloCategoria.textContent = "Categoria";
+  campoCategoria.id = idCategoria;
+  campoCategoria.name = `itemCategoria-${identificador}`;
+  campoCategoria.required = true;
+  campoCategoria.dataset.tipoCampoColecao = "categoriaItem";
+  campoCategoria.setAttribute("aria-describedby", idErroCategoria);
+  erroCategoria.id = idErroCategoria;
+  erroCategoria.hidden = true;
+
+  opcoesCategoria.forEach(([valor, texto]) => {
+    const opcao = document.createElement("option");
+    opcao.value = valor;
+    opcao.textContent = texto;
+
+    if (!valor) {
+      opcao.disabled = true;
+      opcao.selected = true;
+    }
+
+    campoCategoria.append(opcao);
+  });
+
+  cabecalho.append(titulo, botaoRemover);
+  grupoNome.append(rotuloNome, campoNome, erroNome);
+  grupoCategoria.append(rotuloCategoria, campoCategoria, erroCategoria);
+  campos.append(grupoNome, grupoCategoria);
+  linha.append(cabecalho, campos);
+
+  return linha;
+}
+
+function adicionarLinhaDeItemColecao({ moverFoco = true } = {}) {
+  if (!listaItensColecao) {
+    return;
+  }
+
+  const linha = criarLinhaDeItemColecao();
+  listaItensColecao.append(linha);
+  atualizarNumeracaoDosItens();
+
+  if (moverFoco) {
+    linha.querySelector("input")?.focus();
+    mostrarFeedbackDaColecao("Novo item adicionado à coleção.");
+  }
+}
+
+function removerLinhaDeItemColecao(botaoRemover) {
+  const linhas = [...listaItensColecao.querySelectorAll(".item-colecao-linha")];
+
+  if (linhas.length <= 1) {
+    return;
+  }
+
+  const linha = botaoRemover.closest(".item-colecao-linha");
+  const indice = linhas.indexOf(linha);
+  linha?.remove();
+  atualizarNumeracaoDosItens();
+
+  const linhasRestantes = [
+    ...listaItensColecao.querySelectorAll(".item-colecao-linha"),
+  ];
+  const linhaParaFoco =
+    linhasRestantes[Math.min(indice, linhasRestantes.length - 1)];
+  linhaParaFoco?.querySelector("input")?.focus();
+  mostrarFeedbackDaColecao("Item removido da coleção.");
+}
+
+function definirErroDoCampoColecao(campo, mensagem) {
+  const idErro = (campo.getAttribute("aria-describedby") || "")
+    .split(/\s+/)
+    .find((id) => id.startsWith("erro-"));
+  const elementoErro = idErro ? document.getElementById(idErro) : null;
+
+  campo.setCustomValidity(mensagem);
+  campo.toggleAttribute("aria-invalid", Boolean(mensagem));
+
+  if (elementoErro) {
+    elementoErro.textContent = mensagem;
+    elementoErro.hidden = !mensagem;
+  }
+}
+
+function validarCampoDaColecao(campo) {
+  const mensagens = {
+    nomeColecao: "Informe o nome da coleção.",
+    nomeItem: "Informe o nome deste item.",
+    categoriaItem: "Selecione a categoria deste item.",
+  };
+  const tipo = campo.dataset.tipoCampoColecao || "nomeColecao";
+  const mensagem = campo.value.trim() ? "" : mensagens[tipo];
+  definirErroDoCampoColecao(campo, mensagem);
+  return !mensagem;
+}
+
+function validarFormularioDaColecao() {
+  let primeiroCampoInvalido = null;
+
+  formularioNovaColecao
+    .querySelectorAll("input[required], select[required]")
+    .forEach((campo) => {
+      if (!validarCampoDaColecao(campo) && !primeiroCampoInvalido) {
+        primeiroCampoInvalido = campo;
+      }
+    });
+
+  return primeiroCampoInvalido;
+}
+
+function limparFormularioDaColecao() {
+  formularioNovaColecao.reset();
+  formularioNovaColecao
+    .querySelectorAll('[aria-invalid="true"]')
+    .forEach((campo) => {
+      campo.removeAttribute("aria-invalid");
+      campo.setCustomValidity("");
+    });
+  listaItensColecao.replaceChildren();
+  adicionarLinhaDeItemColecao({ moverFoco: false });
+}
+
+function criarColecao() {
+  if (!usuarioAtual) {
+    mostrarFeedbackDaColecao(
+      "Entre na sua conta para criar uma coleção.",
+      { persistente: true },
+    );
+    botaoContaUsuario?.focus();
+    return false;
+  }
+
+  const itens = [
+    ...listaItensColecao.querySelectorAll(".item-colecao-linha"),
+  ].map((linha) => ({
+    nome: linha.querySelector("input").value.trim(),
+    categoria: linha.querySelector("select").value,
+  }));
+  const colecao = {
+    id: gerarId("colecao"),
+    usuarioId: usuarioAtual.id,
+    usuarioNome: usuarioAtual.nome,
+    nome: campoNomeColecao.value.trim(),
+    itens,
+    criadaEm: new Date().toISOString(),
+  };
+  const colecoes = lerColecoesSalvas();
+
+  colecoes.push(colecao);
+
+  if (!salvarColecoes(colecoes)) {
+    mostrarFeedbackDaColecao(
+      "Não foi possível salvar a coleção. Verifique o espaço disponível no navegador.",
+      { persistente: true },
+    );
+    return false;
+  }
+
+  renderizarColecoesDoUsuario();
+  limparFormularioDaColecao();
+  mostrarFeedbackDaColecao(`Coleção “${colecao.nome}” criada com sucesso.`);
+
+  const reduzirMovimento = window.matchMedia?.(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
+  secaoColecoes?.scrollIntoView({
+    behavior: reduzirMovimento ? "auto" : "smooth",
+    block: "start",
+  });
+
+  return true;
+}
+
+function definirPainelColecaoAberto(aberto, { moverFoco = true } = {}) {
+  if (!painelNovaColecao || !botaoCriarColecao) {
+    return;
+  }
+
+  painelNovaColecao.hidden = !aberto;
+  botaoCriarColecao.setAttribute("aria-expanded", String(aberto));
+  botaoCriarColecao.textContent = aberto
+    ? "Fechar coleção"
+    : "Criar Coleção";
+
+  if (!moverFoco) {
+    return;
+  }
+
+  if (aberto) {
+    const reduzirMovimento = window.matchMedia?.(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    painelNovaColecao.scrollIntoView({
+      behavior: reduzirMovimento ? "auto" : "smooth",
+      block: "start",
+    });
+    campoNomeColecao?.focus({ preventScroll: true });
+  } else {
+    botaoCriarColecao.focus();
+  }
+}
+
+function inicializarFormularioDaColecao() {
+  if (
+    !formularioNovaColecao ||
+    !listaItensColecao ||
+    !botaoAdicionarItemColecao ||
+    !botaoSalvarColecao
+  ) {
+    return;
+  }
+
+  adicionarLinhaDeItemColecao({ moverFoco: false });
+
+  botaoAdicionarItemColecao.addEventListener("click", () => {
+    adicionarLinhaDeItemColecao();
+  });
+
+  listaItensColecao.addEventListener("click", (evento) => {
+    const botaoRemover = evento.target.closest(
+      ".botao-remover-item-colecao",
+    );
+
+    if (botaoRemover && listaItensColecao.contains(botaoRemover)) {
+      removerLinhaDeItemColecao(botaoRemover);
+    }
+  });
+
+  formularioNovaColecao.addEventListener("input", (evento) => {
+    const campo = evento.target.closest(
+      "input[required], select[required]",
+    );
+
+    if (campo && formularioNovaColecao.contains(campo)) {
+      validarCampoDaColecao(campo);
+    }
+  });
+
+  formularioNovaColecao.addEventListener("change", (evento) => {
+    const campo = evento.target.closest(
+      "input[required], select[required]",
+    );
+
+    if (campo && formularioNovaColecao.contains(campo)) {
+      validarCampoDaColecao(campo);
+    }
+  });
+
+  formularioNovaColecao.addEventListener("submit", (evento) => {
+    evento.preventDefault();
+    const primeiroCampoInvalido = validarFormularioDaColecao();
+
+    if (primeiroCampoInvalido) {
+      mostrarFeedbackDaColecao(
+        "Revise os campos destacados antes de criar a coleção.",
+      );
+      primeiroCampoInvalido.focus();
+      return;
+    }
+
+    criarColecao();
+  });
+}
+
 function inicializarPainelNovoAnuncio() {
   if (!painelNovoAnuncio || !botaoAbrirAnuncio) {
     return;
   }
 
   botaoAbrirAnuncio.addEventListener("click", () => {
+    if (painelNovoAnuncio.hidden) {
+      definirPainelColecaoAberto(false, { moverFoco: false });
+    }
     definirPainelAnuncioAberto(painelNovoAnuncio.hidden);
   });
 
@@ -1563,19 +2200,24 @@ function inicializarPainelNovoAnuncio() {
   });
 
   botaoCriarColecao?.addEventListener("click", () => {
-    const reduzirMovimento = window.matchMedia?.(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
+    const deveAbrir = painelNovaColecao?.hidden;
 
-    secaoColecoes?.scrollIntoView({
-      behavior: reduzirMovimento ? "auto" : "smooth",
-      block: "start",
-    });
+    if (deveAbrir) {
+      definirPainelAnuncioAberto(false, { moverFoco: false });
+    }
+
+    definirPainelColecaoAberto(Boolean(deveAbrir));
+  });
+
+  botaoFecharColecao?.addEventListener("click", () => {
+    definirPainelColecaoAberto(false);
   });
 
   document.addEventListener("keydown", (evento) => {
     if (evento.key === "Escape" && !painelNovoAnuncio.hidden) {
       definirPainelAnuncioAberto(false);
+    } else if (evento.key === "Escape" && !painelNovaColecao?.hidden) {
+      definirPainelColecaoAberto(false);
     }
   });
 
@@ -1595,6 +2237,73 @@ function inicializarExclusaoDeAnuncios() {
 
     void excluirAnuncio(botaoExcluir.dataset.id, botaoExcluir);
   });
+}
+
+function definirMenuPrincipalAberto(aberto, { devolverFoco = false } = {}) {
+  if (!botaoMenuPrincipal || !navegacaoPrincipal) {
+    return;
+  }
+
+  const menuCompactoAtivo = mediaMenuCompacto.matches;
+  const menuDeveAbrir = menuCompactoAtivo && aberto;
+
+  botaoMenuPrincipal.hidden = !menuCompactoAtivo;
+  botaoMenuPrincipal.setAttribute("aria-expanded", String(menuDeveAbrir));
+  botaoMenuPrincipal.setAttribute(
+    "aria-label",
+    menuDeveAbrir ? "Fechar menu principal" : "Abrir menu principal",
+  );
+  navegacaoPrincipal.hidden = menuCompactoAtivo && !menuDeveAbrir;
+
+  if (devolverFoco && menuCompactoAtivo) {
+    botaoMenuPrincipal.focus();
+  }
+}
+
+function inicializarNavegacaoResponsiva() {
+  if (!headerPrincipal || !botaoMenuPrincipal || !navegacaoPrincipal) {
+    return;
+  }
+
+  botaoMenuPrincipal.addEventListener("click", () => {
+    const menuEstaAberto =
+      botaoMenuPrincipal.getAttribute("aria-expanded") === "true";
+    definirMenuPrincipalAberto(!menuEstaAberto);
+  });
+
+  navegacaoPrincipal.addEventListener("click", (evento) => {
+    if (evento.target.closest("a")) {
+      definirMenuPrincipalAberto(false);
+    }
+  });
+
+  document.addEventListener("click", (evento) => {
+    const menuEstaAberto =
+      botaoMenuPrincipal.getAttribute("aria-expanded") === "true";
+
+    if (
+      menuEstaAberto &&
+      !navegacaoPrincipal.contains(evento.target) &&
+      !botaoMenuPrincipal.contains(evento.target)
+    ) {
+      definirMenuPrincipalAberto(false);
+    }
+  });
+
+  document.addEventListener("keydown", (evento) => {
+    if (
+      evento.key === "Escape" &&
+      botaoMenuPrincipal.getAttribute("aria-expanded") === "true"
+    ) {
+      definirMenuPrincipalAberto(false, { devolverFoco: true });
+    }
+  });
+
+  mediaMenuCompacto.addEventListener("change", () => {
+    definirMenuPrincipalAberto(false);
+  });
+
+  definirMenuPrincipalAberto(false);
 }
 
 function atualizarEstadoDoHeader() {
@@ -1631,9 +2340,12 @@ sincronizarModalidadeComValor();
 inicializarContaUsuario();
 inicializarPainelNovoAnuncio();
 inicializarFormularioDeAnuncio();
+inicializarFormularioDaColecao();
 inicializarExclusaoDeAnuncios();
 inicializarVisualizacaoDeImagens();
 inicializarControlesDaVitrine();
+inicializarNavegacaoResponsiva();
 inicializarHeaderFixo();
+renderizarColecoesDoUsuario();
 void carregarAnunciosDaApi();
 void carregarMeusAnunciosDaApi();

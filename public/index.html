@@ -19,7 +19,21 @@
         <span>Marketplace Vortex</span>
       </a>
 
-      <nav aria-label="Navegação principal">
+      <button
+        id="botao-menu-principal"
+        class="menu-toggle"
+        type="button"
+        aria-label="Abrir menu principal"
+        aria-controls="navegacao-principal"
+        aria-expanded="false"
+        hidden
+      >
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </button>
+
+      <nav id="navegacao-principal" aria-label="Navegação principal">
         <ul>
           <li><a href="#inicio">Início</a></li>
           <li><a href="#como-funciona">Como funciona</a></li>
@@ -337,7 +351,8 @@
                   id="botao-criar-colecao"
                   class="vitrine-cta vitrine-cta-secondary"
                   type="button"
-                  aria-controls="colecoes-destaque"
+                  aria-expanded="false"
+                  aria-controls="painel-nova-colecao"
                 >
                   Criar Coleção
                 </button>
@@ -365,15 +380,22 @@
                 </button>
               </div>
 
-              <p>Preencha as informações para disponibilizar seu item na comunidade.</p>
+              <p id="instrucoes-novo-anuncio">Todos os campos são obrigatórios. Preencha as informações para disponibilizar seu item na comunidade.</p>
 
-              <form id="formulario-novo-anuncio" class="formulario-novo-anuncio" novalidate>
+              <form
+                id="formulario-novo-anuncio"
+                class="formulario-novo-anuncio"
+                aria-describedby="instrucoes-novo-anuncio"
+                novalidate
+              >
                 <div>
                   <label for="nome-item">Nome do item</label>
                   <input
                     id="nome-item"
                     name="nome"
                     type="text"
+                    autocomplete="off"
+                    autocapitalize="sentences"
                     placeholder="Ex.: Calculadora científica"
                     required
                   />
@@ -411,10 +433,11 @@
                     name="valor"
                     type="text"
                     inputmode="decimal"
+                    aria-describedby="ajuda-valor"
                     placeholder="R$ 0,00"
                     required
                   />
-                  <small>Em anúncios de doação, o valor será definido como R$ 0,00.</small>
+                  <small id="ajuda-valor">Em anúncios de doação, o valor será definido como R$ 0,00.</small>
                 </div>
                 <div>
                   <label for="localizacao-item">Localização para retirada</label>
@@ -422,6 +445,8 @@
                     id="localizacao-item"
                     name="localizacao"
                     type="text"
+                    autocomplete="street-address"
+                    autocapitalize="words"
                     placeholder="Ex.: Bloco Q, Centro de Convivência"
                     required
                   />
@@ -440,7 +465,6 @@
                     <ul>
                       <li>Formatos aceitos: PNG, JPG e JPEG.</li>
                       <li>Tamanho ideal: 1200 x 900 px (4:3).</li>
-                      <li>Proporção mínima visível: 1:1.</li>
                       <li>Arquivo de até 5 MB.</li>
                     </ul>
                   </div>
@@ -452,6 +476,7 @@
                     id="descricao-item"
                     name="descricao"
                     rows="5"
+                    autocapitalize="sentences"
                     placeholder="Conte um pouco mais sobre o estado e a utilidade do item."
                     required
                   ></textarea>
@@ -461,6 +486,71 @@
                 </button>
               </form>
               <p id="feedback-anuncio" role="status" aria-live="polite"></p>
+            </section>
+
+            <section
+              id="painel-nova-colecao"
+              class="painel-nova-colecao"
+              aria-labelledby="titulo-nova-colecao"
+              hidden
+            >
+              <div class="painel-colecao-cabecalho">
+                <div>
+                  <p>Vários itens, uma só curadoria</p>
+                  <h3 id="titulo-nova-colecao">Crie uma coleção</h3>
+                </div>
+                <button
+                  id="botao-fechar-colecao"
+                  class="botao-fechar-colecao"
+                  type="button"
+                  aria-label="Fechar formulário de coleção"
+                >
+                  ×
+                </button>
+              </div>
+
+              <p id="instrucoes-nova-colecao">Escolha um nome para a coleção e adicione todos os itens que fazem parte dela.</p>
+
+              <form
+                id="formulario-nova-colecao"
+                class="formulario-nova-colecao"
+                aria-describedby="instrucoes-nova-colecao"
+                novalidate
+              >
+                <div class="campo-nome-colecao">
+                  <label for="nome-colecao">Nome da coleção</label>
+                  <input
+                    id="nome-colecao"
+                    name="nomeColecao"
+                    type="text"
+                    autocomplete="off"
+                    autocapitalize="sentences"
+                    placeholder="Ex.: Materiais para o primeiro semestre"
+                    maxlength="80"
+                    aria-describedby="erro-nome-colecao"
+                    required
+                  />
+                  <p id="erro-nome-colecao" class="erro-campo-colecao" hidden></p>
+                </div>
+
+                <fieldset
+                  class="grupo-itens-colecao"
+                  aria-describedby="ajuda-itens-colecao"
+                >
+                  <legend>Itens da coleção</legend>
+                  <p id="ajuda-itens-colecao" class="ajuda-itens-colecao">Adicione ao menos um item. Cada item precisa de nome e categoria.</p>
+                  <div id="lista-itens-colecao" class="lista-itens-colecao"></div>
+                  <button id="botao-adicionar-item-colecao" class="botao-adicionar-item-colecao" type="button">
+                    <span aria-hidden="true">＋</span>
+                    Adicionar outro item
+                  </button>
+                </fieldset>
+
+                <button id="botao-salvar-colecao" class="botao-salvar-colecao" type="submit">
+                  Criar coleção
+                </button>
+              </form>
+              <p id="feedback-colecao" role="status" aria-live="polite"></p>
             </section>
 
             <!-- Abas do Catálogo -->

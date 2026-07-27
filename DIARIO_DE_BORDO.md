@@ -666,3 +666,178 @@ Consigo explicar também que `criarAnuncio` envia POST e só limpa o formulário
 ### Commit
 
 `feat: integrar frontend à API no Dia 8`
+
+## Dia 9 antecipado — 27/07/2026
+
+### Objetivo do dia
+
+Finalizar a responsividade mobile do Marketplace Vortex e aplicar uma camada básica de acessibilidade. O objetivo foi adaptar a landing page, reorganizar a navegação em telas pequenas, melhorar o formulário no celular, exibir os cartões em uma coluna e eliminar riscos de overflow nas larguras mais comuns.
+
+### O que eu fiz
+
+Adaptei a landing page para telas menores, reduzindo espaçamentos, ajustando a escala dos títulos e tornando o destaque principal mais compacto. Os botões principais passam a ocupar uma coluna no celular, enquanto a ilustração e as métricas mantêm proporções adequadas sem forçar uma altura excessiva.
+
+Substituí a navegação horizontal por um menu compacto em telas de até 68 rem. O novo botão possui área mínima de toque de 44 px, `aria-controls`, `aria-expanded` e rótulo atualizado conforme o estado. O menu fecha ao selecionar um link, clicar fora, pressionar `Escape` ou voltar para uma largura de desktop. Quando o fechamento acontece por `Escape`, o foco retorna ao botão.
+
+Reorganizei o formulário de anúncio em uma coluna nas telas pequenas. Os campos usam fonte de 16 px no celular para evitar zoom automático, os controles de modalidade e o botão de publicação possuem áreas adequadas para toque e o seletor de arquivo se adapta à largura disponível.
+
+A validação do formulário passou a apresentar mensagens específicas por campo. Os controles inválidos recebem `aria-invalid`, são associados às mensagens por `aria-describedby` e o foco é movido para o primeiro erro. As mensagens são removidas progressivamente quando a pessoa corrige os dados.
+
+As grades da vitrine, coleções, colaboradores e “Meus anúncios” passam a utilizar uma única coluna até 768 px. Em telas ainda menores, os cartões de anúncios próprios também empilham imagem, informações e ações. Textos longos podem quebrar sem ultrapassar o cartão.
+
+Também corrigi safe areas laterais, títulos longos no modal e o cabeçalho autenticado ou deslogado em larguras próximas de 320 px. O rótulo visual da conta pode ser ocultado quando não há espaço, mas o nome acessível completo continua disponível pelo `aria-label`.
+
+Depois da primeira entrega, revisei as regras de upload de imagens. A exigência de proporção mínima 1:1 foi considerada rígida porque impedia fotos verticais comuns feitas pelo celular. Removi a instrução da interface, as constantes, as mensagens, a leitura de dimensões e o bloqueio baseado na proporção. Os formatos PNG, JPG e JPEG e o limite de 5 MB permaneceram ativos.
+
+Também aumentei discretamente a altura útil da navegação interna da vitrine. O `hover` global move os botões 2 px para cima, mas o contêiner horizontal das abas não possuía espaço vertical suficiente e podia recortar a parte superior. Adicionei uma folga interna ao `.vitrine-abas-container` e à `.vitrine-abas`, preservando a rolagem horizontal e os breakpoints.
+
+Por fim, transformei o botão “Criar Coleção” em uma funcionalidade completa. Ele agora abre e fecha um painel semelhante ao formulário de anúncio, sem deixar os dois painéis abertos ao mesmo tempo. A pessoa escolhe o nome da coleção, adiciona vários itens, informa nome e categoria para cada um e pode remover linhas, mantendo pelo menos um item.
+
+As coleções são associadas ao usuário atual e persistidas no `localStorage`. Depois da criação, um cartão é inserido na grade de coleções e reaparece após atualizar a página ou entrar novamente na conta. O resumo do cartão mostra no máximo três nomes e informa quantos itens adicionais existem, evitando cartões excessivamente altos.
+
+### Organização entre agentes
+
+O trabalho foi dividido entre seis agentes. Cinco agentes receberam tarefas independentes: adaptação da landing page, navegação mobile, formulário mobile, cartões em uma coluna e auditoria de overflow. Como o ambiente permitia somente quatro agentes simultâneos, as tarefas foram executadas em duas rodadas.
+
+Um sexto agente realizou a revisão final integrada. Ele conferiu as alterações combinadas, procurou conflitos entre media queries, revisou navegação por teclado, atributos ARIA, validação do formulário, reflow dos cartões e riscos de overflow. Durante essa revisão, foi aplicado o último ajuste de compactação do botão de conta entre 320 e 416 px.
+
+Na implementação posterior das coleções, um agente ficou responsável pelo painel, campos dinâmicos, persistência e renderização. Outro agente foi reservado exclusivamente para responsividade e acessibilidade. Ele auditou o novo fluxo de 320 a 1440 px, corrigiu alvos de toque, fontes dos campos, quebra de texto, largura dos painéis e associação da ajuda ao `fieldset`.
+
+### Principais prompts usados
+
+**Prompt 1 — Implementação do Dia 9 com agentes especializados**
+
+> Vamos para o Dia 9: responsividade mobile final e acessibilidade básica. Separe cinco agentes, um para cada tarefa, e um sexto agente para revisar tudo. As tarefas são: adaptar a landing page para celular; organizar a navegação para telas pequenas; deixar o formulário utilizável no mobile; exibir cartões em uma coluna; e testar larguras comuns, corrigindo overflow. Preserve a identidade visual, as funcionalidades existentes e o trabalho dos demais agentes.
+
+**Prompt 2 — Validação manual das alterações**
+
+> Explique como testar localmente as alterações do Dia 9. Inclua como iniciar o projeto, abrir a página, usar o modo responsivo do navegador, quais larguras verificar e um checklist para menu, cartões, formulário, overflow, teclado, foco, zoom e acessibilidade.
+
+**Prompt 3 — Revisão das regras de upload**
+
+> Revise as condições apresentadas para o upload de imagens e avalie se são realistas para uma pessoa usuária. Depois, remova a recomendação rígida de proporção mínima 1:1 e todas as regras, mensagens e instruções relacionadas, preservando as demais validações.
+
+**Prompt 4 — Correção do hover nas abas da vitrine**
+
+> Aumente um pouco a altura da navegação interna `.vitrine-abas-container` para impedir o recorte do botão durante o hover. Confira os breakpoints responsivos e garanta que nenhuma outra parte do frontend seja quebrada.
+
+**Prompt 5 — Criação de coleções com vários itens**
+
+> Torne o botão `botao-criar-colecao` funcional. Ao pressioná-lo, abra um painel semelhante ao botão “Anunciar”. Nesse painel, permita escolher o nome da coleção e adicionar vários itens de uma vez. Se utilizar agentes, reserve um agente exclusivamente para garantir a responsividade do botão e do novo fluxo.
+
+### Resposta da IA
+
+A IA manteve a identidade azul e verde do Marketplace Vortex e organizou a adaptação em breakpoints progressivos. Em vez de apenas reduzir elementos, alterou a composição para uma sequência vertical, preservando leitura, áreas de toque e hierarquia visual.
+
+Os agentes trabalharam em mudanças delimitadas e compartilharam o mesmo workspace. A integração final reuniu CSS responsivo, estrutura HTML acessível e comportamento JavaScript para o menu e a validação do formulário.
+
+A IA também forneceu um roteiro de teste manual com `npm start`, acesso por `http://localhost:3000`, modo responsivo do DevTools, uso do teclado, zoom de 200% e auditoria pelo Lighthouse.
+
+Na revisão do upload, a IA identificou que a proporção 1:1 rejeitava qualquer imagem mais alta que larga. A validação foi simplificada sem afetar formato ou tamanho.
+
+Para as abas, a IA relacionou o recorte ao `transform: translateY(-2px)` aplicado no hover global e adicionou espaço vertical dentro do contêiner rolável.
+
+Na funcionalidade de coleções, a IA reutilizou o padrão visual e acessível do painel de anúncio, criou linhas dinâmicas com DOM seguro e manteve a persistência local separada da API de anúncios.
+
+### O que funcionou
+
+A página se reorganiza para celular sem remover conteúdo importante. A landing page mantém a identidade visual, os botões ficam fáceis de tocar e os cartões são exibidos em uma coluna até 768 px.
+
+O menu compacto informa corretamente seu estado, pode ser operado por teclado e não permanece aberto depois da seleção de um link ou da mudança para desktop.
+
+O formulário apresenta os campos em uma sequência simples, destaca erros de maneira visual e acessível e direciona a pessoa para o primeiro campo que precisa ser corrigido.
+
+Fotos verticais deixaram de ser rejeitadas por uma regra de proporção. As abas da vitrine têm espaço para o movimento do hover sem recorte.
+
+O painel de coleções abre pelo botão, fecha pelo próprio botão ou por `Escape` e devolve o foco. É possível adicionar e remover linhas, validar cada item, salvar a coleção e recuperá-la depois de atualizar a página. Os dados fornecidos pela pessoa são inseridos com `createElement` e `textContent`, sem `innerHTML`.
+
+As respostas da página, dos arquivos CSS e JavaScript e da API foram verificadas com HTTP 200.
+
+### Erros encontrados
+
+O navegador visual integrado não estava disponível no ambiente. O plugin de navegador estava presente, mas a lista de backends retornou vazia. Por isso, não foi possível produzir capturas automáticas ou interagir visualmente com cada viewport.
+
+A auditoria encontrou riscos pontuais de overflow no título do modal, nas safe areas laterais e no texto do botão de conta em 320 px. Esses casos foram corrigidos no CSS.
+
+Durante a correção das abas, a comparação com o último commit revelou que algumas regras responsivas do Dia 9 não estavam presentes no estado momentâneo do arquivo. As regras de safe area, quebra de texto, cartões em uma coluna e compactação da conta foram restauradas antes de continuar.
+
+O painel de coleções precisou limitar o resumo visual dos itens. Concatenar todos os nomes tornaria o cartão muito alto quando a coleção tivesse muitos elementos. O resumo passou a mostrar somente os três primeiros nomes e a quantidade restante.
+
+O comando `node` também não permaneceu disponível de forma consistente no PATH de todas as sessões dos agentes. As verificações foram repetidas na sessão principal quando o executável estava acessível.
+
+### Como investiguei
+
+Revisei os breakpoints de 68, 48, 38 e 26 rem, procurando larguras fixas, grids que não encolhiam, textos sem quebra e controles menores que 44 px.
+
+Auditei estaticamente as larguras de 320, 360, 375, 390, 414, 768, 1024 e 1440 px. Conferi o comportamento esperado do cabeçalho, menu, landing page, formulário, busca, filtros, cartões, modal e rodapé em cada faixa.
+
+Validei os contratos entre HTML, CSS e JavaScript, incluindo IDs, `aria-controls`, `aria-expanded`, `aria-describedby`, `aria-invalid`, foco visível e fechamento por `Escape`.
+
+Também iniciei o servidor local e fiz requisições para a página, os arquivos estáticos e a API. Ao final, encerrei o processo e removi somente os logs temporários criados durante o teste.
+
+Para o upload, busquei todas as referências a proporção, dimensões naturais da imagem e mensagens relacionadas. Depois da remoção, confirmei que nenhuma ocorrência permaneceu.
+
+Para as abas, comparei o deslocamento vertical do hover com o padding disponível no contêiner rolável. Conferi o CSS final contra o último commit para garantir que somente a folga vertical desejada fosse adicionada.
+
+Para as coleções, revisei os contratos entre HTML, CSS e JavaScript, os IDs dinâmicos, as referências ARIA, o estado de login, a chave do `localStorage`, a criação dos cartões e a exclusividade entre os dois painéis. Um agente independente auditou as larguras de 320, 360, 375, 390, 414, 768, 1024 e 1440 px.
+
+### O que aprendi
+
+Aprendi que responsividade não significa apenas diminuir fontes. Em telas menores, é necessário reorganizar grids, empilhar ações, permitir quebra de texto e garantir que todos os elementos possam encolher com `minmax(0, 1fr)` e `min-width: 0`.
+
+Aprendi que áreas de toque devem ter pelo menos 44 px e que campos com fonte de 16 px evitam o zoom automático em alguns navegadores móveis.
+
+Também aprendi que `aria-expanded` comunica o estado de um menu, `aria-controls` relaciona o botão ao painel controlado, `aria-invalid` identifica um campo com erro e `aria-describedby` associa instruções ou mensagens ao controle.
+
+Aprendi que `prefers-reduced-motion` respeita pessoas que preferem menos animações e que o zoom de 200% é um teste importante para verificar reflow e legibilidade.
+
+Aprendi que recomendações visuais devem ser diferenciadas de bloqueios obrigatórios. Uma proporção pode produzir um resultado visual melhor, mas não deve impedir o envio de fotos verticais comuns sem uma necessidade real.
+
+Aprendi que contêineres com rolagem horizontal também precisam reservar espaço vertical para movimentos de hover, porque o conteúdo transformado pode ser recortado.
+
+Aprendi que o `localStorage` pode persistir estruturas simples como coleções e itens, mas continua sendo armazenamento local do navegador. Também aprendi a criar campos repetíveis com IDs exclusivos, delegação de eventos e atualização de rótulos e botões após adicionar ou remover linhas.
+
+### Código que consigo explicar
+
+Consigo explicar que `window.matchMedia("(max-width: 68rem)")` informa ao JavaScript quando o menu compacto deve ser utilizado. A função `definirMenuPrincipalAberto` sincroniza os atributos do botão, o rótulo acessível e a visibilidade da navegação.
+
+Consigo explicar que os media queries alteram os grids para uma coluna, ajustam paddings e reorganizam imagem, conteúdo e ações sem duplicar o HTML.
+
+No formulário, consigo explicar que `validarCamposDoFormulario` percorre os controles obrigatórios, cria mensagens específicas e identifica o primeiro campo inválido. `aria-invalid` comunica o erro e `aria-describedby` aponta para o texto que explica como corrigir.
+
+Consigo explicar que `obterErrosImagem` agora verifica somente presença, formato e tamanho da imagem, sem ler largura, altura ou proporção.
+
+Consigo explicar que o `padding-block` de `.vitrine-abas-container` e `.vitrine-abas` cria espaço para o deslocamento do hover sem alterar a largura dos botões.
+
+No fluxo de coleções, consigo explicar que `criarLinhaDeItemColecao` monta cada conjunto de campos, `validarFormularioDaColecao` verifica nome e categoria, `salvarColecoes` grava o array no navegador e `renderizarColecoesDoUsuario` cria os cartões da conta atual. `definirPainelColecaoAberto` sincroniza a visibilidade, o texto do botão, `aria-expanded` e o foco.
+
+### Testes realizados
+
+- Sintaxe de `public/app.js`, `public/animations.js` e `server.js` validada.
+- Formatação do diff validada com `git diff --check`.
+- 73 IDs HTML verificados sem duplicidade.
+- Referências ARIA e controles nomeados auditados.
+- CSS com 522 chaves de abertura e 522 de fechamento.
+- Página inicial respondendo HTTP 200.
+- `styles.css`, `app.js` e `animations.js` respondendo HTTP 200.
+- `/api/anuncios` respondendo HTTP 200.
+- Reflow auditado em 320, 360, 375, 390, 414, 768, 1024 e 1440 px.
+- Menu compacto revisado para clique, link, clique externo, `Escape` e redimensionamento.
+- Formulário revisado para coluna única, erros por campo e foco no primeiro erro.
+- Vitrine, coleções, colaboradores e “Meus anúncios” confirmados em uma coluna até 768 px.
+- Regra de proporção 1:1 e todas as referências relacionadas removidas.
+- Formatos e limite de 5 MB do upload preservados.
+- Hover das abas validado com espaço vertical suficiente.
+- Painel de coleções abrindo e fechando sem conflito com o painel de anúncio.
+- Adição e remoção de múltiplos itens verificadas.
+- Validação acessível de nome e categoria verificada.
+- Persistência das coleções por usuário no `localStorage` verificada estruturalmente.
+- Cards de coleção construídos sem `innerHTML`.
+- Novo painel auditado entre 320 e 1440 px.
+- Alvos de toque de 44 px e campos com fonte de 16 px no mobile confirmados.
+- Foco visível e `prefers-reduced-motion` preservados.
+- Processo do servidor e logs temporários encerrados e removidos.
+
+### Commit
+
+`feat: antecipar responsividade e acessibilidade do Dia 9`
