@@ -1362,3 +1362,136 @@ O próximo passo planejado é o Dia Bônus 3: criar PostgreSQL no Neon, migratio
 ### Commit
 
 `feat: converter frontend para TypeScript`
+
+## Dia Bônus 3 — 28/07/2026
+
+### Objetivo do dia
+
+Antecipar a etapa planejada originalmente para 31/07/2026 e substituir a persistência SQLite da aplicação por PostgreSQL no Neon. O trabalho deveria criar ambientes isolados de desenvolvimento, teste e produção, implementar migrations idempotentes, converter banco e rotas para fluxo assíncrono, preservar os DTOs usados pelo frontend e manter o SQLite local apenas como histórico, sem importar seus dados.
+
+### Organização entre agentes
+
+O trabalho foi dividido em sete frentes: ambientes Neon; runner de migrations; schema das tabelas; substituição de `node:sqlite` por `pg`; conversão das rotas para `async/await`; compatibilidade dos DTOs; e preservação do SQLite. Como o ambiente permitia somente três subagentes simultâneos, as tarefas foram executadas em ondas e os agentes receberam arquivos ou responsabilidades separados para reduzir conflitos.
+
+Depois da integração, um agente extra realizou a revisão independente do Dia Bônus 3. Ele auditou o plano, o diff completo, as migrations, o acesso PostgreSQL, as rotas, os contratos HTTP, os testes e a preservação do banco histórico. A revisão encontrou uma incompatibilidade entre os identificadores legados `usuario-<uuid>` e a nova coluna UUID, adicionou validação explícita e criou um smoke test PostgreSQL opt-in.
+
+### O que eu fiz
+
+Criei dois projetos gratuitos no Neon, ambos com PostgreSQL 18, região AWS South America East 1 (São Paulo) e Neon Auth desativado. O projeto `marketplace-vortex-nonproduction` possui `development` como branch padrão e `test` como branch filha permanente, sem expiração automática. O projeto `marketplace-vortex-production` possui somente a branch `production`, isolando os dados publicados das rotinas locais e de teste.
+
+As credenciais das branches não produtivas foram redefinidas depois que a primeira senha apareceu durante a leitura técnica da interface. As URLs anteriores ficaram inválidas. As conexões finais foram armazenadas apenas em `.env` e `.env.production.local`, ambos ignorados pelo Git. Nenhuma senha, URL real ou endpoint Neon foi incluído no commit, na documentação ou nas mensagens finais.
+
+Criei `scripts/migrate.js`. O runner exige `DATABASE_URL_DIRECT`, descobre arquivos SQL em ordem lexicográfica, usa advisory lock para impedir duas execuções concorrentes, cria `schema_migrations` e registra nome, checksum e data de aplicação. Cada migration roda em sua própria transação; o registro só é inserido depois do SQL bem-sucedido e na mesma transação. Em caso de erro, o runner executa rollback, libera o cliente e encerra o pool.
+
+Criei `migrations/001_create_usuarios.sql` e `migrations/002_create_anuncios.sql`. `usuarios` usa UUID gerado pelo PostgreSQL, nome, e-mail normalizado e único, hash da senha e data de criação. `anuncios` usa ID identity, `NUMERIC(12,2)`, enums por constraints, limites de preço e texto, proprietário UUID com chave estrangeira e timestamp com fuso. Índices atendem ordenação, categoria e proprietário.
+
+Substituí `node:sqlite` por `pg` em `database.js`. As consultas usam `Pool`, placeholders `$1` a `$9` e `JOIN` com `usuarios` para obter o nome do autor. O mapeamento converte `NUMERIC` explicitamente para número e transforma os nomes `snake_case` do banco nos campos camelCase esperados pelo frontend: `imagemUrl`, `usuarioId`, `usuarioNome` e `criadoEm`.
+
+Converti as rotas de catálogo para `async/await`. O Express 5 encaminha rejeições assíncronas ao middleware de erro, e `/api/status` passou a executar `SELECT 1`, respondendo 200 quando o PostgreSQL está disponível e 503 com mensagem segura quando a conexão falha.
+
+Mantive temporariamente os campos de autoria no contrato anterior ao JWT, mas passei a exigir UUID válido nos filtros, na criação e no cabeçalho de exclusão. Assim, IDs legados são rejeitados com 400 antes de chegar ao cast UUID do PostgreSQL, evitando respostas 500. A autoria definitiva derivada do token continua reservada ao Dia Bônus 4.
+
+Adicionei testes para o runner, fluxo assíncrono da API, mapeamento dos DTOs, preservação do SQLite e integração real com PostgreSQL. O smoke test usa somente `TEST_DATABASE_URL`, recusa uma URL igual às conexões normais, aplica migrations, cria uma fixture UUID, exerce CRUD, filtros e persistência entre conexões e remove apenas a fixture ao final.
+
+### Provisionamento e migrations reais
+
+As migrations foram executadas duas vezes em `development` e `production`. Na primeira execução, os dois arquivos foram aplicados; na segunda, ambos foram reconhecidos como já aplicados, sem duplicação.
+
+Na branch `test`, o smoke test aplicou as mesmas migrations e executou criação, listagem, filtro por categoria, filtro por usuário, exclusão e verificação após nova conexão. A fixture e seus anúncios foram removidos no encerramento.
+
+Ao final, uma consulta direta confirmou:
+
+- `development`: 2 migrations, 0 usuários e 0 anúncios;
+- `test`: 2 migrations, 0 usuários e 0 anúncios;
+- `production`: 2 migrations, 0 usuários e 0 anúncios.
+
+O PostgreSQL publicado começou vazio, como decidido no plano. Nenhum registro do SQLite foi copiado.
+
+### O que funcionou
+
+Os três ambientes Neon ficaram realmente provisionados e separados. A API conectou à URL pooled de `development`, `/api/status` respondeu 200 e o catálogo vazio respondeu 200.
+
+O runner comprovou idempotência tanto em testes unitários quanto nas execuções reais do Neon. Checksums impedem que uma migration já aplicada seja alterada silenciosamente, e o advisory lock protege contra inicializações concorrentes.
+
+O contrato do catálogo permaneceu compatível com `src/types.ts`. O ID e o valor chegam ao frontend como números, o timestamp chega em ISO e nenhum nome `snake_case` vaza na resposta.
+
+As consultas são parametrizadas e os filtros não alteram a estrutura do SQL. O nome do autor vem do `JOIN`, não do valor `usuarioNome` enviado pelo cliente.
+
+O arquivo `data/marketplace.db` permaneceu com 593.920 bytes e SHA-256 `B7E8D41AA13A0D25BA6E3A0310C9F282BF13031120938AD593D0B96539D7D1B5`. Ele continua ignorado pelo Git, e nenhum código executável contém importador SQLite.
+
+### Erros encontrados
+
+Na primeira tentativa de migration após redefinir as senhas não produtivas, a interface do Neon ainda mantinha a URL antiga no modal. O PostgreSQL rejeitou a conexão com `28P01`, sem aplicar migration parcial. Reconstruí as URLs usando as novas senhas, repeti a conexão e as migrations passaram.
+
+Na primeira tentativa de produção, a conexão havia sido capturada enquanto a senha ainda aparecia mascarada. A autenticação foi rejeitada antes de qualquer alteração. Esperei o estado visível correto da interface, recapturei as URLs e executei as migrations com sucesso.
+
+O primeiro smoke real encontrou um erro no próprio teste: `.map(({ id }))` tentava acessar uma variável inexistente. Corrigi para `.map(({ id }) => id)` e repeti a suíte. Depois da correção, os 18 testes passaram, incluindo a integração real.
+
+O driver `pg` emitiu um aviso de compatibilidade futura relacionado a `sslmode=require`. Na versão atual, o modo continua verificando o certificado como esperado. O aviso deve ser revisto antes de uma futura atualização para `pg` 9, sem remover os parâmetros SSL fornecidos pelo Neon nesta etapa.
+
+### Como investiguei
+
+Comparei o schema planejado com os contratos de `src/types.ts` e com os campos usados por `src/app.ts`. Isso mostrou que `valor` precisava de conversão explícita e que o nome do autor deveria continuar disponível no DTO, embora deixasse de ser duplicado na tabela.
+
+Usei mocks do banco para comprovar que as rotas aguardam as Promises e preservam validações, status e corpos. Um teste específico força uma rejeição assíncrona e confirma que o middleware retorna 500 sem expor detalhes internos.
+
+Para o Neon, conferi projetos, região, versão, branches e estado do Neon Auth diretamente no painel. As credenciais foram manipuladas sem registrá-las no repositório. Depois, executei as migrations e consultei apenas contagens de `schema_migrations`, `usuarios` e `anuncios`.
+
+Auditei o código executável em busca de `node:sqlite`, `sqlite3`, `better-sqlite3`, `marketplace.db` e importadores. Também confirmei as regras `data/*.db` e `data/*.db-*` no `.gitignore` e repeti a verificação do arquivo histórico.
+
+### O que aprendi
+
+Aprendi que o driver `pg` trabalha de forma assíncrona e que valores `NUMERIC` são devolvidos como texto por padrão. O contrato HTTP só permanece correto quando a camada de mapeamento converte o valor conscientemente.
+
+Aprendi que migrations precisam de mais que `CREATE TABLE`: ordem, transação, registro, checksum, lock e fechamento de conexões fazem parte da confiabilidade do processo.
+
+Aprendi que branches do Neon isolam o estado do banco, mas senhas redefinidas em uma branch não devem ser presumidas como atualizadas automaticamente nas demais. Cada URL precisa ser validada no ambiente ao qual pertence.
+
+Aprendi que uma migration idempotente não significa repetir livremente o SQL do arquivo. O runner aplica cada arquivo uma vez e, nas execuções seguintes, confirma o checksum registrado sem recriar a estrutura.
+
+Aprendi que um schema definitivo com UUID cria uma transição incompatível com identificadores legados. A solução segura foi rejeitar esses IDs e deixar a criação de usuários e a autoria pelo token para a etapa JWT, em vez de inserir usuários falsos ou enfraquecer a chave estrangeira.
+
+### Partes principais que eu acho bom explicar
+
+Consigo explicar que `DATABASE_URL` usa o endpoint pooled da API, enquanto `DATABASE_URL_DIRECT` usa a conexão direta para migrations. `TEST_DATABASE_URL` aponta exclusivamente para a branch `test` e nunca deve ser igual a uma conexão de desenvolvimento ou produção.
+
+Consigo explicar que `schema_migrations` guarda o arquivo e seu checksum. Se o arquivo já foi aplicado com o mesmo conteúdo, ele é ignorado; se o conteúdo mudou, o runner falha para impedir divergência silenciosa.
+
+Consigo explicar que placeholders como `$1` e `$2` separam dados da estrutura SQL. Mesmo que um filtro contenha caracteres especiais, ele continua sendo tratado como valor, não como parte do comando.
+
+Consigo explicar que a tabela `anuncios` guarda `usuario_id`, enquanto `usuarioNome` é construído no `SELECT` por meio do `JOIN` com `usuarios`. Isso evita inconsistência entre um usuário e cópias antigas de seu nome.
+
+Consigo explicar que o SQLite foi preservado como arquivo histórico, mas desapareceu completamente do caminho executável da aplicação. O PostgreSQL começou vazio e recebeu somente schema e fixtures temporárias de teste.
+
+### Testes realizados
+
+- Migrations reais executadas duas vezes em `development`.
+- Migrations reais executadas duas vezes em `production`.
+- Migrations e smoke real executados na branch isolada `test`.
+- `npm test` aprovado: 18 de 18 testes, nenhum ignorado.
+- CRUD PostgreSQL real aprovado com fixture UUID.
+- Filtros por categoria e usuário aprovados.
+- Exclusão e limpeza da fixture aprovadas.
+- Persistência entre conexões aprovada.
+- `/api/status` contra o Neon respondendo 200.
+- `/api/anuncios` contra `development` respondendo 200 com lista vazia.
+- `npm run typecheck` aprovado.
+- `npm run build` aprovado.
+- `node --check` aprovado para os arquivos JavaScript alterados.
+- `git diff --check` aprovado.
+- Auditoria sem credenciais reais em arquivos versionados.
+- `development`, `test` e `production` confirmados com 2 migrations, 0 usuários e 0 anúncios.
+- SQLite preservado sem leitura, importação, alteração ou remoção.
+- Revisão independente concluída após as sete frentes.
+
+### Limitações e próximo passo
+
+O frontend ainda usa a identidade legada `usuario-<uuid>` e, portanto, não deve publicar anúncios no schema definitivo até a implementação da autenticação. Essa transição é intencional: o Dia Bônus 4 criará cadastro, login, JWT e autoria derivada exclusivamente do token.
+
+A API ainda não foi publicada no Render e as conexões de produção ainda não foram cadastradas no serviço de hospedagem. Isso pertence ao Dia Bônus 5. O banco de produção já possui o schema, mas permanece vazio.
+
+O próximo passo planejado é o Dia Bônus 4: implementar autenticação JWT, hash de senha, autorização, Zod e o envelope uniforme de erros.
+
+### Commit
+
+`55d1736` — `feat: concluir dia bonus 3 com PostgreSQL no Neon`
