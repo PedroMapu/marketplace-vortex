@@ -5,6 +5,7 @@ const {
   criarAnuncio,
   buscarAnuncioPorId,
   excluirAnuncioPorId,
+  verificarConexao,
 } = require("./database");
 
 const app = express();
@@ -17,13 +18,23 @@ const CATEGORIAS_VALIDAS = new Set([
 ]);
 const CONDICOES_VALIDAS = new Set(["novo", "seminovo", "usado"]);
 const MODALIDADES_VALIDAS = new Set(["venda", "doacao"]);
+const FORMATO_UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 app.use(express.json({ limit: "8mb" }));
 
-app.get("/api/status", (request, response) => {
-  response.json({
-    mensagem: "API do Marketplace Vortex funcionando.",
-  });
+app.get("/api/status", async (request, response) => {
+  try {
+    await verificarConexao();
+
+    return response.status(200).json({
+      mensagem: "API do Marketplace Vortex funcionando.",
+    });
+  } catch {
+    return response.status(503).json({
+      erro: "Banco de dados temporariamente indisponível.",
+    });
+  }
 });
 
 function textoObrigatorio(valor) {
@@ -52,7 +63,13 @@ function validarFiltrosAnuncios(query) {
     if (!textoObrigatorio(query.usuarioId)) {
       erros.usuarioId = "O ID do usuário deve conter texto.";
     } else {
-      filtros.usuarioId = query.usuarioId.trim();
+      const usuarioId = query.usuarioId.trim();
+
+      if (!FORMATO_UUID.test(usuarioId)) {
+        erros.usuarioId = "O ID do usuário deve ser um UUID válido.";
+      } else {
+        filtros.usuarioId = usuarioId;
+      }
     }
   }
 
@@ -85,6 +102,13 @@ function validarAnuncio(dados) {
       erros[campo] = "Este campo é obrigatório e deve conter texto.";
     }
   });
+
+  if (
+    textoObrigatorio(dados.usuarioId) &&
+    !FORMATO_UUID.test(dados.usuarioId.trim())
+  ) {
+    erros.usuarioId = "O ID do usuário deve ser um UUID válido.";
+  }
 
   if (
     textoObrigatorio(dados.categoria) &&
@@ -144,91 +168,85 @@ function normalizarAnuncio(dados) {
   };
 }
 
-app.get("/api/anuncios", (request, response, next) => {
-  try {
-    const { erros, filtros } = validarFiltrosAnuncios(request.query);
+app.get("/api/anuncios", async (request, response) => {
+  const { erros, filtros } = validarFiltrosAnuncios(request.query);
 
-    if (Object.keys(erros).length > 0) {
-      return response.status(400).json({
-        erro: "Filtros de anúncios inválidos.",
-        campos: erros,
-      });
-    }
-
-    const anuncios = listarAnuncios(filtros);
-    response.status(200).json(anuncios);
-  } catch (erro) {
-    next(erro);
-  }
-});
-
-app.post("/api/anuncios", (request, response, next) => {
-  try {
-    const erros = validarAnuncio(request.body);
-
-    if (Object.keys(erros).length > 0) {
-      return response.status(400).json({
-        erro: "Dados do anúncio inválidos.",
-        campos: erros,
-      });
-    }
-
-    const anuncio = criarAnuncio(normalizarAnuncio(request.body));
-    return response.status(201).json(anuncio);
-  } catch (erro) {
-    return next(erro);
-  }
-});
-
-app.delete("/api/anuncios/:id", (request, response, next) => {
-  try {
-    const id = Number(request.params.id);
-    const idValido =
-      /^[1-9]\d*$/.test(request.params.id) && Number.isSafeInteger(id);
-
-    if (!idValido) {
-      return response.status(400).json({
-        erro: "O ID deve ser um número inteiro positivo.",
-      });
-    }
-
-    const usuarioId = request.get("X-Usuario-Id");
-
-    if (!textoObrigatorio(usuarioId)) {
-      return response.status(401).json({
-        erro: "Identifique o usuário para excluir um anúncio.",
-      });
-    }
-
-    const anuncio = buscarAnuncioPorId(id);
-
-    if (!anuncio) {
-      return response.status(404).json({
-        erro: "Anúncio não encontrado.",
-      });
-    }
-
-    const usuarioIdNormalizado = usuarioId.trim();
-
-    if (anuncio.usuarioId !== usuarioIdNormalizado) {
-      return response.status(403).json({
-        erro: "Você só pode excluir os seus próprios anúncios.",
-      });
-    }
-
-    if (!excluirAnuncioPorId(id, usuarioIdNormalizado)) {
-      return response.status(404).json({
-        erro: "Anúncio não encontrado.",
-      });
-    }
-
-    return response.status(200).json({
-      mensagem: "Anúncio excluído com sucesso.",
-      id,
+  if (Object.keys(erros).length > 0) {
+    return response.status(400).json({
+      erro: "Filtros de anúncios inválidos.",
+      campos: erros,
     });
-  } catch (erro) {
-    return next(erro);
   }
+
+  const anuncios = await listarAnuncios(filtros);
+  return response.status(200).json(anuncios);
+});
+
+app.post("/api/anuncios", async (request, response) => {
+  const erros = validarAnuncio(request.body);
+
+  if (Object.keys(erros).length > 0) {
+    return response.status(400).json({
+      erro: "Dados do anúncio inválidos.",
+      campos: erros,
+    });
+  }
+
+  const anuncio = await criarAnuncio(normalizarAnuncio(request.body));
+  return response.status(201).json(anuncio);
+});
+
+app.delete("/api/anuncios/:id", async (request, response) => {
+  const id = Number(request.params.id);
+  const idValido =
+    /^[1-9]\d*$/.test(request.params.id) && Number.isSafeInteger(id);
+
+  if (!idValido) {
+    return response.status(400).json({
+      erro: "O ID deve ser um número inteiro positivo.",
+    });
+  }
+
+  const usuarioId = request.get("X-Usuario-Id");
+
+  if (!textoObrigatorio(usuarioId)) {
+    return response.status(401).json({
+      erro: "Identifique o usuário para excluir um anúncio.",
+    });
+  }
+
+  if (!FORMATO_UUID.test(usuarioId.trim())) {
+    return response.status(400).json({
+      erro: "O ID do usuário deve ser um UUID válido.",
+    });
+  }
+
+  const anuncio = await buscarAnuncioPorId(id);
+
+  if (!anuncio) {
+    return response.status(404).json({
+      erro: "Anúncio não encontrado.",
+    });
+  }
+
+  const usuarioIdNormalizado = usuarioId.trim();
+
+  if (anuncio.usuarioId !== usuarioIdNormalizado) {
+    return response.status(403).json({
+      erro: "Você só pode excluir os seus próprios anúncios.",
+    });
+  }
+
+  if (!(await excluirAnuncioPorId(id, usuarioIdNormalizado))) {
+    return response.status(404).json({
+      erro: "Anúncio não encontrado.",
+    });
+  }
+
+  return response.status(200).json({
+    mensagem: "Anúncio excluído com sucesso.",
+    id,
+  });
 });
 
 app.use(express.static(path.join(__dirname, "public")));

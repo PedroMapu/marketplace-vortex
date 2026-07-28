@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit",
     "build": "vite build",
     "test": "node --test",
-    "migrate": "node -e \"console.log('Migrações serão disponibilizadas no Dia Bônus 3.')\"",
+    "migrate": "node scripts/migrate.js",
     "start": "node server.js"
   },
   "repository": {
@@ -25,7 +25,8 @@
   },
   "homepage": "https://github.com/PedroMapu/marketplace-vortex#readme",
   "dependencies": {
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "pg": "^8.22.0"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",

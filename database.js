@@ -1,151 +1,156 @@
-const path = require("node:path");
-const { mkdirSync } = require("node:fs");
-const { DatabaseSync } = require("node:sqlite");
+"use strict";
 
-const pastaDados = path.join(__dirname, "data");
-const caminhoBanco = path.join(pastaDados, "marketplace.db");
+const { Pool } = require("pg");
 
-mkdirSync(pastaDados, { recursive: true });
+/*
+ * A connection string do Neon já carrega as opções de TLS (por exemplo,
+ * `sslmode=require`). Não definimos `ssl` separadamente para não sobrescrever
+ * essas opções.
+ */
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
 
-const database = new DatabaseSync(caminhoBanco);
-
-database.exec(`
-  CREATE TABLE IF NOT EXISTS anuncios (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome TEXT NOT NULL,
-    categoria TEXT NOT NULL,
-    condicao TEXT NOT NULL,
-    modalidade TEXT NOT NULL,
-    valor REAL NOT NULL DEFAULT 0,
-    localizacao TEXT NOT NULL,
-    descricao TEXT NOT NULL,
-    imagemUrl TEXT NOT NULL DEFAULT '',
-    usuarioId TEXT NOT NULL,
-    usuarioNome TEXT NOT NULL,
-    criadoEm TEXT NOT NULL DEFAULT (
-      strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-    )
-  )
-`);
-
-const listarAnunciosStatement = database.prepare(`
+const SELECAO_ANUNCIO = `
   SELECT
-    id,
-    nome,
-    categoria,
-    condicao,
-    modalidade,
-    valor,
-    localizacao,
-    descricao,
-    imagemUrl,
-    usuarioId,
-    usuarioNome,
-    criadoEm
-  FROM anuncios
-  ORDER BY criadoEm DESC, id DESC
-`);
+    a.id,
+    a.nome,
+    a.categoria,
+    a.condicao,
+    a.modalidade,
+    a.valor,
+    a.localizacao,
+    a.descricao,
+    a.imagem_url,
+    a.usuario_id,
+    u.nome AS usuario_nome,
+    a.criado_em
+  FROM anuncios AS a
+  INNER JOIN usuarios AS u
+    ON u.id = a.usuario_id
+`;
 
-const filtrarAnunciosStatement = database.prepare(`
-  SELECT
-    id,
-    nome,
-    categoria,
-    condicao,
-    modalidade,
-    valor,
-    localizacao,
-    descricao,
-    imagemUrl,
-    usuarioId,
-    usuarioNome,
-    criadoEm
-  FROM anuncios
-  WHERE (? IS NULL OR categoria = ?)
-    AND (? IS NULL OR usuarioId = ?)
-  ORDER BY criadoEm DESC, id DESC
-`);
+function mapearAnuncio(row) {
+  return {
+    id: Number(row.id),
+    nome: row.nome,
+    categoria: row.categoria,
+    condicao: row.condicao,
+    modalidade: row.modalidade,
+    valor: Number(row.valor),
+    localizacao: row.localizacao,
+    descricao: row.descricao,
+    imagemUrl: row.imagem_url,
+    usuarioId: row.usuario_id,
+    usuarioNome: row.usuario_nome,
+    criadoEm:
+      row.criado_em instanceof Date
+        ? row.criado_em.toISOString()
+        : new Date(row.criado_em).toISOString(),
+  };
+}
 
-const buscarAnuncioPorIdStatement = database.prepare(`
-  SELECT
-    id,
-    nome,
-    categoria,
-    condicao,
-    modalidade,
-    valor,
-    localizacao,
-    descricao,
-    imagemUrl,
-    usuarioId,
-    usuarioNome,
-    criadoEm
-  FROM anuncios
-  WHERE id = ?
-`);
-
-const criarAnuncioStatement = database.prepare(`
-  INSERT INTO anuncios (
-    nome,
-    categoria,
-    condicao,
-    modalidade,
-    valor,
-    localizacao,
-    descricao,
-    imagemUrl,
-    usuarioId,
-    usuarioNome
-  )
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`);
-
-const excluirAnuncioPorIdStatement = database.prepare(`
-  DELETE FROM anuncios
-  WHERE id = ?
-    AND usuarioId = ?
-`);
-
-function listarAnuncios(filtros = {}) {
+async function listarAnuncios(filtros = {}) {
   const categoria = filtros.categoria ?? null;
   const usuarioId = filtros.usuarioId ?? null;
 
-  if (categoria === null && usuarioId === null) {
-    return listarAnunciosStatement.all();
-  }
-
-  return filtrarAnunciosStatement.all(
-    categoria,
-    categoria,
-    usuarioId,
-    usuarioId,
-  );
-}
-
-function criarAnuncio(dados) {
-  const resultado = criarAnuncioStatement.run(
-    dados.nome,
-    dados.categoria,
-    dados.condicao,
-    dados.modalidade,
-    dados.valor,
-    dados.localizacao,
-    dados.descricao,
-    dados.imagemUrl ?? "",
-    dados.usuarioId,
-    dados.usuarioNome,
+  const resultado = await pool.query(
+    `
+      ${SELECAO_ANUNCIO}
+      WHERE ($1::text IS NULL OR a.categoria = $1)
+        AND ($2::uuid IS NULL OR a.usuario_id = $2)
+      ORDER BY a.criado_em DESC, a.id DESC
+    `,
+    [categoria, usuarioId],
   );
 
-  return buscarAnuncioPorIdStatement.get(Number(resultado.lastInsertRowid));
+  return resultado.rows.map(mapearAnuncio);
 }
 
-function buscarAnuncioPorId(id) {
-  return buscarAnuncioPorIdStatement.get(id);
+async function criarAnuncio(dados) {
+  const resultado = await pool.query(
+    `
+      WITH anuncio_inserido AS (
+        INSERT INTO anuncios (
+          nome,
+          categoria,
+          condicao,
+          modalidade,
+          valor,
+          localizacao,
+          descricao,
+          imagem_url,
+          usuario_id
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING *
+      )
+      SELECT
+        a.id,
+        a.nome,
+        a.categoria,
+        a.condicao,
+        a.modalidade,
+        a.valor,
+        a.localizacao,
+        a.descricao,
+        a.imagem_url,
+        a.usuario_id,
+        u.nome AS usuario_nome,
+        a.criado_em
+      FROM anuncio_inserido AS a
+      INNER JOIN usuarios AS u
+        ON u.id = a.usuario_id
+    `,
+    [
+      dados.nome,
+      dados.categoria,
+      dados.condicao,
+      dados.modalidade,
+      dados.valor,
+      dados.localizacao,
+      dados.descricao,
+      dados.imagemUrl ?? "",
+      dados.usuarioId,
+    ],
+  );
+
+  return mapearAnuncio(resultado.rows[0]);
 }
 
-function excluirAnuncioPorId(id, usuarioId) {
-  const resultado = excluirAnuncioPorIdStatement.run(id, usuarioId);
-  return resultado.changes > 0;
+async function buscarAnuncioPorId(id) {
+  const resultado = await pool.query(
+    `
+      ${SELECAO_ANUNCIO}
+      WHERE a.id = $1
+    `,
+    [id],
+  );
+
+  const anuncio = resultado.rows[0];
+  return anuncio ? mapearAnuncio(anuncio) : undefined;
+}
+
+async function excluirAnuncioPorId(id, usuarioId) {
+  const resultado = await pool.query(
+    `
+      DELETE FROM anuncios
+      WHERE id = $1
+        AND usuario_id = $2
+    `,
+    [id, usuarioId],
+  );
+
+  return resultado.rowCount > 0;
+}
+
+async function verificarConexao() {
+  await pool.query("SELECT 1");
+  return true;
+}
+
+async function fecharConexao() {
+  await pool.end();
 }
 
 module.exports = {
@@ -153,4 +158,8 @@ module.exports = {
   criarAnuncio,
   buscarAnuncioPorId,
   excluirAnuncioPorId,
+  verificarConexao,
+  fecharConexao,
+  mapearAnuncio,
+  pool,
 };
