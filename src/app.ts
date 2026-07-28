@@ -20,8 +20,17 @@ import {
   type NovoAnuncio,
   type OrdenacaoCatalogo,
   type RespostaExclusaoAnuncio,
+  type Sessao,
   respostaEhOffline,
 } from "./types";
+import {
+  contarColecoesLegadas,
+  criarChaveDecisaoImportacao,
+  criarMarcadorDecisaoImportacao,
+  marcadorCorrespondeACombinacao,
+  reassociarColecoesLegadas,
+  type DecisaoImportacao,
+} from "./legacy-import.mjs";
 
 type CampoFormulario =
   | HTMLInputElement
@@ -35,6 +44,14 @@ interface ResultadoApi<T> {
   dados: T;
   offline: boolean;
 }
+
+interface ContextoImportacaoLegada {
+  identidadeLegada: IdentidadeUsuarioLegada;
+  usuarioAutenticado: Sessao["usuario"];
+  quantidadeColecoes: number;
+}
+
+type ModoAutenticacao = "login" | "cadastro";
 
 class ErroRequisicaoApi extends Error {
   readonly name = "ErroRequisicaoApi";
@@ -117,6 +134,28 @@ const menuContaUsuario =
   document.querySelector<HTMLElement>("#menu-conta");
 const botaoSairConta =
   document.querySelector<HTMLButtonElement>("#botao-sair-conta");
+const dialogoAutenticacao =
+  document.querySelector<HTMLDialogElement>("#dialogo-autenticacao");
+const botaoFecharAutenticacao =
+  document.querySelector<HTMLButtonElement>("#fechar-dialogo-autenticacao");
+const botoesModoAutenticacao =
+  document.querySelectorAll<HTMLButtonElement>("[data-modo-autenticacao]");
+const formulariosAutenticacao =
+  document.querySelectorAll<HTMLFormElement>("[data-formulario-autenticacao]");
+const feedbackAutenticacao =
+  document.querySelector<HTMLElement>("#feedback-autenticacao");
+const dialogoImportacaoLegada =
+  document.querySelector<HTMLDialogElement>("#dialogo-importacao-legada");
+const nomeIdentidadeLegada =
+  document.querySelector<HTMLElement>("#nome-identidade-legada");
+const resumoImportacaoLegada =
+  document.querySelector<HTMLElement>("#resumo-importacao-legada");
+const feedbackImportacaoLegada =
+  document.querySelector<HTMLElement>("#feedback-importacao-legada");
+const botaoImportarColecoesLegadas =
+  document.querySelector<HTMLButtonElement>("#importar-colecoes-legadas");
+const botaoManterColecoesLegadas =
+  document.querySelector<HTMLButtonElement>("#manter-colecoes-legadas");
 const headerPrincipal = document.querySelector<HTMLElement>("header");
 const botaoMenuPrincipal =
   document.querySelector<HTMLButtonElement>("#botao-menu-principal");
@@ -150,6 +189,14 @@ const botaoFecharModalImagem =
 
 const CHAVE_USUARIO = "marketplace-vortex:usuario";
 const CHAVE_COLECOES = "marketplace-vortex:colecoes";
+const CHAVE_SESSAO = "marketplace-vortex:sessao";
+const PREFIXO_DECISAO_IMPORTACAO =
+  "marketplace-vortex:importacao-colecoes:v1";
+const URL_BASE_API = (import.meta.env.VITE_API_URL ?? "")
+  .trim()
+  .replace(/\/+$/, "");
+const MENSAGEM_API_GRATUITA_INICIANDO = "A API gratuita está iniciando";
+const ATRASO_AVISO_API_GRATUITA_MS = 1_500;
 const MENSAGEM_IMAGEM_OBRIGATORIA = "Escolha uma imagem para o anúncio.";
 const MENSAGEM_IMAGEM_INVALIDA = "Envie uma imagem PNG, JPG ou JPEG.";
 const TAMANHO_MAXIMO_IMAGEM_BYTES = 5 * 1024 * 1024;
@@ -222,6 +269,17 @@ const ordenadorAlfabetico = new Intl.Collator("pt-BR", {
   sensitivity: "base",
 });
 
+function agendarAvisoApiGratuita(exibirAviso: () => void): () => void {
+  const temporizador = window.setTimeout(
+    exibirAviso,
+    ATRASO_AVISO_API_GRATUITA_MS,
+  );
+
+  return () => {
+    window.clearTimeout(temporizador);
+  };
+}
+
 async function requisitarApi<T>(
   caminho: string,
   decodificar: DecodificadorResposta<T>,
@@ -232,7 +290,7 @@ async function requisitarApi<T>(
     cabecalhos.set("Accept", "application/json");
   }
 
-  const resposta = await fetch(caminho, {
+  const resposta = await fetch(`${URL_BASE_API}${caminho}`, {
     ...opcoes,
     headers: cabecalhos,
   });
@@ -260,8 +318,44 @@ async function requisitarApi<T>(
   };
 }
 
+async function requisitarApiAutenticada<T>(
+  caminho: string,
+  decodificar: DecodificadorResposta<T>,
+  opcoes: RequestInit = {},
+  sessao: Sessao | null = sessaoAtual,
+): Promise<ResultadoApi<T>> {
+  if (!sessao) {
+    throw new Error("É necessário entrar na conta para continuar.");
+  }
+
+  const cabecalhos = new Headers(opcoes.headers);
+  cabecalhos.set("Authorization", `Bearer ${sessao.token}`);
+
+  try {
+    return await requisitarApi(caminho, decodificar, {
+      ...opcoes,
+      headers: cabecalhos,
+    });
+  } catch (erro) {
+    if (ehErroRequisicaoApi(erro) && erro.status === 401) {
+      invalidarSessaoPorResposta401(sessao.token);
+    }
+
+    throw erro;
+  }
+}
+
 function ehRegistro(valor: unknown): valor is Record<string, unknown> {
   return Boolean(valor) && typeof valor === "object" && !Array.isArray(valor);
+}
+
+function ehUuid(valor: unknown): valor is string {
+  return (
+    typeof valor === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(
+      valor,
+    )
+  );
 }
 
 function normalizarCamposDoErro(
@@ -305,6 +399,61 @@ function normalizarErroDaApi(dados: unknown): DadosErroApi {
   return {
     erro,
     ...(campos ? { campos } : {}),
+  };
+}
+
+function normalizarSessaoDaApi(dados: unknown): Sessao {
+  if (!ehRegistro(dados) || !ehRegistro(dados.usuario)) {
+    throw new TypeError("A API retornou uma sessão inválida.");
+  }
+
+  const usuario = dados.usuario;
+
+  if (
+    typeof dados.token !== "string" ||
+    !dados.token.trim() ||
+    !ehUuid(usuario.id) ||
+    typeof usuario.nome !== "string" ||
+    !usuario.nome.trim() ||
+    typeof usuario.email !== "string" ||
+    !usuario.email.trim()
+  ) {
+    throw new TypeError("A API retornou uma sessão inválida.");
+  }
+
+  return {
+    token: dados.token,
+    usuario: {
+      id: usuario.id,
+      nome: usuario.nome,
+      email: usuario.email,
+    },
+  };
+}
+
+function normalizarUsuarioAutenticadoDaApi(
+  dados: unknown,
+): Sessao["usuario"] {
+  if (!ehRegistro(dados) || !ehRegistro(dados.usuario)) {
+    throw new TypeError("A API retornou uma identidade inválida.");
+  }
+
+  const usuario = dados.usuario;
+
+  if (
+    !ehUuid(usuario.id) ||
+    typeof usuario.nome !== "string" ||
+    !usuario.nome.trim() ||
+    typeof usuario.email !== "string" ||
+    !usuario.email.trim()
+  ) {
+    throw new TypeError("A API retornou uma identidade inválida.");
+  }
+
+  return {
+    id: usuario.id,
+    nome: usuario.nome,
+    email: usuario.email,
   };
 }
 
@@ -440,8 +589,10 @@ function normalizarRespostaDeExclusao(
   };
 }
 
-function exibirEstadoDeCarregamento() {
-  const mensagem = criarEstadoVazio("Carregando anúncios...");
+function exibirEstadoDeCarregamento(
+  texto = "Carregando anúncios...",
+): void {
+  const mensagem = criarEstadoVazio(texto);
 
   listaAnuncios?.replaceChildren(mensagem);
   listaAnuncios?.setAttribute("aria-busy", "true");
@@ -451,11 +602,11 @@ function exibirEstadoDeCarregamento() {
   }
 }
 
-function exibirEstadoDeCarregamentoDoUsuario() {
+function exibirEstadoDeCarregamentoDoUsuario(
+  texto = "Carregando seus anúncios...",
+): void {
   if (listaMeusAnuncios) {
-    listaMeusAnuncios.replaceChildren(
-      criarEstadoVazio("Carregando seus anúncios..."),
-    );
+    listaMeusAnuncios.replaceChildren(criarEstadoVazio(texto));
     listaMeusAnuncios.setAttribute("aria-busy", "true");
   }
 }
@@ -525,6 +676,14 @@ async function carregarAnunciosDaApi(
     exibirEstadoDeCarregamento();
   }
 
+  const cancelarAvisoApiGratuita = mostrarCarregamento
+    ? agendarAvisoApiGratuita(() => {
+        if (sequenciaDestaRequisicao === sequenciaRequisicaoCatalogo) {
+          exibirEstadoDeCarregamento(MENSAGEM_API_GRATUITA_INICIANDO);
+        }
+      })
+    : () => {};
+
   try {
     const urlCatalogo = criarUrlDaApiDeAnuncios({ categoria });
     const precisaCarregarContagensGerais = categoria !== "todas";
@@ -559,6 +718,8 @@ async function carregarAnunciosDaApi(
     cacheContagemApi = [];
     exibirErroAoCarregarAnuncios();
     return false;
+  } finally {
+    cancelarAvisoApiGratuita();
   }
 }
 
@@ -566,9 +727,10 @@ async function carregarMeusAnunciosDaApi(
   { mostrarCarregamento = true }: { mostrarCarregamento?: boolean } = {},
 ): Promise<boolean> {
   const sequenciaDestaRequisicao = ++sequenciaRequisicaoUsuario;
+  const sessaoDaRequisicao = sessaoAtual;
   const usuarioDaRequisicao = usuarioAtual;
 
-  if (!usuarioDaRequisicao) {
+  if (!sessaoDaRequisicao || !usuarioDaRequisicao) {
     cacheAnunciosUsuarioApi = [];
     listaMeusAnuncios?.removeAttribute("aria-busy");
     renderizarMeusAnuncios();
@@ -579,15 +741,32 @@ async function carregarMeusAnunciosDaApi(
     exibirEstadoDeCarregamentoDoUsuario();
   }
 
+  const cancelarAvisoApiGratuita = mostrarCarregamento
+    ? agendarAvisoApiGratuita(() => {
+        if (
+          sequenciaDestaRequisicao === sequenciaRequisicaoUsuario &&
+          usuarioAtual?.id === usuarioDaRequisicao.id &&
+          sessaoAtual?.token === sessaoDaRequisicao.token
+        ) {
+          exibirEstadoDeCarregamentoDoUsuario(
+            MENSAGEM_API_GRATUITA_INICIANDO,
+          );
+        }
+      })
+    : () => {};
+
   try {
-    const resultado = await requisitarApi(
-      criarUrlDaApiDeAnuncios({ usuarioId: usuarioDaRequisicao.id }),
+    const resultado = await requisitarApiAutenticada(
+      "/api/anuncios/me",
       normalizarListaDeAnuncios,
+      {},
+      sessaoDaRequisicao,
     );
 
     if (
       sequenciaDestaRequisicao !== sequenciaRequisicaoUsuario ||
-      usuarioAtual?.id !== usuarioDaRequisicao.id
+      usuarioAtual?.id !== usuarioDaRequisicao.id ||
+      sessaoAtual?.token !== sessaoDaRequisicao.token
     ) {
       return false;
     }
@@ -599,7 +778,8 @@ async function carregarMeusAnunciosDaApi(
   } catch (erro) {
     if (
       sequenciaDestaRequisicao !== sequenciaRequisicaoUsuario ||
-      usuarioAtual?.id !== usuarioDaRequisicao.id
+      usuarioAtual?.id !== usuarioDaRequisicao.id ||
+      sessaoAtual?.token !== sessaoDaRequisicao.token
     ) {
       return false;
     }
@@ -608,6 +788,8 @@ async function carregarMeusAnunciosDaApi(
     cacheAnunciosUsuarioApi = [];
     exibirErroAoCarregarAnunciosDoUsuario();
     return false;
+  } finally {
+    cancelarAvisoApiGratuita();
   }
 }
 
@@ -668,7 +850,94 @@ function removerUsuarioSalvo(): void {
   }
 }
 
-let usuarioAtual = lerUsuarioSalvo();
+function sessaoSalvaEhValida(sessao: unknown): sessao is Sessao {
+  if (!ehRegistro(sessao) || !ehRegistro(sessao.usuario)) {
+    return false;
+  }
+
+  return (
+    typeof sessao.token === "string" &&
+    sessao.token.trim() !== "" &&
+    ehUuid(sessao.usuario.id) &&
+    typeof sessao.usuario.nome === "string" &&
+    sessao.usuario.nome.trim() !== "" &&
+    typeof sessao.usuario.email === "string" &&
+    sessao.usuario.email.trim() !== ""
+  );
+}
+
+function lerSessaoSalva(): Sessao | null {
+  try {
+    const conteudoSalvo = window.sessionStorage.getItem(CHAVE_SESSAO);
+
+    if (!conteudoSalvo) {
+      return null;
+    }
+
+    const sessao: unknown = JSON.parse(conteudoSalvo);
+
+    if (!sessaoSalvaEhValida(sessao)) {
+      console.warn("A sessão salva tem uma estrutura inválida.");
+      return null;
+    }
+
+    return {
+      token: sessao.token,
+      usuario: {
+        id: sessao.usuario.id,
+        nome: sessao.usuario.nome,
+        email: sessao.usuario.email,
+      },
+    };
+  } catch (erro) {
+    console.warn("Não foi possível recuperar a sessão desta aba.", erro);
+    return null;
+  }
+}
+
+function salvarSessao(sessao: Sessao): void {
+  try {
+    window.sessionStorage.setItem(CHAVE_SESSAO, JSON.stringify(sessao));
+  } catch (erro) {
+    console.warn("Não foi possível salvar a sessão nesta aba.", erro);
+  }
+}
+
+function removerSessaoSalva(): void {
+  try {
+    window.sessionStorage.removeItem(CHAVE_SESSAO);
+  } catch (erro) {
+    console.warn("Não foi possível remover a sessão desta aba.", erro);
+  }
+}
+
+let sessaoAtual = lerSessaoSalva();
+// A identidade local anterior à autenticação continua preservada em
+// CHAVE_USUARIO somente para o fluxo explícito de importação. Sem Bearer
+// válido nesta aba, não existe usuário ativo.
+let usuarioAtual = sessaoAtual?.usuario ?? null;
+
+function invalidarSessaoPorResposta401(tokenRejeitado: string): void {
+  if (sessaoAtual?.token !== tokenRejeitado) {
+    return;
+  }
+
+  sessaoAtual = null;
+  usuarioAtual = null;
+  removerSessaoSalva();
+  sequenciaRequisicaoUsuario += 1;
+  cacheAnunciosUsuarioApi = [];
+  fecharMenuConta();
+  atualizarContaNoHeader();
+  renderizarMeusAnuncios();
+  renderizarColecoesDoUsuario();
+  abrirDialogoAutenticacao();
+  definirFeedbackAutenticacao(
+    "Sua sessão expirou. Entre novamente para continuar.",
+    "erro",
+  );
+}
+let contextoImportacaoLegada: ContextoImportacaoLegada | null = null;
 
 function colecaoSalvaEhValida(colecao: unknown): colecao is Colecao {
   if (!colecao || typeof colecao !== "object") {
@@ -727,6 +996,249 @@ function salvarColecoes(colecoes: readonly Colecao[]): boolean {
     console.warn("Não foi possível salvar a coleção neste navegador.", erro);
     return false;
   }
+}
+
+function lerColecoesBrutas(): unknown[] | null {
+  try {
+    const conteudoSalvo = window.localStorage.getItem(CHAVE_COLECOES);
+
+    if (!conteudoSalvo) {
+      return [];
+    }
+
+    const colecoes: unknown = JSON.parse(conteudoSalvo);
+    return Array.isArray(colecoes) ? colecoes : null;
+  } catch (erro) {
+    console.warn(
+      "Não foi possível inspecionar as coleções antigas.",
+      erro,
+    );
+    return null;
+  }
+}
+
+function criarContextoImportacaoLegada(
+  usuarioAutenticado: Sessao["usuario"],
+): ContextoImportacaoLegada | null {
+  const identidadeLegada = lerUsuarioSalvo();
+
+  if (
+    !identidadeLegada ||
+    identidadeLegada.id === usuarioAutenticado.id
+  ) {
+    return null;
+  }
+
+  const colecoes = lerColecoesBrutas();
+
+  if (!colecoes) {
+    return null;
+  }
+
+  const quantidadeColecoes = contarColecoesLegadas(
+    colecoes,
+    identidadeLegada.id,
+  );
+
+  if (quantidadeColecoes === 0) {
+    return null;
+  }
+
+  const chaveDecisao = criarChaveDecisaoImportacao(
+    PREFIXO_DECISAO_IMPORTACAO,
+    identidadeLegada.id,
+    usuarioAutenticado.id,
+  );
+
+  try {
+    const conteudoMarcador = window.localStorage.getItem(chaveDecisao);
+    const marcador: unknown = conteudoMarcador
+      ? JSON.parse(conteudoMarcador)
+      : null;
+
+    if (
+      marcadorCorrespondeACombinacao(
+        marcador,
+        identidadeLegada.id,
+        usuarioAutenticado.id,
+      )
+    ) {
+      return null;
+    }
+  } catch (erro) {
+    console.warn(
+      "Não foi possível recuperar a decisão de importação.",
+      erro,
+    );
+  }
+
+  return {
+    identidadeLegada,
+    usuarioAutenticado,
+    quantidadeColecoes,
+  };
+}
+
+function definirFeedbackImportacaoLegada(
+  mensagem: string,
+  tipo: "erro" | "neutro" = "neutro",
+): void {
+  if (!feedbackImportacaoLegada) {
+    return;
+  }
+
+  feedbackImportacaoLegada.textContent = mensagem;
+  feedbackImportacaoLegada.dataset.tipo = tipo;
+}
+
+function oferecerImportacaoLegada(
+  usuarioAutenticado: Sessao["usuario"],
+): void {
+  const contexto = criarContextoImportacaoLegada(usuarioAutenticado);
+
+  if (
+    !contexto ||
+    !dialogoImportacaoLegada ||
+    dialogoImportacaoLegada.open
+  ) {
+    return;
+  }
+
+  contextoImportacaoLegada = contexto;
+
+  if (nomeIdentidadeLegada) {
+    nomeIdentidadeLegada.textContent = contexto.identidadeLegada.nome;
+  }
+
+  if (resumoImportacaoLegada) {
+    const quantidade = contexto.quantidadeColecoes;
+    resumoImportacaoLegada.textContent =
+      `${quantidade} ${quantidade === 1 ? "coleção foi encontrada" : "coleções foram encontradas"} ` +
+      "neste navegador.";
+  }
+
+  definirFeedbackImportacaoLegada("");
+  dialogoImportacaoLegada.showModal();
+  document.body.classList.add("modal-aberto");
+  window.requestAnimationFrame(() => {
+    botaoImportarColecoesLegadas?.focus();
+  });
+}
+
+function agendarOfertaImportacaoLegada(
+  usuarioAutenticado: Sessao["usuario"],
+): void {
+  window.requestAnimationFrame(() => {
+    if (sessaoAtual?.usuario.id === usuarioAutenticado.id) {
+      oferecerImportacaoLegada(usuarioAutenticado);
+    }
+  });
+}
+
+function fecharDialogoImportacaoLegada(): void {
+  if (dialogoImportacaoLegada?.open) {
+    dialogoImportacaoLegada.close();
+  }
+}
+
+function registrarDecisaoImportacao(
+  contexto: ContextoImportacaoLegada,
+  decisao: DecisaoImportacao,
+): string {
+  const chave = criarChaveDecisaoImportacao(
+    PREFIXO_DECISAO_IMPORTACAO,
+    contexto.identidadeLegada.id,
+    contexto.usuarioAutenticado.id,
+  );
+  const marcador = criarMarcadorDecisaoImportacao(
+    decisao,
+    contexto.identidadeLegada.id,
+    contexto.usuarioAutenticado.id,
+  );
+
+  window.localStorage.setItem(chave, JSON.stringify(marcador));
+  return chave;
+}
+
+function manterColecoesLegadas(): void {
+  const contexto = contextoImportacaoLegada;
+
+  if (!contexto) {
+    fecharDialogoImportacaoLegada();
+    return;
+  }
+
+  try {
+    registrarDecisaoImportacao(contexto, "mantida");
+  } catch (erro) {
+    console.warn("Não foi possível guardar a decisão de importação.", erro);
+    definirFeedbackImportacaoLegada(
+      "Não foi possível guardar sua escolha. Libere espaço no navegador e tente novamente.",
+      "erro",
+    );
+    return;
+  }
+
+  fecharDialogoImportacaoLegada();
+  mostrarFeedback(
+    "As coleções antigas foram mantidas sem alterações neste navegador.",
+  );
+}
+
+function importarColecoesLegadas(): void {
+  const contexto = contextoImportacaoLegada;
+
+  if (!contexto) {
+    fecharDialogoImportacaoLegada();
+    return;
+  }
+
+  const colecoes = lerColecoesBrutas();
+
+  if (!colecoes) {
+    definirFeedbackImportacaoLegada(
+      "As coleções antigas não puderam ser lidas. Nenhum dado foi alterado.",
+      "erro",
+    );
+    return;
+  }
+
+  const resultado = reassociarColecoesLegadas(
+    colecoes,
+    contexto.identidadeLegada.id,
+    contexto.usuarioAutenticado,
+  );
+  let chaveDecisao: string | null = null;
+
+  try {
+    chaveDecisao = registrarDecisaoImportacao(contexto, "importada");
+    window.localStorage.setItem(
+      CHAVE_COLECOES,
+      JSON.stringify(resultado.colecoes),
+    );
+  } catch (erro) {
+    if (chaveDecisao) {
+      try {
+        window.localStorage.removeItem(chaveDecisao);
+      } catch {
+        // A coleção original continua intacta se a gravação falhar.
+      }
+    }
+
+    console.warn("Não foi possível importar as coleções antigas.", erro);
+    definirFeedbackImportacaoLegada(
+      "Não foi possível importar agora. Nenhum dado antigo foi apagado.",
+      "erro",
+    );
+    return;
+  }
+
+  fecharDialogoImportacaoLegada();
+  renderizarColecoesDoUsuario();
+  const quantidade = resultado.quantidade;
+  mostrarFeedback(
+    `${quantidade} ${quantidade === 1 ? "coleção importada" : "coleções importadas"} para sua conta.`,
+  );
 }
 
 function criarCardColecaoUsuario(colecao: Colecao): HTMLElement {
@@ -799,11 +1311,13 @@ function renderizarColecoesDoUsuario() {
     .querySelectorAll('[data-colecao-usuario="true"]')
     .forEach((card) => card.remove());
 
-  if (!usuarioAtual) {
+  const usuarioAutenticado = sessaoAtual?.usuario;
+
+  if (!usuarioAutenticado || !ehUuid(usuarioAutenticado.id)) {
     return;
   }
 
-  const idUsuarioAtual = usuarioAtual.id;
+  const idUsuarioAtual = usuarioAutenticado.id;
   const colecoesDoUsuario = lerColecoesSalvas()
     .filter((colecao) => colecao.usuarioId === idUsuarioAtual)
     .reverse();
@@ -889,30 +1403,229 @@ function atualizarContaNoHeader(): void {
   menuContaUsuario.hidden = true;
 }
 
-function entrarNaConta(): void {
-  const resposta = window.prompt("Qual é o seu nome?");
-  const nome = resposta?.trim();
+function ehModoAutenticacao(valor: string | undefined): valor is ModoAutenticacao {
+  return valor === "login" || valor === "cadastro";
+}
 
-  if (!nome) {
-    if (resposta !== null) {
-      mostrarFeedback("Informe seu nome para entrar.");
-    }
+function definirFeedbackAutenticacao(
+  mensagem: string,
+  tipo: "neutro" | "erro" = "neutro",
+): void {
+  if (!feedbackAutenticacao) {
     return;
   }
 
-  usuarioAtual = {
-    id: gerarId("usuario"),
-    nome,
-  };
-  salvarUsuario(usuarioAtual);
-  atualizarContaNoHeader();
-  renderizarColecoesDoUsuario();
-  void carregarMeusAnunciosDaApi();
-  mostrarFeedback(`Olá, ${usuarioAtual.nome}. Você entrou na sua conta.`);
+  feedbackAutenticacao.textContent = mensagem;
+  feedbackAutenticacao.dataset.tipo = tipo;
+  feedbackAutenticacao.setAttribute(
+    "role",
+    tipo === "erro" ? "alert" : "status",
+  );
+}
+
+function limparErrosAutenticacao(formulario: HTMLFormElement): void {
+  formulario
+    .querySelectorAll<HTMLElement>("[data-erro-campo]")
+    .forEach((erroCampo) => {
+      erroCampo.textContent = "";
+    });
+
+  formulario
+    .querySelectorAll<HTMLInputElement>("[aria-invalid='true']")
+    .forEach((campo) => {
+      campo.removeAttribute("aria-invalid");
+      const idsErro = [
+        ...formulario.querySelectorAll<HTMLElement>("[data-erro-campo]"),
+      ].map((erroCampo) => erroCampo.id);
+      const descricoes = (campo.getAttribute("aria-describedby") ?? "")
+        .split(/\s+/)
+        .filter((id) => id && !idsErro.includes(id));
+
+      if (descricoes.length > 0) {
+        campo.setAttribute("aria-describedby", descricoes.join(" "));
+      } else {
+        campo.removeAttribute("aria-describedby");
+      }
+    });
+}
+
+function mostrarErroDeCampoAutenticacao(
+  formulario: HTMLFormElement,
+  campo: string,
+  mensagem: string,
+): HTMLInputElement | null {
+  const entrada = formulario.elements.namedItem(campo);
+  const erroCampo = [
+    ...formulario.querySelectorAll<HTMLElement>("[data-erro-campo]"),
+  ].find((elemento) => elemento.dataset.erroCampo === campo);
+
+  if (!(entrada instanceof HTMLInputElement) || !erroCampo) {
+    return null;
+  }
+
+  erroCampo.textContent = mensagem;
+  entrada.setAttribute("aria-invalid", "true");
+  const descricoes = new Set(
+    (entrada.getAttribute("aria-describedby") ?? "")
+      .split(/\s+/)
+      .filter(Boolean),
+  );
+  descricoes.add(erroCampo.id);
+  entrada.setAttribute("aria-describedby", [...descricoes].join(" "));
+  return entrada;
+}
+
+function definirModoAutenticacao(
+  modo: ModoAutenticacao,
+  { moverFoco = false }: { moverFoco?: boolean } = {},
+): void {
+  botoesModoAutenticacao.forEach((botao) => {
+    const selecionado = botao.dataset.modoAutenticacao === modo;
+    botao.setAttribute("aria-selected", String(selecionado));
+    botao.tabIndex = selecionado ? 0 : -1;
+  });
+
+  formulariosAutenticacao.forEach((formulario) => {
+    formulario.hidden =
+      formulario.dataset.formularioAutenticacao !== modo;
+  });
+  definirFeedbackAutenticacao("");
+
+  if (moverFoco) {
+    const formularioAtivo = [...formulariosAutenticacao].find(
+      (formulario) => formulario.dataset.formularioAutenticacao === modo,
+    );
+    formularioAtivo?.querySelector<HTMLInputElement>("input")?.focus();
+  }
+}
+
+function abrirDialogoAutenticacao(): void {
+  if (!dialogoAutenticacao || dialogoAutenticacao.open) {
+    return;
+  }
+
+  formulariosAutenticacao.forEach((formulario) => {
+    formulario.reset();
+    limparErrosAutenticacao(formulario);
+  });
+  definirModoAutenticacao("login");
+  dialogoAutenticacao.showModal();
+  document.body.classList.add("modal-aberto");
+  window.requestAnimationFrame(() => {
+    dialogoAutenticacao
+      .querySelector<HTMLInputElement>("#login-email")
+      ?.focus();
+  });
+}
+
+function fecharDialogoAutenticacao(): void {
+  if (dialogoAutenticacao?.open) {
+    dialogoAutenticacao.close();
+  }
+}
+
+async function enviarFormularioAutenticacao(
+  formulario: HTMLFormElement,
+): Promise<void> {
+  const modo = formulario.dataset.formularioAutenticacao;
+
+  if (!ehModoAutenticacao(modo) || !formulario.reportValidity()) {
+    return;
+  }
+
+  limparErrosAutenticacao(formulario);
+  definirFeedbackAutenticacao(
+    modo === "login" ? "Entrando na sua conta..." : "Criando sua conta...",
+  );
+
+  const dadosFormulario = new FormData(formulario);
+  const email = String(dadosFormulario.get("email") ?? "").trim();
+  const senha = String(dadosFormulario.get("senha") ?? "");
+  const corpo =
+    modo === "cadastro"
+      ? {
+          nome: String(dadosFormulario.get("nome") ?? "").trim(),
+          email,
+          senha,
+        }
+      : { email, senha };
+  const botaoEnviar =
+    formulario.querySelector<HTMLButtonElement>("[type='submit']");
+  const rotuloOriginal = botaoEnviar?.textContent ?? "";
+
+  if (botaoEnviar) {
+    botaoEnviar.disabled = true;
+    botaoEnviar.textContent =
+      modo === "login" ? "Entrando..." : "Criando conta...";
+  }
+  formulario.setAttribute("aria-busy", "true");
+  const cancelarAvisoApiGratuita = agendarAvisoApiGratuita(() => {
+    definirFeedbackAutenticacao(MENSAGEM_API_GRATUITA_INICIANDO);
+  });
+
+  try {
+    const resultado = await requisitarApi(
+      `/api/auth/${modo === "login" ? "login" : "register"}`,
+      normalizarSessaoDaApi,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(corpo),
+      },
+    );
+
+    sessaoAtual = resultado.dados;
+    usuarioAtual = resultado.dados.usuario;
+    salvarSessao(resultado.dados);
+    atualizarContaNoHeader();
+    renderizarColecoesDoUsuario();
+    void carregarMeusAnunciosDaApi();
+    fecharDialogoAutenticacao();
+    agendarOfertaImportacaoLegada(resultado.dados.usuario);
+    mostrarFeedback(
+      modo === "login"
+        ? `Olá, ${usuarioAtual.nome}. Você entrou na sua conta.`
+        : `Conta criada. Boas-vindas, ${usuarioAtual.nome}.`,
+    );
+  } catch (erro) {
+    if (ehErroRequisicaoApi(erro)) {
+      let primeiroCampoComErro: HTMLInputElement | null = null;
+
+      for (const [campo, mensagem] of Object.entries(
+        erro.dados.campos ?? {},
+      )) {
+        const entrada = mostrarErroDeCampoAutenticacao(
+          formulario,
+          campo,
+          mensagem,
+        );
+        primeiroCampoComErro ??= entrada;
+      }
+      definirFeedbackAutenticacao(erro.message, "erro");
+      primeiroCampoComErro?.focus();
+    } else {
+      console.error("Não foi possível autenticar a conta.", erro);
+      definirFeedbackAutenticacao(
+        "Não foi possível acessar a conta. Verifique sua conexão e tente novamente.",
+        "erro",
+      );
+    }
+  } finally {
+    cancelarAvisoApiGratuita();
+    formulario.removeAttribute("aria-busy");
+
+    if (botaoEnviar) {
+      botaoEnviar.disabled = false;
+      botaoEnviar.textContent = rotuloOriginal;
+    }
+  }
 }
 
 function sairDaConta(): void {
-  removerUsuarioSalvo();
+  sessaoAtual = null;
+  removerSessaoSalva();
   usuarioAtual = null;
   sequenciaRequisicaoUsuario += 1;
   cacheAnunciosUsuarioApi = [];
@@ -924,6 +1637,52 @@ function sairDaConta(): void {
   botaoContaUsuario?.focus();
 }
 
+async function validarSessaoSalva(): Promise<void> {
+  const sessaoParaValidar = sessaoAtual;
+
+  if (!sessaoParaValidar) {
+    await carregarMeusAnunciosDaApi();
+    return;
+  }
+
+  try {
+    const { dados: usuarioValidado } = await requisitarApiAutenticada(
+      "/api/auth/me",
+      normalizarUsuarioAutenticadoDaApi,
+      {},
+      sessaoParaValidar,
+    );
+
+    if (sessaoAtual?.token !== sessaoParaValidar.token) {
+      return;
+    }
+
+    sessaoAtual = {
+      token: sessaoParaValidar.token,
+      usuario: usuarioValidado,
+    };
+    usuarioAtual = usuarioValidado;
+    salvarSessao(sessaoAtual);
+    atualizarContaNoHeader();
+    renderizarColecoesDoUsuario();
+    agendarOfertaImportacaoLegada(usuarioValidado);
+  } catch (erro) {
+    if (ehErroRequisicaoApi(erro) && erro.status === 401) {
+      // O helper Bearer já invalidou a sessão atual. Uma resposta de uma
+      // sessão obsoleta não deve afetar a conta que entrou depois.
+      return;
+    }
+
+    // Falhas de rede, indisponibilidade e respostas diferentes de 401 não
+    // invalidam uma sessão que ainda pode ser válida no servidor.
+    console.warn("Não foi possível validar a sessão salva agora.", erro);
+  }
+
+  if (sessaoAtual?.token === sessaoParaValidar.token) {
+    await carregarMeusAnunciosDaApi();
+  }
+}
+
 function inicializarContaUsuario(): void {
   if (!botaoContaUsuario || !menuContaUsuario) {
     return;
@@ -931,7 +1690,7 @@ function inicializarContaUsuario(): void {
 
   botaoContaUsuario.addEventListener("click", () => {
     if (!usuarioAtual) {
-      entrarNaConta();
+      abrirDialogoAutenticacao();
       return;
     }
 
@@ -941,6 +1700,61 @@ function inicializarContaUsuario(): void {
   });
 
   botaoSairConta?.addEventListener("click", sairDaConta);
+  botaoFecharAutenticacao?.addEventListener(
+    "click",
+    fecharDialogoAutenticacao,
+  );
+
+  botoesModoAutenticacao.forEach((botao, indice) => {
+    botao.addEventListener("click", () => {
+      const modo = botao.dataset.modoAutenticacao;
+
+      if (ehModoAutenticacao(modo)) {
+        definirModoAutenticacao(modo, { moverFoco: true });
+      }
+    });
+
+    botao.addEventListener("keydown", (evento) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(evento.key)) {
+        return;
+      }
+
+      evento.preventDefault();
+      const ultimoIndice = botoesModoAutenticacao.length - 1;
+      const proximoIndice =
+        evento.key === "Home"
+          ? 0
+          : evento.key === "End"
+            ? ultimoIndice
+            : evento.key === "ArrowRight"
+              ? (indice + 1) % botoesModoAutenticacao.length
+              : (indice - 1 + botoesModoAutenticacao.length) %
+                botoesModoAutenticacao.length;
+      botoesModoAutenticacao[proximoIndice]?.click();
+      botoesModoAutenticacao[proximoIndice]?.focus();
+    });
+  });
+
+  formulariosAutenticacao.forEach((formulario) => {
+    formulario.addEventListener("input", () => {
+      limparErrosAutenticacao(formulario);
+      definirFeedbackAutenticacao("");
+    });
+    formulario.addEventListener("submit", (evento) => {
+      evento.preventDefault();
+      void enviarFormularioAutenticacao(formulario);
+    });
+  });
+
+  dialogoAutenticacao?.addEventListener("click", (evento) => {
+    if (evento.target === dialogoAutenticacao) {
+      fecharDialogoAutenticacao();
+    }
+  });
+  dialogoAutenticacao?.addEventListener("close", () => {
+    document.body.classList.remove("modal-aberto");
+    botaoContaUsuario.focus();
+  });
 
   document.addEventListener("click", (evento) => {
     if (
@@ -961,6 +1775,26 @@ function inicializarContaUsuario(): void {
   });
 
   atualizarContaNoHeader();
+}
+
+function inicializarImportacaoLegada(): void {
+  botaoImportarColecoesLegadas?.addEventListener(
+    "click",
+    importarColecoesLegadas,
+  );
+  botaoManterColecoesLegadas?.addEventListener(
+    "click",
+    manterColecoesLegadas,
+  );
+  dialogoImportacaoLegada?.addEventListener("close", () => {
+    contextoImportacaoLegada = null;
+
+    if (!document.querySelector("dialog[open]")) {
+      document.body.classList.remove("modal-aberto");
+    }
+
+    botaoContaUsuario?.focus();
+  });
 }
 
 function obterValorNumerico(valor: string): number {
@@ -1881,13 +2715,12 @@ async function criarAnuncio(): Promise<boolean> {
     return false;
   }
 
-  if (!usuarioAtual) {
+  if (!sessaoAtual || !usuarioAtual) {
     mostrarFeedback("Entre na sua conta para publicar um anúncio.");
     botaoContaUsuario?.focus();
     return false;
   }
 
-  const usuarioDoAnuncio = usuarioAtual;
   if (
     !formularioNovoAnuncio ||
     !botaoPublicarAnuncio ||
@@ -1959,10 +2792,8 @@ async function criarAnuncio(): Promise<boolean> {
       localizacao: localizacao.trim(),
       descricao: descricao.trim(),
       imagemUrl,
-      usuarioId: usuarioDoAnuncio.id,
-      usuarioNome: usuarioDoAnuncio.nome,
     };
-    const { dados: novoAnuncio } = await requisitarApi(
+    const { dados: novoAnuncio } = await requisitarApiAutenticada(
       "/api/anuncios",
       normalizarAnuncioDaApi,
       {
@@ -2039,7 +2870,11 @@ async function excluirAnuncio(
     return false;
   }
 
-  if (!usuarioAtual || anuncio.usuarioId !== usuarioAtual.id) {
+  if (
+    !sessaoAtual ||
+    !usuarioAtual ||
+    anuncio.usuarioId !== usuarioAtual.id
+  ) {
     mostrarFeedback("Você só pode excluir os seus próprios anúncios.");
     return false;
   }
@@ -2065,14 +2900,11 @@ async function excluirAnuncio(
   }
 
   try {
-    await requisitarApi(
+    await requisitarApiAutenticada(
       `/api/anuncios/${encodeURIComponent(idNormalizado)}`,
       normalizarRespostaDeExclusao,
       {
         method: "DELETE",
-        headers: {
-          "X-Usuario-Id": usuarioAtual.id,
-        },
       },
     );
 
@@ -2496,7 +3328,9 @@ function limparFormularioDaColecao(): void {
 }
 
 function criarColecao(): boolean {
-  if (!usuarioAtual) {
+  const usuarioAutenticado = sessaoAtual?.usuario;
+
+  if (!usuarioAutenticado || !ehUuid(usuarioAutenticado.id)) {
     mostrarFeedbackDaColecao(
       "Entre na sua conta para criar uma coleção.",
       { persistente: true },
@@ -2532,8 +3366,8 @@ function criarColecao(): boolean {
   });
   const colecao: Colecao = {
     id: gerarId("colecao"),
-    usuarioId: usuarioAtual.id,
-    usuarioNome: usuarioAtual.nome,
+    usuarioId: usuarioAutenticado.id,
+    usuarioNome: usuarioAutenticado.nome,
     nome: campoNomeColecao.value.trim(),
     itens,
     criadaEm: new Date().toISOString(),
@@ -2837,6 +3671,7 @@ function inicializarHeaderFixo(): void {
 
 sincronizarModalidadeComValor();
 inicializarContaUsuario();
+inicializarImportacaoLegada();
 inicializarPainelNovoAnuncio();
 inicializarFormularioDeAnuncio();
 inicializarFormularioDaColecao();
@@ -2847,4 +3682,4 @@ inicializarNavegacaoResponsiva();
 inicializarHeaderFixo();
 renderizarColecoesDoUsuario();
 void carregarAnunciosDaApi();
-void carregarMeusAnunciosDaApi();
+void validarSessaoSalva();

@@ -784,6 +784,233 @@
       <p class="footer-copy">&copy; 2026 Marketplace Vortex. Todos os direitos reservados.</p>
     </footer>
 
+    <dialog
+      id="dialogo-autenticacao"
+      class="dialogo-autenticacao"
+      aria-labelledby="titulo-autenticacao"
+      aria-describedby="descricao-autenticacao"
+    >
+      <div class="autenticacao-layout">
+        <aside class="autenticacao-assinatura" aria-hidden="true">
+          <span class="autenticacao-marca">↻</span>
+          <p>Uma conta.<br />Mais voltas.</p>
+          <span>Publique, doe e acompanhe seus anúncios.</span>
+        </aside>
+
+        <div class="autenticacao-conteudo">
+          <button
+            id="fechar-dialogo-autenticacao"
+            class="autenticacao-fechar"
+            type="button"
+            aria-label="Fechar acesso à conta"
+          >
+            &times;
+          </button>
+
+          <div class="autenticacao-cabecalho">
+            <span class="autenticacao-selo">Conta Vortex</span>
+            <h2 id="titulo-autenticacao">Entre para continuar o ciclo.</h2>
+            <p id="descricao-autenticacao">
+              Acesse sua conta ou crie uma gratuitamente.
+            </p>
+          </div>
+
+          <div class="autenticacao-abas" role="tablist" aria-label="Acesso à conta">
+            <button
+              id="aba-login"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              aria-controls="painel-login"
+              data-modo-autenticacao="login"
+            >
+              Entrar
+            </button>
+            <button
+              id="aba-cadastro"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="painel-cadastro"
+              data-modo-autenticacao="cadastro"
+              tabindex="-1"
+            >
+              Criar conta
+            </button>
+          </div>
+
+          <form
+            id="painel-login"
+            class="formulario-autenticacao"
+            role="tabpanel"
+            aria-labelledby="aba-login"
+            data-formulario-autenticacao="login"
+          >
+            <div class="campo-autenticacao">
+              <label for="login-email">E-mail</label>
+              <input
+                id="login-email"
+                name="email"
+                type="email"
+                inputmode="email"
+                autocomplete="email"
+                maxlength="254"
+                required
+              />
+              <span
+                id="erro-login-email"
+                class="erro-campo-autenticacao"
+                data-erro-campo="email"
+              ></span>
+            </div>
+
+            <div class="campo-autenticacao">
+              <label for="login-senha">Senha</label>
+              <input
+                id="login-senha"
+                name="senha"
+                type="password"
+                autocomplete="current-password"
+                minlength="8"
+                maxlength="72"
+                required
+              />
+              <span
+                id="erro-login-senha"
+                class="erro-campo-autenticacao"
+                data-erro-campo="senha"
+              ></span>
+            </div>
+
+            <button class="autenticacao-submit" type="submit">
+              Entrar na conta
+            </button>
+          </form>
+
+          <form
+            id="painel-cadastro"
+            class="formulario-autenticacao"
+            role="tabpanel"
+            aria-labelledby="aba-cadastro"
+            data-formulario-autenticacao="cadastro"
+            hidden
+          >
+            <div class="campo-autenticacao">
+              <label for="cadastro-nome">Nome</label>
+              <input
+                id="cadastro-nome"
+                name="nome"
+                type="text"
+                autocomplete="name"
+                maxlength="80"
+                required
+              />
+              <span
+                id="erro-cadastro-nome"
+                class="erro-campo-autenticacao"
+                data-erro-campo="nome"
+              ></span>
+            </div>
+
+            <div class="campo-autenticacao">
+              <label for="cadastro-email">E-mail</label>
+              <input
+                id="cadastro-email"
+                name="email"
+                type="email"
+                inputmode="email"
+                autocomplete="email"
+                maxlength="254"
+                required
+              />
+              <span
+                id="erro-cadastro-email"
+                class="erro-campo-autenticacao"
+                data-erro-campo="email"
+              ></span>
+            </div>
+
+            <div class="campo-autenticacao">
+              <label for="cadastro-senha">Senha</label>
+              <input
+                id="cadastro-senha"
+                name="senha"
+                type="password"
+                autocomplete="new-password"
+                aria-describedby="dica-cadastro-senha erro-cadastro-senha"
+                minlength="8"
+                maxlength="72"
+                required
+              />
+              <span id="dica-cadastro-senha" class="dica-campo-autenticacao">
+                Use entre 8 e 72 caracteres.
+              </span>
+              <span
+                id="erro-cadastro-senha"
+                class="erro-campo-autenticacao"
+                data-erro-campo="senha"
+              ></span>
+            </div>
+
+            <button class="autenticacao-submit" type="submit">
+              Criar minha conta
+            </button>
+          </form>
+
+          <p
+            id="feedback-autenticacao"
+            class="feedback-autenticacao"
+            role="status"
+            aria-live="polite"
+          ></p>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog
+      id="dialogo-importacao-legada"
+      class="dialogo-importacao-legada"
+      aria-labelledby="titulo-importacao-legada"
+      aria-describedby="descricao-importacao-legada resumo-importacao-legada"
+    >
+      <div class="importacao-legada-conteudo">
+        <span class="importacao-legada-selo">Coleções deste navegador</span>
+        <h2 id="titulo-importacao-legada">Trazer suas coleções antigas?</h2>
+        <p id="descricao-importacao-legada">
+          Encontramos coleções criadas como
+          <strong id="nome-identidade-legada"></strong>
+          antes de você entrar nesta conta.
+        </p>
+        <p id="resumo-importacao-legada" class="importacao-legada-resumo"></p>
+        <p class="importacao-legada-nota">
+          Importar associa somente essas coleções à conta atual. Manter como
+          estão preserva a identidade e os dados antigos sem alterações.
+        </p>
+        <div class="importacao-legada-acoes">
+          <button
+            id="importar-colecoes-legadas"
+            class="importacao-legada-confirmar"
+            type="button"
+          >
+            Importar para esta conta
+          </button>
+          <button
+            id="manter-colecoes-legadas"
+            class="importacao-legada-manter"
+            type="button"
+          >
+            Manter coleções antigas
+          </button>
+        </div>
+        <p
+          id="feedback-importacao-legada"
+          class="feedback-importacao-legada"
+          role="status"
+          aria-live="polite"
+        ></p>
+      </div>
+    </dialog>
+
     <dialog id="modal-imagem" class="modal-imagem" aria-labelledby="modal-imagem-titulo">
       <div class="modal-imagem-conteudo">
         <div class="modal-imagem-cabecalho">

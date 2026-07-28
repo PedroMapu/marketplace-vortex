@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: marketplace-vortex-api
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm run migrate && npm start
+    healthCheckPath: /api/status
+    # O Render solicita estes valores ao criar o Blueprint; mantenha-os apenas
+    # no painel do serviço e nunca no repositório.
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_DIRECT
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: FRONTEND_ORIGINS
+        sync: false

@@ -2803,6 +2803,434 @@ body.modal-aberto {
   overflow: hidden;
 }
 
+.dialogo-autenticacao {
+  background: transparent;
+  border: 0;
+  color: var(--preto);
+  margin: auto;
+  max-height: calc(100dvh - 2rem);
+  max-width: min(56rem, calc(100vw - 2rem));
+  padding: 0;
+  width: 100%;
+}
+
+.dialogo-autenticacao::backdrop {
+  backdrop-filter: blur(9px);
+  background: rgba(15, 23, 42, 0.68);
+}
+
+.dialogo-autenticacao[open] .autenticacao-layout {
+  animation: entrada-autenticacao 280ms cubic-bezier(0.22, 1, 0.36, 1)
+    both;
+}
+
+.autenticacao-layout {
+  background: var(--branco);
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: 1.5rem;
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.3);
+  display: grid;
+  grid-template-columns: minmax(14rem, 0.82fr) minmax(20rem, 1.45fr);
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+}
+
+.autenticacao-assinatura {
+  background:
+    radial-gradient(circle at 12% 90%, rgba(114, 202, 140, 0.36), transparent 13rem),
+    linear-gradient(145deg, #0e4eaa, var(--azul));
+  border-radius: 1.45rem 0 0 1.45rem;
+  color: var(--branco);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 35rem;
+  overflow: hidden;
+  padding: clamp(1.5rem, 4vw, 2.75rem);
+  position: relative;
+}
+
+.autenticacao-assinatura::before,
+.autenticacao-assinatura::after {
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 50%;
+  content: "";
+  height: 19rem;
+  position: absolute;
+  right: -8rem;
+  top: -6rem;
+  width: 19rem;
+}
+
+.autenticacao-assinatura::after {
+  height: 13rem;
+  right: -4.9rem;
+  top: -3rem;
+  width: 13rem;
+}
+
+.autenticacao-marca {
+  align-items: center;
+  border: 2px dashed rgba(255, 255, 255, 0.72);
+  border-radius: 50%;
+  display: inline-flex;
+  font-size: 2.35rem;
+  height: 4.6rem;
+  justify-content: center;
+  margin-bottom: auto;
+  transform: rotate(-12deg);
+  width: 4.6rem;
+}
+
+.autenticacao-assinatura p {
+  font-size: clamp(1.8rem, 3.2vw, 2.7rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+  margin: 0 0 1rem;
+}
+
+.autenticacao-assinatura > span:last-child {
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.6;
+  max-width: 22ch;
+}
+
+.autenticacao-conteudo {
+  min-width: 0;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  position: relative;
+}
+
+.autenticacao-fechar {
+  background: var(--grafite-claro);
+  color: var(--preto);
+  font-size: 1.65rem;
+  height: 2.55rem;
+  line-height: 1;
+  min-height: 2.55rem;
+  padding: 0 0 0.15rem;
+  position: absolute;
+  right: 1.25rem;
+  top: 1.25rem;
+  width: 2.55rem;
+}
+
+.autenticacao-fechar:hover,
+.autenticacao-fechar:focus-visible {
+  background: var(--cinza-100);
+  transform: none;
+}
+
+.autenticacao-cabecalho {
+  padding-right: 2rem;
+}
+
+.autenticacao-selo {
+  color: var(--azul);
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  margin-bottom: 0.8rem;
+  text-transform: uppercase;
+}
+
+.autenticacao-cabecalho h2 {
+  font-size: clamp(1.8rem, 3.2vw, 2.55rem);
+  margin-bottom: 0.65rem;
+  max-width: 14ch;
+}
+
+.autenticacao-cabecalho p {
+  color: var(--cinza-300);
+  margin: 0;
+}
+
+.autenticacao-abas {
+  background: var(--grafite-claro);
+  border-radius: 999rem;
+  display: grid;
+  gap: 0.3rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 1.75rem 0 1.35rem;
+  padding: 0.3rem;
+}
+
+.autenticacao-abas button {
+  background: transparent;
+  border-radius: 999rem;
+  color: var(--cinza-300);
+  min-height: 2.65rem;
+  padding: 0.55rem 1rem;
+}
+
+.autenticacao-abas button:hover {
+  color: var(--preto);
+  transform: none;
+}
+
+.autenticacao-abas button[aria-selected="true"] {
+  background: var(--branco);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
+  color: var(--azul);
+}
+
+.formulario-autenticacao {
+  display: grid;
+  gap: 1rem;
+}
+
+.formulario-autenticacao[hidden] {
+  display: none;
+}
+
+.campo-autenticacao {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.campo-autenticacao label {
+  color: var(--preto-elevado);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.campo-autenticacao input {
+  background: var(--off-white);
+  border: 1px solid var(--cinza-100);
+  border-radius: 0.8rem;
+  color: var(--preto);
+  min-height: 3.15rem;
+  padding: 0.75rem 0.9rem;
+  transition:
+    background-color var(--transicao),
+    border-color var(--transicao),
+    box-shadow var(--transicao);
+  width: 100%;
+}
+
+.campo-autenticacao input:hover {
+  border-color: var(--cinza-500);
+}
+
+.campo-autenticacao input:focus {
+  background: var(--branco);
+  border-color: var(--azul);
+  box-shadow: 0 0 0 4px rgba(0, 74, 247, 0.1);
+}
+
+.campo-autenticacao input[aria-invalid="true"] {
+  border-color: #b42318;
+}
+
+.dica-campo-autenticacao,
+.erro-campo-autenticacao {
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.dica-campo-autenticacao {
+  color: var(--cinza-300);
+}
+
+.erro-campo-autenticacao {
+  color: #b42318;
+  font-weight: 650;
+  min-height: 0;
+}
+
+.erro-campo-autenticacao:empty {
+  display: none;
+}
+
+.autenticacao-submit {
+  background: var(--azul);
+  box-shadow: 0 10px 22px rgba(0, 74, 247, 0.22);
+  color: var(--branco);
+  margin-top: 0.25rem;
+  min-height: 3.15rem;
+  width: 100%;
+}
+
+.autenticacao-submit:hover,
+.autenticacao-submit:focus-visible {
+  background: #003dc9;
+}
+
+.autenticacao-submit:disabled {
+  cursor: wait;
+  opacity: 0.68;
+  transform: none;
+}
+
+.feedback-autenticacao {
+  color: var(--cinza-300);
+  font-size: 0.82rem;
+  font-weight: 650;
+  margin: 0.9rem 0 0;
+  min-height: 1.25rem;
+}
+
+.feedback-autenticacao[data-tipo="erro"] {
+  color: #b42318;
+}
+
+.dialogo-importacao-legada {
+  background: transparent;
+  border: 0;
+  color: var(--preto);
+  margin: auto;
+  max-width: min(34rem, calc(100vw - 2rem));
+  padding: 0;
+  width: 100%;
+}
+
+.dialogo-importacao-legada::backdrop {
+  backdrop-filter: blur(9px);
+  background: rgba(15, 23, 42, 0.68);
+}
+
+.dialogo-importacao-legada[open] .importacao-legada-conteudo {
+  animation: entrada-autenticacao 240ms cubic-bezier(0.22, 1, 0.36, 1)
+    both;
+}
+
+.importacao-legada-conteudo {
+  background: var(--branco);
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: 1.35rem;
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.3);
+  padding: clamp(1.5rem, 5vw, 2.5rem);
+}
+
+.importacao-legada-selo {
+  color: var(--azul);
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  margin-bottom: 0.7rem;
+  text-transform: uppercase;
+}
+
+.importacao-legada-conteudo h2 {
+  font-size: clamp(1.65rem, 5vw, 2.2rem);
+  margin-bottom: 0.75rem;
+}
+
+.importacao-legada-conteudo > p {
+  color: var(--cinza-300);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.importacao-legada-resumo {
+  font-weight: 750;
+  padding-top: 0.75rem;
+}
+
+.importacao-legada-nota {
+  border-left: 3px solid var(--verde);
+  margin-top: 1rem !important;
+  padding: 0.7rem 0 0.7rem 0.9rem;
+}
+
+.importacao-legada-acoes {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1.5rem;
+}
+
+.importacao-legada-confirmar,
+.importacao-legada-manter {
+  min-height: 3rem;
+  width: 100%;
+}
+
+.importacao-legada-confirmar {
+  background: var(--azul);
+  color: var(--branco);
+}
+
+.importacao-legada-confirmar:hover,
+.importacao-legada-confirmar:focus-visible {
+  background: #003dc9;
+}
+
+.importacao-legada-manter {
+  background: var(--grafite-claro);
+  color: var(--preto);
+}
+
+.importacao-legada-manter:hover,
+.importacao-legada-manter:focus-visible {
+  background: var(--cinza-100);
+}
+
+.feedback-importacao-legada {
+  font-size: 0.82rem;
+  font-weight: 650;
+  min-height: 1.25rem;
+  padding-top: 0.8rem;
+}
+
+.feedback-importacao-legada[data-tipo="erro"] {
+  color: #b42318;
+}
+
+@keyframes entrada-autenticacao {
+  from {
+    opacity: 0;
+    transform: translateY(1rem) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 43rem) {
+  .dialogo-autenticacao {
+    max-height: calc(100dvh - 1rem);
+    max-width: calc(100vw - 1rem);
+  }
+
+  .autenticacao-layout {
+    grid-template-columns: minmax(0, 1fr);
+    max-height: calc(100dvh - 1rem);
+  }
+
+  .autenticacao-assinatura {
+    border-radius: 1.45rem 1.45rem 0 0;
+    min-height: 8rem;
+    padding: 1.25rem 4.75rem 1.25rem 1.5rem;
+  }
+
+  .autenticacao-marca {
+    height: 3.25rem;
+    position: absolute;
+    right: 1.5rem;
+    top: 1.25rem;
+    width: 3.25rem;
+  }
+
+  .autenticacao-assinatura p {
+    font-size: 1.55rem;
+    margin-bottom: 0.45rem;
+  }
+
+  .autenticacao-assinatura > span:last-child {
+    font-size: 0.82rem;
+    max-width: 28ch;
+  }
+
+  .autenticacao-conteudo {
+    padding: 1.5rem;
+  }
+}
+
 .modal-imagem {
   background: transparent;
   border: 0;
@@ -4193,6 +4621,14 @@ footer section p {
   *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .dialogo-autenticacao[open] .autenticacao-layout {
+    animation: none;
+  }
+
+  .dialogo-importacao-legada[open] .importacao-legada-conteudo {
+    animation: none;
   }
 
   :where(

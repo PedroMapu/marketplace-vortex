@@ -1,26 +1,40 @@
 const express = require("express");
 const path = require("path");
+const { criarCors } = require("./cors");
+const bcrypt = require("bcryptjs");
 const {
+  criarUsuario,
+  buscarUsuarioPorEmail,
   listarAnuncios,
   criarAnuncio,
   buscarAnuncioPorId,
   excluirAnuncioPorId,
   verificarConexao,
 } = require("./database");
+const { criarToken, usuarioPublico } = require("./auth");
+const { autenticarBearer } = require("./middleware-auth");
+const {
+  registrarRotasRedefinicaoSenha,
+} = require("./password-reset-routes");
+const {
+  schemaCadastro,
+  schemaLogin,
+  schemaAnuncio,
+  schemaFiltrosAnuncios,
+  schemaParametroAnuncio,
+} = require("./validacao");
+const { responderErro, validarComSchema } = require("./erros-api");
 
 const app = express();
-const CATEGORIAS_VALIDAS = new Set([
-  "livros",
-  "eletronicos",
-  "casa",
-  "moda",
-  "outros",
-]);
-const CONDICOES_VALIDAS = new Set(["novo", "seminovo", "usado"]);
-const MODALIDADES_VALIDAS = new Set(["venda", "doacao"]);
-const FORMATO_UUID =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const BCRYPT_CUSTO = 12;
+const HASH_SENHA_FICTICIO =
+  "$2b$12$fAzASl/aMTGnZKZfgaZLWeoOUOBqFtGQnoQ2yhB0kT4XPkD38gqUi";
 
+app.use(criarCors());
+app.use("/api/auth", (request, response, next) => {
+  response.set("Cache-Control", "no-store");
+  return next();
+});
 app.use(express.json({ limit: "8mb" }));
 
 app.get("/api/status", async (request, response) => {
@@ -31,216 +45,198 @@ app.get("/api/status", async (request, response) => {
       mensagem: "API do Marketplace Vortex funcionando.",
     });
   } catch {
-    return response.status(503).json({
-      erro: "Banco de dados temporariamente indisponível.",
-    });
+    return responderErro(
+      response,
+      503,
+      "Banco de dados temporariamente indisponível.",
+      "SERVICO_INDISPONIVEL",
+    );
   }
 });
 
-function textoObrigatorio(valor) {
-  return typeof valor === "string" && valor.trim() !== "";
+function responderCredenciaisInvalidas(response) {
+  return responderErro(
+    response,
+    401,
+    "E-mail ou senha inválidos.",
+    "CREDENCIAIS_INVALIDAS",
+  );
 }
 
-function validarFiltrosAnuncios(query) {
-  const erros = {};
-  const filtros = {};
+app.post("/api/auth/register", async (request, response) => {
+  const validacao = validarComSchema(schemaCadastro, request.body);
 
-  if (query.categoria !== undefined) {
-    if (!textoObrigatorio(query.categoria)) {
-      erros.categoria = "A categoria deve conter texto.";
-    } else {
-      const categoria = query.categoria.trim();
-
-      if (!CATEGORIAS_VALIDAS.has(categoria)) {
-        erros.categoria = "Categoria inválida.";
-      } else {
-        filtros.categoria = categoria;
-      }
-    }
+  if (!validacao.sucesso) {
+    return responderErro(
+      response,
+      400,
+      "Dados de cadastro inválidos.",
+      "VALIDACAO",
+      validacao.campos,
+    );
   }
 
-  if (query.usuarioId !== undefined) {
-    if (!textoObrigatorio(query.usuarioId)) {
-      erros.usuarioId = "O ID do usuário deve conter texto.";
-    } else {
-      const usuarioId = query.usuarioId.trim();
+  const dados = {
+    nome: validacao.dados.nome,
+    email: validacao.dados.email,
+    senhaHash: await bcrypt.hash(validacao.dados.senha, BCRYPT_CUSTO),
+  };
 
-      if (!FORMATO_UUID.test(usuarioId)) {
-        erros.usuarioId = "O ID do usuário deve ser um UUID válido.";
-      } else {
-        filtros.usuarioId = usuarioId;
-      }
+  try {
+    const usuario = await criarUsuario(dados);
+
+    return response.status(201).json({
+      token: criarToken(usuario),
+      usuario: usuarioPublico(usuario),
+    });
+  } catch (erro) {
+    if (erro?.code === "23505") {
+      return responderErro(
+        response,
+        409,
+        "Já existe uma conta com este e-mail.",
+        "EMAIL_EM_USO",
+        {
+          email: "Este e-mail já está cadastrado.",
+        },
+      );
     }
+
+    throw erro;
+  }
+});
+
+app.post("/api/auth/login", async (request, response) => {
+  const validacao = validarComSchema(schemaLogin, request.body);
+
+  if (!validacao.sucesso) {
+    return responderCredenciaisInvalidas(response);
   }
 
-  return { erros, filtros };
-}
+  const usuario = await buscarUsuarioPorEmail(validacao.dados.email);
+  const senhaCorresponde = await bcrypt.compare(
+    validacao.dados.senha,
+    usuario?.senhaHash ?? HASH_SENHA_FICTICIO,
+  );
 
-function validarAnuncio(dados) {
-  const erros = {};
-  const camposObrigatorios = [
-    "nome",
-    "categoria",
-    "condicao",
-    "modalidade",
-    "localizacao",
-    "descricao",
-    "usuarioId",
-    "usuarioNome",
-  ];
-
-  if (!dados || typeof dados !== "object" || Array.isArray(dados)) {
-    return { corpo: "Envie um objeto JSON com os dados do anúncio." };
+  if (!usuario || !senhaCorresponde) {
+    return responderCredenciaisInvalidas(response);
   }
 
-  const modalidadeNormalizada = textoObrigatorio(dados.modalidade)
-    ? dados.modalidade.trim()
-    : "";
-
-  camposObrigatorios.forEach((campo) => {
-    if (!textoObrigatorio(dados[campo])) {
-      erros[campo] = "Este campo é obrigatório e deve conter texto.";
-    }
+  return response.status(200).json({
+    token: criarToken(usuario),
+    usuario: usuarioPublico(usuario),
   });
+});
 
-  if (
-    textoObrigatorio(dados.usuarioId) &&
-    !FORMATO_UUID.test(dados.usuarioId.trim())
-  ) {
-    erros.usuarioId = "O ID do usuário deve ser um UUID válido.";
-  }
+app.get("/api/auth/me", autenticarBearer, (request, response) => {
+  return response.status(200).json({
+    usuario: usuarioPublico(request.usuario),
+  });
+});
 
-  if (
-    textoObrigatorio(dados.categoria) &&
-    !CATEGORIAS_VALIDAS.has(dados.categoria.trim())
-  ) {
-    erros.categoria = "Categoria inválida.";
-  }
+registrarRotasRedefinicaoSenha(app);
 
-  if (
-    textoObrigatorio(dados.condicao) &&
-    !CONDICOES_VALIDAS.has(dados.condicao.trim())
-  ) {
-    erros.condicao = "Condição inválida.";
-  }
-
-  if (
-    textoObrigatorio(dados.modalidade) &&
-    !MODALIDADES_VALIDAS.has(dados.modalidade.trim())
-  ) {
-    erros.modalidade = "Modalidade inválida.";
-  }
-
-  if (
-    typeof dados.valor !== "number" ||
-    !Number.isFinite(dados.valor) ||
-    dados.valor < 0
-  ) {
-    erros.valor = "Informe um valor numérico maior ou igual a zero.";
-  } else if (modalidadeNormalizada === "venda" && dados.valor === 0) {
-    erros.valor = "Anúncios de venda devem ter valor maior que zero.";
-  } else if (modalidadeNormalizada === "doacao" && dados.valor !== 0) {
-    erros.valor = "Anúncios de doação devem ter valor igual a zero.";
-  }
-
-  if (
-    dados.imagemUrl !== undefined &&
-    typeof dados.imagemUrl !== "string"
-  ) {
-    erros.imagemUrl = "A URL da imagem deve ser um texto.";
-  }
-
-  return erros;
-}
-
-function normalizarAnuncio(dados) {
+function normalizarAnuncio(dados, usuario) {
   return {
-    nome: dados.nome.trim(),
-    categoria: dados.categoria.trim(),
-    condicao: dados.condicao.trim(),
-    modalidade: dados.modalidade.trim(),
+    nome: dados.nome,
+    categoria: dados.categoria,
+    condicao: dados.condicao,
+    modalidade: dados.modalidade,
     valor: dados.valor,
-    localizacao: dados.localizacao.trim(),
-    descricao: dados.descricao.trim(),
-    imagemUrl: dados.imagemUrl?.trim() || "",
-    usuarioId: dados.usuarioId.trim(),
-    usuarioNome: dados.usuarioNome.trim(),
+    localizacao: dados.localizacao,
+    descricao: dados.descricao,
+    imagemUrl: dados.imagemUrl,
+    usuarioId: usuario.id,
+    usuarioNome: usuario.nome,
   };
 }
 
 app.get("/api/anuncios", async (request, response) => {
-  const { erros, filtros } = validarFiltrosAnuncios(request.query);
+  const validacao = validarComSchema(schemaFiltrosAnuncios, request.query);
 
-  if (Object.keys(erros).length > 0) {
-    return response.status(400).json({
-      erro: "Filtros de anúncios inválidos.",
-      campos: erros,
-    });
+  if (!validacao.sucesso) {
+    return responderErro(
+      response,
+      400,
+      "Filtros de anúncios inválidos.",
+      "VALIDACAO",
+      validacao.campos,
+    );
   }
 
-  const anuncios = await listarAnuncios(filtros);
+  const anuncios = await listarAnuncios(validacao.dados);
   return response.status(200).json(anuncios);
 });
 
-app.post("/api/anuncios", async (request, response) => {
-  const erros = validarAnuncio(request.body);
+app.get("/api/anuncios/me", autenticarBearer, async (request, response) => {
+  const anuncios = await listarAnuncios({
+    usuarioId: request.usuario.id,
+  });
 
-  if (Object.keys(erros).length > 0) {
-    return response.status(400).json({
-      erro: "Dados do anúncio inválidos.",
-      campos: erros,
-    });
+  return response.status(200).json(anuncios);
+});
+
+app.post("/api/anuncios", autenticarBearer, async (request, response) => {
+  const validacao = validarComSchema(schemaAnuncio, request.body);
+
+  if (!validacao.sucesso) {
+    return responderErro(
+      response,
+      400,
+      "Dados do anúncio inválidos.",
+      "VALIDACAO",
+      validacao.campos,
+    );
   }
 
-  const anuncio = await criarAnuncio(normalizarAnuncio(request.body));
+  const anuncio = await criarAnuncio(
+    normalizarAnuncio(validacao.dados, request.usuario),
+  );
   return response.status(201).json(anuncio);
 });
 
-app.delete("/api/anuncios/:id", async (request, response) => {
-  const id = Number(request.params.id);
-  const idValido =
-    /^[1-9]\d*$/.test(request.params.id) && Number.isSafeInteger(id);
+app.delete("/api/anuncios/:id", autenticarBearer, async (request, response) => {
+  const validacao = validarComSchema(schemaParametroAnuncio, request.params);
 
-  if (!idValido) {
-    return response.status(400).json({
-      erro: "O ID deve ser um número inteiro positivo.",
-    });
+  if (!validacao.sucesso) {
+    return responderErro(
+      response,
+      400,
+      "Parâmetro de anúncio inválido.",
+      "VALIDACAO",
+      validacao.campos,
+    );
   }
 
-  const usuarioId = request.get("X-Usuario-Id");
-
-  if (!textoObrigatorio(usuarioId)) {
-    return response.status(401).json({
-      erro: "Identifique o usuário para excluir um anúncio.",
-    });
-  }
-
-  if (!FORMATO_UUID.test(usuarioId.trim())) {
-    return response.status(400).json({
-      erro: "O ID do usuário deve ser um UUID válido.",
-    });
-  }
-
+  const { id } = validacao.dados;
   const anuncio = await buscarAnuncioPorId(id);
 
   if (!anuncio) {
-    return response.status(404).json({
-      erro: "Anúncio não encontrado.",
-    });
+    return responderErro(
+      response,
+      404,
+      "Anúncio não encontrado.",
+      "ANUNCIO_NAO_ENCONTRADO",
+    );
   }
 
-  const usuarioIdNormalizado = usuarioId.trim();
-
-  if (anuncio.usuarioId !== usuarioIdNormalizado) {
-    return response.status(403).json({
-      erro: "Você só pode excluir os seus próprios anúncios.",
-    });
+  if (anuncio.usuarioId !== request.usuario.id) {
+    return responderErro(
+      response,
+      403,
+      "Você só pode excluir os seus próprios anúncios.",
+      "ANUNCIO_ALHEIO",
+    );
   }
 
-  if (!(await excluirAnuncioPorId(id, usuarioIdNormalizado))) {
-    return response.status(404).json({
-      erro: "Anúncio não encontrado.",
-    });
+  if (!(await excluirAnuncioPorId(id, request.usuario.id))) {
+    return responderErro(
+      response,
+      404,
+      "Anúncio não encontrado.",
+      "ANUNCIO_NAO_ENCONTRADO",
+    );
   }
 
   return response.status(200).json({
@@ -252,24 +248,45 @@ app.delete("/api/anuncios/:id", async (request, response) => {
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/api", (request, response) => {
-  response.status(404).json({
-    erro: "Rota da API não encontrada.",
-  });
+  return responderErro(
+    response,
+    404,
+    "Rota da API não encontrada.",
+    "ROTA_NAO_ENCONTRADA",
+  );
 });
 
 app.use((erro, request, response, next) => {
-  if (erro instanceof SyntaxError && erro.status === 400 && "body" in erro) {
-    return response.status(400).json({
-      erro: "JSON inválido.",
-    });
+  if (erro?.type === "entity.too.large" || erro?.status === 413) {
+    return responderErro(
+      response,
+      413,
+      "O corpo da requisição excede o limite de 8 MB.",
+      "CORPO_MUITO_GRANDE",
+    );
   }
 
-  console.error("Erro interno da API:", erro);
+  if (erro instanceof SyntaxError && erro.status === 400 && "body" in erro) {
+    return responderErro(
+      response,
+      400,
+      "JSON inválido.",
+      "JSON_INVALIDO",
+    );
+  }
+
+  console.error("Erro interno da API.", {
+    metodo: request.method,
+    rota: request.route?.path ?? "desconhecida",
+  });
 
   if (request.path.startsWith("/api/")) {
-    return response.status(500).json({
-      erro: "Não foi possível processar a solicitação.",
-    });
+    return responderErro(
+      response,
+      500,
+      "Não foi possível processar a solicitação.",
+      "ERRO_INTERNO",
+    );
   }
 
   return next(erro);

@@ -24,9 +24,15 @@
     "url": "https://github.com/PedroMapu/marketplace-vortex/issues"
   },
   "homepage": "https://github.com/PedroMapu/marketplace-vortex#readme",
+  "engines": {
+    "node": "24.x"
+  },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "express": "^5.2.1",
-    "pg": "^8.22.0"
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.22.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",

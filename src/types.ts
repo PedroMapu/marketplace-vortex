@@ -115,10 +115,13 @@ export interface Anuncio {
 }
 
 /**
- * Corpo aceito pela API atual. Quando a autoria passar a vir exclusivamente
- * do JWT, este tipo poderá ser substituído por Omit<NovoAnuncio, ...>.
+ * Corpo aceito pela criação autenticada. A autoria existe apenas no DTO de
+ * saída e é preenchida pela API com base no Bearer.
  */
-export type NovoAnuncio = Omit<Anuncio, "id" | "criadoEm">;
+export type NovoAnuncio = Omit<
+  Anuncio,
+  "id" | "criadoEm" | "usuarioId" | "usuarioNome"
+>;
 
 export interface FiltrosAnuncios {
   categoria?: Categoria;

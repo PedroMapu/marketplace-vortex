@@ -1,8 +1,11 @@
 const app = require("./api");
+const { validarConfiguracaoAuth } = require("./auth");
 
 const PORT = process.env.PORT || 3000;
 
 function iniciarServidor(port = PORT) {
+  validarConfiguracaoAuth();
+
   const servidor = app.listen(port, () => {
     console.log(`Servidor disponível em http://localhost:${port}`);
   });

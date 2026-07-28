@@ -4,9 +4,18 @@ const test = require("node:test");
 
 const caminhoApi = require.resolve("../api");
 const caminhoDatabase = require.resolve("../database");
+const caminhoMiddlewareAuth = require.resolve("../middleware-auth");
+const caminhoPasswordReset = require.resolve("../password-reset");
+const caminhoRotasPasswordReset = require.resolve("../password-reset-routes");
 const USUARIO_ID = "ea11c83e-a7b1-4ba4-9d27-1bbf94a6e945";
+const USUARIO_AUTENTICADO = {
+  id: USUARIO_ID,
+  nome: "Ana",
+  email: "ana@example.com",
+};
+const USUARIO_ID_FALSIFICADO = "4dc9a1ff-4be3-4d35-9ef7-514a7a3a19f5";
 
-function carregarApiComDatabaseMock(sobrescritas = {}) {
+function carregarApiComDatabaseMock(sobrescritas = {}, opcoes = {}) {
   const databaseMock = {
     listarAnuncios: async () => [],
     criarAnuncio: async (anuncio) => anuncio,
@@ -16,6 +25,10 @@ function carregarApiComDatabaseMock(sobrescritas = {}) {
     ...sobrescritas,
   };
   const moduloDatabaseOriginal = require.cache[caminhoDatabase];
+  const moduloMiddlewareOriginal = require.cache[caminhoMiddlewareAuth];
+  const moduloPasswordResetOriginal = require.cache[caminhoPasswordReset];
+  const moduloRotasPasswordResetOriginal =
+    require.cache[caminhoRotasPasswordReset];
 
   require.cache[caminhoDatabase] = {
     id: caminhoDatabase,
@@ -23,7 +36,22 @@ function carregarApiComDatabaseMock(sobrescritas = {}) {
     loaded: true,
     exports: databaseMock,
   };
+  require.cache[caminhoMiddlewareAuth] = {
+    id: caminhoMiddlewareAuth,
+    filename: caminhoMiddlewareAuth,
+    loaded: true,
+    exports: {
+      autenticarBearer:
+        opcoes.autenticarBearer ??
+        ((request, response, next) => {
+          request.usuario = USUARIO_AUTENTICADO;
+          return next();
+        }),
+    },
+  };
   delete require.cache[caminhoApi];
+  delete require.cache[caminhoPasswordReset];
+  delete require.cache[caminhoRotasPasswordReset];
 
   try {
     return {
@@ -37,6 +65,25 @@ function carregarApiComDatabaseMock(sobrescritas = {}) {
       require.cache[caminhoDatabase] = moduloDatabaseOriginal;
     } else {
       delete require.cache[caminhoDatabase];
+    }
+
+    if (moduloMiddlewareOriginal) {
+      require.cache[caminhoMiddlewareAuth] = moduloMiddlewareOriginal;
+    } else {
+      delete require.cache[caminhoMiddlewareAuth];
+    }
+
+    if (moduloPasswordResetOriginal) {
+      require.cache[caminhoPasswordReset] = moduloPasswordResetOriginal;
+    } else {
+      delete require.cache[caminhoPasswordReset];
+    }
+
+    if (moduloRotasPasswordResetOriginal) {
+      require.cache[caminhoRotasPasswordReset] =
+        moduloRotasPasswordResetOriginal;
+    } else {
+      delete require.cache[caminhoRotasPasswordReset];
     }
   }
 }
@@ -107,6 +154,7 @@ test("GET /api/status responde 503 sem expor a falha do PostgreSQL", async () =>
     status: 503,
     body: {
       erro: "Banco de dados temporariamente indisponível.",
+      codigo: "SERVICO_INDISPONIVEL",
     },
   });
 });
@@ -150,7 +198,7 @@ test("GET /api/anuncios aguarda a consulta e encaminha os filtros", async () => 
   });
 });
 
-test("POST /api/anuncios aguarda a criação e mantém normalização e DTO", async () => {
+test("POST /api/anuncios deriva autoria exclusivamente de request.usuario", async () => {
   const entrada = {
     nome: "  Mesa lateral  ",
     categoria: "casa",
@@ -159,9 +207,7 @@ test("POST /api/anuncios aguarda a criação e mantém normalização e DTO", as
     valor: 125.5,
     localizacao: "  Fortaleza  ",
     descricao: "  Madeira maciça  ",
-    imagemUrl: "  data:image/png;base64,abc  ",
-    usuarioId: `  ${USUARIO_ID}  `,
-    usuarioNome: "  Ana  ",
+    imagemUrl: "  data:image/png;base64,iVBORw0KGgo=  ",
   };
   const anuncioCriado = {
     id: 13,
@@ -172,7 +218,7 @@ test("POST /api/anuncios aguarda a criação e mantém normalização e DTO", as
     valor: 125.5,
     localizacao: "Fortaleza",
     descricao: "Madeira maciça",
-    imagemUrl: "data:image/png;base64,abc",
+    imagemUrl: "data:image/png;base64,iVBORw0KGgo=",
     usuarioId: USUARIO_ID,
     usuarioNome: "Ana",
     criadoEm: "2026-07-28T12:30:00.000Z",
@@ -186,10 +232,18 @@ test("POST /api/anuncios aguarda a criação e mantém normalização e DTO", as
   });
 
   assert.deepEqual(
-    await requisitar(app, "/api/anuncios", {
-      method: "POST",
-      body: entrada,
-    }),
+    await requisitar(
+      app,
+      `/api/anuncios?usuarioId=${USUARIO_ID_FALSIFICADO}`,
+      {
+        method: "POST",
+        body: entrada,
+        headers: {
+          Authorization: "Bearer token-valido",
+          "X-Usuario-Id": USUARIO_ID_FALSIFICADO,
+        },
+      },
+    ),
     {
       status: 201,
       body: anuncioCriado,
@@ -203,13 +257,54 @@ test("POST /api/anuncios aguarda a criação e mantém normalização e DTO", as
     valor: 125.5,
     localizacao: "Fortaleza",
     descricao: "Madeira maciça",
-    imagemUrl: "data:image/png;base64,abc",
+    imagemUrl: "data:image/png;base64,iVBORw0KGgo=",
     usuarioId: USUARIO_ID,
     usuarioNome: "Ana",
   });
 });
 
-test("DELETE /api/anuncios/:id aguarda leitura e exclusão", async () => {
+test("POST /api/anuncios rejeita autoria enviada no corpo antes de criar", async () => {
+  let criacoes = 0;
+  const { app } = carregarApiComDatabaseMock({
+    criarAnuncio: async () => {
+      criacoes += 1;
+    },
+  });
+
+  const resposta = await requisitar(app, "/api/anuncios", {
+    method: "POST",
+    headers: {
+      Authorization: "Bearer token-valido",
+    },
+    body: {
+      nome: "Mesa lateral",
+      categoria: "casa",
+      condicao: "usado",
+      modalidade: "venda",
+      valor: 125.5,
+      localizacao: "Fortaleza",
+      descricao: "Madeira maciça",
+      imagemUrl: "data:image/png;base64,iVBORw0KGgo=",
+      usuarioId: USUARIO_ID_FALSIFICADO,
+      usuarioNome: "Usuário falsificado",
+    },
+  });
+
+  assert.deepEqual(resposta, {
+    status: 400,
+    body: {
+      erro: "Dados do anúncio inválidos.",
+      codigo: "VALIDACAO",
+      campos: {
+        usuarioId: "A autoria do anúncio é definida pela sessão autenticada.",
+        usuarioNome: "A autoria do anúncio é definida pela sessão autenticada.",
+      },
+    },
+  });
+  assert.equal(criacoes, 0);
+});
+
+test("DELETE deriva identidade de request.usuario apesar de query, cabeçalho e corpo falsificados", async () => {
   const chamadas = [];
   const { app } = carregarApiComDatabaseMock({
     buscarAnuncioPorId: async (id) => {
@@ -223,10 +318,21 @@ test("DELETE /api/anuncios/:id aguarda leitura e exclusão", async () => {
   });
 
   assert.deepEqual(
-    await requisitar(app, "/api/anuncios/14", {
-      method: "DELETE",
-      headers: { "X-Usuario-Id": ` ${USUARIO_ID} ` },
-    }),
+    await requisitar(
+      app,
+      `/api/anuncios/14?usuarioId=${USUARIO_ID_FALSIFICADO}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: "Bearer token-valido",
+          "X-Usuario-Id": USUARIO_ID_FALSIFICADO,
+        },
+        body: {
+          usuarioId: USUARIO_ID_FALSIFICADO,
+          usuarioNome: "Usuário falsificado",
+        },
+      },
+    ),
     {
       status: 200,
       body: {
@@ -241,28 +347,165 @@ test("DELETE /api/anuncios/:id aguarda leitura e exclusão", async () => {
   ]);
 });
 
-test("DELETE rejeita identificação legada antes de consultar o anúncio", async () => {
-  let buscas = 0;
+test("GET /api/anuncios/me filtra exclusivamente pelo usuário autenticado", async () => {
+  let filtrosRecebidos;
   const { app } = carregarApiComDatabaseMock({
-    buscarAnuncioPorId: async () => {
-      buscas += 1;
-      return undefined;
+    listarAnuncios: async (filtros) => {
+      filtrosRecebidos = filtros;
+      return [];
+    },
+  });
+
+  assert.deepEqual(
+    await requisitar(
+      app,
+      `/api/anuncios/me?usuarioId=${USUARIO_ID_FALSIFICADO}`,
+      {
+        headers: {
+          Authorization: "Bearer token-valido",
+          "X-Usuario-Id": USUARIO_ID_FALSIFICADO,
+        },
+      },
+    ),
+    {
+      status: 200,
+      body: [],
+    },
+  );
+  assert.deepEqual(filtrosRecebidos, {
+    usuarioId: USUARIO_ID,
+  });
+});
+
+test("rotas protegidas recusam requisição sem sessão antes de consultar o banco", async () => {
+  let consultas = 0;
+  const { app } = carregarApiComDatabaseMock(
+    {
+      listarAnuncios: async () => {
+        consultas += 1;
+        return [];
+      },
+      criarAnuncio: async () => {
+        consultas += 1;
+      },
+      buscarAnuncioPorId: async () => {
+        consultas += 1;
+      },
+    },
+    {
+      autenticarBearer: (request, response) =>
+        response.status(401).json({
+          erro: "Autenticação necessária.",
+          codigo: "NAO_AUTENTICADO",
+        }),
+    },
+  );
+
+  for (const [caminho, opcoes] of [
+    ["/api/anuncios/me", {}],
+    [
+      "/api/anuncios",
+      {
+        method: "POST",
+        body: {
+          nome: "Mesa",
+        },
+      },
+    ],
+    ["/api/anuncios/14", { method: "DELETE" }],
+  ]) {
+    assert.deepEqual(await requisitar(app, caminho, opcoes), {
+      status: 401,
+      body: {
+        erro: "Autenticação necessária.",
+        codigo: "NAO_AUTENTICADO",
+      },
+    });
+  }
+
+  assert.equal(consultas, 0);
+});
+
+test("DELETE retorna 403 para anúncio alheio sem tentar excluí-lo", async () => {
+  let exclusoes = 0;
+  const { app } = carregarApiComDatabaseMock({
+    buscarAnuncioPorId: async (id) => ({
+      id,
+      usuarioId: "4dc9a1ff-4be3-4d35-9ef7-514a7a3a19f5",
+    }),
+    excluirAnuncioPorId: async () => {
+      exclusoes += 1;
+      return true;
     },
   });
 
   assert.deepEqual(
     await requisitar(app, "/api/anuncios/14", {
       method: "DELETE",
-      headers: { "X-Usuario-Id": "usuario-legado" },
+      headers: { Authorization: "Bearer token-valido" },
+    }),
+    {
+      status: 403,
+      body: {
+        erro: "Você só pode excluir os seus próprios anúncios.",
+        codigo: "ANUNCIO_ALHEIO",
+      },
+    },
+  );
+  assert.equal(exclusoes, 0);
+});
+
+test("DELETE retorna 404 para anúncio inexistente", async () => {
+  let exclusoes = 0;
+  const { app } = carregarApiComDatabaseMock({
+    buscarAnuncioPorId: async () => undefined,
+    excluirAnuncioPorId: async () => {
+      exclusoes += 1;
+      return true;
+    },
+  });
+
+  assert.deepEqual(
+    await requisitar(app, "/api/anuncios/14", {
+      method: "DELETE",
+      headers: { Authorization: "Bearer token-valido" },
+    }),
+    {
+      status: 404,
+      body: {
+        erro: "Anúncio não encontrado.",
+        codigo: "ANUNCIO_NAO_ENCONTRADO",
+      },
+    },
+  );
+  assert.equal(exclusoes, 0);
+});
+
+test("DELETE rejeita parâmetro inválido com 400 antes de consultar o banco", async () => {
+  let consultas = 0;
+  const { app } = carregarApiComDatabaseMock({
+    buscarAnuncioPorId: async () => {
+      consultas += 1;
+    },
+  });
+
+  assert.deepEqual(
+    await requisitar(app, "/api/anuncios/0", {
+      method: "DELETE",
+      headers: { Authorization: "Bearer token-valido" },
     }),
     {
       status: 400,
       body: {
-        erro: "O ID do usuário deve ser um UUID válido.",
+        erro: "Parâmetro de anúncio inválido.",
+        codigo: "VALIDACAO",
+        campos: {
+          id: "O ID deve ser um número inteiro positivo.",
+        },
       },
     },
   );
-  assert.equal(buscas, 0);
+  assert.equal(consultas, 0);
 });
 
 test("rejeita usuarioId incompatível com a coluna UUID antes de consultar o banco", async () => {
@@ -280,6 +523,7 @@ test("rejeita usuarioId incompatível com a coluna UUID antes de consultar o ban
       status: 400,
       body: {
         erro: "Filtros de anúncios inválidos.",
+        codigo: "VALIDACAO",
         campos: {
           usuarioId: "O ID do usuário deve ser um UUID válido.",
         },
@@ -296,16 +540,35 @@ test("rejeições assíncronas do banco chegam ao middleware de erro do Express 
     },
   });
   const consoleErrorOriginal = console.error;
+  const registrosDeErro = [];
 
-  console.error = () => {};
+  console.error = (...argumentos) => {
+    registrosDeErro.push(argumentos);
+  };
 
   try {
-    assert.deepEqual(await requisitar(app, "/api/anuncios"), {
+    const resposta = await requisitar(app, "/api/anuncios");
+
+    assert.deepEqual(resposta, {
       status: 500,
       body: {
         erro: "Não foi possível processar a solicitação.",
+        codigo: "ERRO_INTERNO",
       },
     });
+    assert.equal(
+      JSON.stringify(resposta.body).includes(
+        "detalhe interno que não pode vazar",
+      ),
+      false,
+    );
+    assert.equal("stack" in resposta.body, false);
+    assert.equal(
+      JSON.stringify(registrosDeErro).includes(
+        "detalhe interno que não pode vazar",
+      ),
+      false,
+    );
   } finally {
     console.error = consoleErrorOriginal;
   }
