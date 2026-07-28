@@ -841,3 +841,158 @@ No fluxo de coleções, consigo explicar que `criarLinhaDeItemColecao` monta cad
 ### Commit
 
 `feat: antecipar responsividade e acessibilidade do Dia 9`
+
+## Dia 10 antecipado — 27/07/2026
+
+### Objetivo do dia
+
+Transformar o Marketplace Vortex em uma aplicação web progressiva instalável. O objetivo foi criar o manifesto da aplicação, adicionar ícones próprios, implementar um Service Worker, registrar esse serviço no frontend e verificar os requisitos de instalação, os recursos carregados e possíveis erros no DevTools.
+
+### O que eu fiz
+
+Criei o arquivo `public/manifest.json` com a identidade do Marketplace Vortex. O manifesto informa nome completo e nome curto, descrição, idioma `pt-BR`, identificador, rota inicial, escopo, modo de exibição `standalone`, orientação, cores do tema e do fundo e categorias relacionadas à finalidade da plataforma.
+
+Adicionei os ícones `public/icons/icon-192.png` e `public/icons/icon-512.png`. Os dois arquivos são PNG reais nas dimensões indicadas, utilizam as cores azul e verde do projeto e mantêm o símbolo principal dentro da área segura necessária para recortes do tipo `maskable`.
+
+Implementei `public/service-worker.js` com um cache versionado para o shell da aplicação. Durante a instalação, o Service Worker armazena a página inicial, HTML, CSS, JavaScript, manifesto e ícones. Durante a ativação, versões antigas do cache do Marketplace Vortex são removidas e o novo worker assume o controle das páginas abertas.
+
+Para navegações, utilizei uma estratégia `network-first`: a aplicação tenta buscar a versão mais recente na rede e utiliza a cópia armazenada quando a conexão falha. Para recursos estáticos locais, utilizei `stale-while-revalidate`, permitindo resposta rápida pelo cache e atualização em segundo plano.
+
+As rotas da API não são interceptadas pelo Service Worker. Requisições que não usam GET, respostas externas, solicitações parciais com cabeçalho `Range` e respostas inválidas também não são armazenadas. Essa separação evita que criação, exclusão ou listagem de anúncios use dados inadequadamente obsoletos.
+
+Criei `public/pwa.js` para registrar `/service-worker.js` com escopo `/` depois do carregamento da página. O código verifica se o navegador oferece suporte a Service Workers e registra no Console qualquer falha de inicialização, facilitando a investigação durante o desenvolvimento.
+
+Atualizei `public/index.html` com a referência ao manifesto, a cor do tema, o favicon, o Apple Touch Icon e o script de registro. A alteração preexistente em `public/app.js` foi preservada e não foi incorporada ao trabalho do Dia 10.
+
+Depois da implementação, iniciei o projeto em uma porta temporária e verifiquei a página, os scripts, os estilos, o manifesto, o Service Worker, os ícones e as rotas principais da API. Os arquivos temporários e os logs criados durante os testes foram removidos, e o processo do servidor foi encerrado.
+
+### Organização entre agentes
+
+O trabalho foi distribuído entre sete agentes. Seis agentes receberam uma tarefa específica: criar o manifesto, adicionar os ícones, criar o Service Worker, registrar o Service Worker, testar o manifesto e a instalação e conferir erros no DevTools.
+
+Como o ambiente permitia até quatro agentes simultâneos, as tarefas foram executadas em rodadas. Os primeiros agentes prepararam os artefatos independentes. Depois, o registro foi integrado ao HTML e os agentes de teste trabalharam sobre o conjunto completo.
+
+Um sétimo agente realizou uma revisão independente de todas as entregas. Ele não confiou apenas nos relatórios anteriores: conferiu os arquivos, o diff, os caminhos, as dimensões dos ícones, a sintaxe, o conteúdo do cache, as exceções da API, as respostas HTTP, os processos temporários e a preservação de `public/app.js`.
+
+O revisor classificou manifesto, ícones, Service Worker e registro como aprovados. Os testes de instalação real e a inspeção visual do DevTools ficaram pendentes por uma limitação externa: o backend de navegador integrado não estava disponível na sessão.
+
+### Principais prompts usados
+
+**Prompt 1 — Implementação do Dia 10 com agentes especializados**
+
+> Vamos antecipar o dia 10. Para realizar as seguintes tarefas, use um agente para cada uma e um agente extra para conferir se cada tarefa foi feita de maneira correta: criar `manifest.json`, adicionar ícones, criar `service-worker.js`, registrar o Service Worker, testar manifesto e instalação e conferir erros no DevTools.
+
+**Prompt 2 — Registro e publicação do trabalho**
+
+> Registre tudo no diário de bordo desse Dia 10 antecipado seguindo o padrão. Faça os commits e o push necessário.
+
+### Resposta da IA
+
+A IA inspecionou o projeto, identificou os arquivos estáticos servidos pelo Express e organizou as tarefas respeitando as dependências entre manifesto, ícones, Service Worker, registro e testes.
+
+Os agentes criaram os artefatos em arquivos separados para reduzir conflitos. O registro ficou isolado em `pwa.js`, sem modificar a lógica principal de `app.js`. O Service Worker foi planejado para oferecer uma experiência offline básica sem transformar a API em uma fonte de dados obsoleta.
+
+Durante os testes, a IA confirmou a validade estrutural do manifesto, a integridade e as dimensões dos PNGs, a sintaxe dos scripts e a disponibilidade HTTP de todos os itens necessários ao pré-cache.
+
+O agente de DevTools seguiu o procedimento obrigatório de diagnóstico, mas a lista de navegadores disponíveis retornou vazia. A IA não substituiu essa verificação por uma automação incompatível com o fluxo exigido. A limitação foi registrada de forma explícita, separando o que foi comprovado do que ainda depende de um navegador disponível.
+
+A revisão independente encontrou que `pwa.js` inicialmente ocultava falhas de registro. O tratamento foi ajustado para usar `console.error`, tornando futuros problemas visíveis durante a homologação.
+
+### O que funcionou
+
+O navegador pode descobrir o manifesto diretamente pelo HTML. O manifesto possui os campos essenciais para identificar e apresentar o Marketplace Vortex como aplicativo independente.
+
+Os ícones de 192 e 512 px são carregados pelos caminhos declarados e podem ser utilizados tanto na instalação quanto em contextos que aplicam máscara.
+
+O Service Worker consegue armazenar todo o shell porque os dez recursos listados no pré-cache responderam com HTTP 200 e tipos MIME coerentes. Uma falha de rede durante a navegação pode utilizar a página já armazenada.
+
+Arquivos estáticos podem ser servidos rapidamente pelo cache enquanto uma versão atualizada é solicitada em segundo plano. Caches antigos com o prefixo do projeto são removidos quando uma nova versão é ativada.
+
+As rotas `/api` permanecem sob controle direto da rede. POST, DELETE, requisições Range e recursos de outros domínios não são interceptados.
+
+O registro acontece somente em navegadores compatíveis e eventuais falhas passam a aparecer no Console com uma mensagem identificável.
+
+### Erros encontrados
+
+O navegador integrado não estava disponível. As tentativas de acesso retornaram `No browser is available`, e o inventário de backends retornou uma lista vazia. Por isso, não foi possível confirmar visualmente o estado `activated`, verificar `navigator.serviceWorker.controller`, observar o botão de instalação ou abrir os painéis Console, Network e Application.
+
+Esse bloqueio pertence ao ambiente de testes e não foi classificado como erro da aplicação. Todos os recursos que participam da instalação responderam corretamente pelo servidor local.
+
+Na primeira versão, a rejeição do registro em `pwa.js` era capturada sem registrar detalhes. Isso dificultaria descobrir uma falha real no Console. O código foi corrigido para exibir o erro.
+
+O revisor observou que os mesmos arquivos de ícone são declarados com `purpose: "any maskable"`. Essa declaração é válida e o desenho respeita a área segura. Como melhoria futura de qualidade, podem ser criados ícones separados para `any` e `maskable`, mas isso não bloqueia a instalação atual.
+
+O `git diff --check` geral encontrou espaços em branco em `public/app.js`, porém esse conteúdo já existia antes do Dia 10 e foi preservado fora do commit.
+
+### Como investiguei
+
+Revisei os contratos entre `index.html`, `manifest.json`, `pwa.js` e `service-worker.js`, conferindo se os caminhos absolutos, o escopo e os recursos do cache correspondiam aos arquivos realmente servidos pelo Express.
+
+Validei o manifesto como JSON e conferi os campos usados pelo navegador. Inspecionei a assinatura, o formato e as dimensões reais dos ícones.
+
+Revisei os eventos `install`, `activate` e `fetch`. Conferi a versão do cache, a remoção restrita aos caches do Marketplace Vortex, o fallback de navegação, a atualização dos recursos estáticos e as condições que impedem o cache da API.
+
+Iniciei um servidor local isolado e solicitei cada recurso do shell. Também verifiquei `/api/status` e `/api/anuncios` para confirmar que o restante da aplicação continuava acessível.
+
+Os agentes de instalação e DevTools seguiram o procedimento de controle do navegador e repetiram o diagnóstico da conexão. Quando o inventário permaneceu vazio, registraram exatamente quais verificações não poderiam ser comprovadas.
+
+Por fim, um agente independente repetiu as validações estáticas e HTTP, verificou processos e arquivos temporários e produziu uma matriz de aprovação para cada tarefa.
+
+### O que aprendi
+
+Aprendi que um manifesto descreve como a aplicação deve aparecer quando instalada, enquanto o Service Worker controla requisições e permite definir comportamentos de cache e uso offline. Um recurso não substitui o outro.
+
+Aprendi que `start_url`, `scope`, `display`, `theme_color`, `background_color` e os ícones precisam estar coerentes com o caminho em que a aplicação é publicada.
+
+Aprendi que `install` prepara os recursos, `activate` limpa versões antigas e `fetch` decide quando utilizar rede ou cache. `skipWaiting()` e `clients.claim()` permitem que uma nova versão assuma o controle mais rapidamente.
+
+Aprendi a diferença entre `network-first` e `stale-while-revalidate`. A primeira estratégia prioriza conteúdo recente e oferece fallback offline; a segunda prioriza velocidade para arquivos estáticos e atualiza o cache em paralelo.
+
+Também aprendi que operações da API não devem ser incluídas automaticamente no mesmo cache do shell. Uma estratégia offline para anúncios precisa ser projetada separadamente e aplicada somente a requisições GET apropriadas.
+
+Aprendi que `localhost` é aceito como contexto seguro durante o desenvolvimento, mas a aplicação publicada precisa de HTTPS para utilizar Service Workers e oferecer instalação de maneira confiável.
+
+### Código que consigo explicar
+
+Consigo explicar que `APP_SHELL` contém os arquivos mínimos necessários para abrir a interface. Durante `install`, `cache.addAll` busca esses recursos e só conclui quando todos estão disponíveis.
+
+Consigo explicar que o evento `activate` lista os caches, seleciona somente aqueles que começam com o prefixo do Marketplace Vortex e remove as versões diferentes da atual.
+
+Consigo explicar que `networkFirstNavigation` tenta buscar a navegação na rede, atualiza o cache quando recebe uma resposta válida e utiliza `index.html` ou `/` quando a rede falha.
+
+Consigo explicar que `staleWhileRevalidate` procura a resposta armazenada ao mesmo tempo que solicita uma versão nova. O usuário recebe o cache rapidamente, e `event.waitUntil` mantém a atualização em segundo plano.
+
+Consigo explicar que o evento `fetch` ignora métodos diferentes de GET, solicitações Range e caminhos da API. Isso impede que operações sensíveis ou respostas parciais sejam armazenadas incorretamente.
+
+Consigo explicar que `pwa.js` testa a existência de `navigator.serviceWorker`, aguarda o evento `load`, registra o arquivo com escopo raiz e apresenta uma mensagem no Console se o registro falhar.
+
+### Testes realizados
+
+- `manifest.json` convertido e validado como JSON.
+- Campos essenciais do manifesto conferidos.
+- Referência ao manifesto confirmada no HTML.
+- `theme-color`, favicon e Apple Touch Icon confirmados no HTML.
+- Ícone de 192×192 validado como PNG real.
+- Ícone de 512×512 validado como PNG real.
+- Área segura dos ícones maskable inspecionada.
+- Sintaxe de `service-worker.js` validada.
+- Sintaxe de `pwa.js` validada.
+- Registro de `/service-worker.js` com escopo `/` conferido.
+- Página inicial respondendo HTTP 200.
+- `index.html`, `styles.css`, `app.js`, `animations.js` e `pwa.js` respondendo HTTP 200.
+- `manifest.json`, `service-worker.js` e os dois ícones respondendo HTTP 200.
+- Tipos MIME dos recursos conferidos.
+- Todos os itens de `APP_SHELL` disponíveis para `cache.addAll`.
+- `/api/status` e `/api/anuncios` respondendo HTTP 200.
+- Métodos não-GET, requisições Range e rotas `/api` excluídos do cache.
+- Limpeza de caches restrita ao prefixo do projeto.
+- Servidores temporários encerrados.
+- Porta temporária 4173 confirmada como livre.
+- Logs temporários de teste removidos.
+- Revisão independente concluída para as seis tarefas.
+- Teste visual de instalação marcado como pendente por ausência de navegador.
+- Console, Network e Application marcados como pendentes pela mesma limitação externa.
+
+### Commit
+
+`feat: antecipar PWA instalável do Dia 10`
