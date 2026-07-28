@@ -1129,3 +1129,153 @@ Antes de encerrar o projeto, devo voltar à responsividade e fazer uma nova roda
 ### Commit
 
 `fix: ajustar responsividade mobile do Dia 12`
+
+## Dia Bônus 1 — 28/07/2026
+
+### Objetivo do dia
+
+Antecipar somente a primeira etapa dos requisitos bônus, originalmente planejada para 29/07/2026, preparando a base do frontend com Vite e TypeScript, organizando os comandos do projeto e separando a criação da aplicação Express da abertura da porta HTTP. Também registrei o estado inicial, preservei as alterações e o banco já existentes e deixei uma base testável para os próximos dias, sem iniciar PostgreSQL, JWT, a nova estratégia de cache offline ou qualquer deploy.
+
+### Organização entre agentes
+
+O trabalho foi dividido entre seis agentes de tarefa, um para cada frente independente do Dia Bônus 1: levantamento do baseline e preservação do estado existente; configuração do Vite; configuração inicial do TypeScript; scripts e dependências; separação entre aplicação e bootstrap do Express; e testes, variáveis de ambiente e conferências de integração.
+
+Como o ambiente permitia um número limitado de agentes simultâneos, eles trabalharam em rodadas e sobre arquivos com responsabilidades distintas para reduzir conflitos. Depois da integração, um agente extra atuou como revisor independente. Ele conferiu as entregas diretamente no repositório, repetiu os comandos de validação, verificou as respostas HTTP, confirmou a preservação de `public/app.js` e do SQLite e separou limitações históricas de falhas introduzidas neste dia.
+
+### O que eu fiz
+
+Primeiro, registrei o baseline do projeto e identifiquei as mudanças locais que já pertenciam ao desenvolvimento anterior. A alteração existente em `public/app.js` foi tratada como conteúdo do usuário e preservada literalmente durante toda a reorganização. O arquivo SQLite também foi mantido sem migração, limpeza ou regravação, e seu hash permaneceu igual ao do início da atividade.
+
+Criei uma entrada `index.html` na raiz para o Vite e mantive a interface já construída. Configurei `vite.config.ts` com proxy de `/api` para `http://localhost:3000`, permitindo desenvolver o frontend na porta 5173 sem trocar o contrato atual da API. Adicionei `src/main.ts` como uma entrada TypeScript neutra, sem antecipar a conversão funcional dos scripts autorais prevista para o Dia Bônus 2.
+
+Criei `tsconfig.json` com modo estrito e `noImplicitAny`, preparando a verificação com `tsc --noEmit`. Nesta primeira etapa, o TypeScript foi introduzido como infraestrutura, sem converter antecipadamente `app.js`, `animations.js`, `pwa.js` ou o Service Worker.
+
+Atualizei os scripts do `package.json` para disponibilizar `dev:web`, `dev:api`, `typecheck`, `build`, `test`, `migrate` e `start`. O comando `migrate` ficou intencionalmente como um aviso de que as migrações serão implementadas no Dia Bônus 3. Mantive apenas as dependências necessárias para esta etapa: Express como dependência da aplicação e Vite, TypeScript e os tipos do Node como dependências de desenvolvimento.
+
+Separei o backend em dois papéis. `api.js` passou a criar, configurar e exportar a aplicação Express sem chamar `listen`. `server.js` ficou responsável pelo bootstrap, pela porta e pela inicialização do servidor quando executado diretamente. Essa separação permite importar a API em testes sem abrir uma porta.
+
+Criei `tests/api-import.test.js`, que intercepta uma eventual chamada a `listen`, importa `api.js` e confirma que o módulo exporta uma aplicação Express sem criar servidor de rede. Também criei `.env.example` somente com `PORT` e `VITE_API_URL`, sem adicionar segredos ou variáveis que pertencem aos próximos dias, e ajustei o `.gitignore` para os artefatos locais da nova ferramenta.
+
+Depois da revisão, os servidores locais foram iniciados novamente para que a interface pudesse ser vista. O frontend ficou disponível em `http://localhost:5173` e a API em `http://localhost:3000`, com respostas HTTP 200 confirmadas.
+
+### Principais prompts usados
+
+**Prompt 1 — Restrição ao primeiro dia bônus**
+
+> Faça tudo na ordem estabelecida no plano. Hoje implemente apenas o que está previsto para ser construído no Dia Bônus 1: registrar o baseline, preservar o diff de `public/app.js`, preparar Vite e TypeScript, adicionar os scripts, separar o Express do `listen`, criar `.env.example`, configurar o proxy local e validar os critérios do dia. Não antecipe PostgreSQL, JWT, cache offline novo ou deploy.
+
+**Prompt 2 — Organização entre agentes**
+
+> Para cada tarefa do Dia Bônus 1, crie um agente de IA responsável e, ao final, use um agente extra para revisar se todas as tarefas foram feitas corretamente.
+
+**Prompt 3 — Preservação do trabalho existente**
+
+> Preserve integralmente a alteração local existente em `public/app.js` e não migre, apague ou modifique o SQLite. A reorganização para Vite deve manter o comportamento e o conteúdo já construídos.
+
+**Prompt 4 — Critérios de validação**
+
+> Confirme que a interface abre pelo Vite, que a API inicia separadamente, que os testes importam o Express sem abrir porta, que `npm run build` produz `dist` e que o diff anterior do usuário permanece preservado.
+
+### Resposta da IA
+
+A IA começou inspecionando o repositório e separou fatos do estado atual das tarefas que pertenciam aos dias seguintes. Em vez de iniciar a conversão completa do frontend ou a migração do banco, limitou a implementação à infraestrutura do Dia Bônus 1.
+
+Os agentes organizaram a entrada Vite, o TypeScript estrito, os scripts, o backend testável e os arquivos de apoio. A interface existente foi reaproveitada, e a entrada TypeScript permaneceu neutra para não introduzir uma refatoração funcional antecipada.
+
+O agente responsável pelo backend extraiu a aplicação Express para `api.js` e reduziu `server.js` ao bootstrap. O agente de testes criou uma verificação permanente que prova que importar a aplicação não abre uma porta. Os demais agentes conferiram a configuração, o baseline e a preservação dos arquivos existentes.
+
+O revisor final repetiu `typecheck`, build, testes, auditoria e smoke tests HTTP. Ele classificou as entregas do Dia Bônus 1 como aprovadas, registrou separadamente o runner histórico incompatível com a nova localização do HTML e confirmou que os avisos de whitespace pertenciam ao conteúdo original preservado do usuário.
+
+### O que funcionou
+
+O frontend passou a ser servido pelo Vite na porta 5173, mantendo a interface existente e encaminhando chamadas `/api` para a API local na porta 3000.
+
+O TypeScript estrito foi introduzido sem exigir que a conversão completa dos scripts do frontend fosse feita antes do Dia Bônus 2. A entrada `src/main.ts` participa corretamente do build e serve como ponto inicial para a próxima etapa.
+
+A aplicação Express pode ser importada por testes sem abrir uma porta. Ao mesmo tempo, `npm start` e `npm run dev:api` continuam oferecendo um bootstrap explícito para executar o servidor.
+
+Os scripts de verificação e build funcionaram, e o Vite produziu o diretório `dist`. O teste permanente foi aprovado e a auditoria das dependências não encontrou vulnerabilidades.
+
+O diff local de `public/app.js` foi preservado literalmente. O SQLite permaneceu intacto, comprovado pela manutenção do mesmo hash.
+
+Após a conclusão, o frontend e a API foram iniciados para visualização e ambos responderam HTTP 200 nos endereços locais informados.
+
+### Erros encontrados
+
+O runner histórico de regressão ainda procura `public/index.html`. Como a entrada principal foi movida para `index.html` na raiz para atender ao Vite, esse runner não acompanha a nova estrutura e falha por caminho inexistente. A aplicação, o build e o teste permanente novo não apresentam esse problema. A atualização do runner histórico ficou registrada como limitação conhecida, sem ampliar o escopo do primeiro dia.
+
+O `git diff --check` geral ainda aponta trailing whitespace em `public/app.js`. Esses espaços pertencem à alteração original do usuário, já existiam antes da atividade e foram preservados deliberadamente. Não foram tratados como defeito criado no Dia Bônus 1 porque removê-los alteraria o diff que precisava permanecer literal.
+
+Durante a revisão, os servidores temporários usados nos smoke tests foram encerrados e as portas ficaram livres. Posteriormente, eles foram iniciados novamente a pedido do usuário para permitir a visualização do frontend; isso não altera as evidências da revisão.
+
+### Como investiguei
+
+Comparei o estado do Git antes e depois da reorganização para distinguir alterações preexistentes das entregas do dia. Conferi especialmente `public/app.js`, evitando qualquer normalização automática que pudesse reescrever o conteúdo, e comparei o hash do arquivo SQLite.
+
+Revisei a relação entre `index.html`, `src/main.ts`, `vite.config.ts` e `tsconfig.json`. Confirmei que a entrada da raiz é processada pelo Vite, que o TypeScript participa do build e que o proxy preserva o caminho `/api` usado pela aplicação.
+
+Inspecionei a divisão entre `api.js` e `server.js` e executei o teste que monitora chamadas a `express.application.listen` e handles de rede ativos. Isso demonstrou que a importação da aplicação não tem o efeito colateral de abrir uma porta.
+
+Executei os comandos de typecheck, build, teste e auditoria. Em seguida, iniciei frontend e backend em processos locais, solicitei a página inicial e `/api/status` pelo proxy e confirmei HTTP 200.
+
+Para as limitações, rastreei a referência fixa do runner histórico a `public/index.html` e associei os avisos do `git diff --check` às linhas preexistentes de `public/app.js`, sem aplicar correções que violassem a preservação solicitada.
+
+### O que aprendi
+
+Aprendi que o Vite utiliza `index.html` na raiz como parte do grafo da aplicação e que o proxy de desenvolvimento permite manter frontend e backend em portas diferentes sem espalhar URLs locais pelo código.
+
+Aprendi que ativar o modo estrito do TypeScript pode ser feito antes da conversão completa, desde que a entrada inicial seja pequena e que cada etapa futura seja convertida conscientemente. Isso permite introduzir a ferramenta sem misturar infraestrutura e mudança funcional no mesmo dia.
+
+Aprendi que criar a aplicação Express e abrir uma porta são responsabilidades diferentes. Separá-las permite testar rotas por importação e evita servidores involuntários durante uma suíte automatizada.
+
+Aprendi que um baseline também inclui mudanças ainda não commitadas. Preservar o trabalho do usuário exige identificar essas mudanças antes de mover arquivos ou executar ferramentas que possam formatá-las.
+
+Aprendi que uma falha em um runner histórico pode representar uma suposição desatualizada do teste, e não necessariamente uma falha do produto. A evidência precisa indicar qual caminho o runner esperava e qual estrutura o projeto passou a adotar.
+
+### Partes principais que eu acho bom explicar
+
+Consigo explicar que `vite.config.ts` envia requisições iniciadas por `/api` ao servidor da porta 3000. Para o navegador, a chamada continua parecendo vir do frontend local, enquanto o Vite cuida do encaminhamento durante o desenvolvimento.
+
+Consigo explicar que `tsconfig.json` ativa `strict` e `noImplicitAny`, fazendo o compilador sinalizar valores sem tipos seguros. `npm run typecheck` verifica os tipos sem gerar arquivos, enquanto `npm run build` produz a versão estática em `dist`.
+
+Consigo explicar que `api.js` exporta o objeto Express já configurado, mas não chama `listen`. `server.js` importa esse objeto e só abre a porta quando é executado como programa principal. Por isso, testes podem importar a API sem iniciar um servidor.
+
+Consigo explicar que `tests/api-import.test.js` substitui temporariamente o método `listen`, conta eventuais chamadas, importa a API e verifica os handles de rede. O teste passa apenas quando a importação não abre uma porta.
+
+Consigo explicar que `.env.example` documenta apenas nomes e exemplos públicos de desenvolvimento. Segredos como conexão PostgreSQL e chave JWT não foram adicionados porque pertencem a etapas posteriores e nunca devem receber valores reais em um arquivo versionado.
+
+### Testes realizados
+
+- Regressão integrada do baseline, executada antes da reorganização: 21 de 21 cenários aprovados.
+- Baseline do projeto inspecionado antes das alterações do Dia Bônus 1.
+- Alteração preexistente de `public/app.js` preservada literalmente.
+- Hash do SQLite conferido e mantido.
+- `npm run typecheck` aprovado.
+- `npm run build` aprovado e diretório `dist` produzido.
+- `npm test` aprovado: 1 de 1 teste.
+- Importação de `api.js` confirmada sem chamada a `listen`.
+- Importação de `api.js` confirmada sem servidor de rede ativo.
+- `npm audit` aprovado com zero vulnerabilidades.
+- Frontend Vite respondendo HTTP 200.
+- `/api/status` pelo proxy do Vite respondendo HTTP 200.
+- API direta na porta 3000 respondendo HTTP 200.
+- Scripts `dev:web`, `dev:api`, `typecheck`, `build`, `test`, `migrate` e `start` conferidos.
+- `tsconfig.json` conferido com TypeScript estrito e `noImplicitAny`.
+- `.env.example` conferido sem segredos.
+- Processos temporários encerrados e portas liberadas durante a revisão.
+- Servidores locais posteriormente iniciados nas portas 5173 e 3000 para visualização pelo usuário.
+- Revisão independente concluída após as seis frentes de tarefa.
+
+### Limitações e próximo passo
+
+O runner histórico de regressão ainda precisa ser adaptado para procurar o novo `index.html` na raiz ou receber o caminho por configuração. Essa atualização não foi feita neste dia para manter a execução limitada às entregas planejadas.
+
+O `git diff --check` geral continuará registrando trailing whitespace enquanto a alteração original de `public/app.js` for preservada literalmente. Uma eventual limpeza deve ser decidida separadamente para não misturar o conteúdo do usuário com a infraestrutura criada neste dia.
+
+PostgreSQL, migrations reais, JWT, cadastro e login, validação com Zod, a nova estratégia de cache offline, deploy no Neon, Render e Vercel e a conversão completa dos scripts do frontend ficaram explicitamente fora do Dia Bônus 1.
+
+O próximo passo planejado é o Dia Bônus 2: converter os scripts autorais do frontend para TypeScript, criar os tipos compartilhados, configurar o Service Worker TypeScript com `injectManifest` e preservar o comportamento atual.
+
+### Commit
+
+`f48f812` — `feat: preparar base TypeScript do Dia Bônus 1`
