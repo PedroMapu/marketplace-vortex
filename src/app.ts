@@ -1,54 +1,152 @@
-const valorItem = document.querySelector("#valor-item");
-const modalidadeVenda = document.querySelector("#modalidade-venda");
-const modalidadeDoacao = document.querySelector("#modalidade-doacao");
-const campoImagem = document.querySelector("#imagem-item");
-const errosImagem = document.querySelector("#erro-imagem");
-const formularioNovoAnuncio = document.querySelector(
+import {
+  ehAbaCatalogo,
+  ehCategoria,
+  ehCategoriaFiltro,
+  ehCondicao,
+  ehModalidade,
+  ehOrdenacaoCatalogo,
+  type AbaCatalogo,
+  type Anuncio,
+  type Categoria,
+  type CategoriaFiltro,
+  type Colecao,
+  type Condicao,
+  type ErroApi,
+  type ErroApiLegado,
+  type IdentidadeUsuarioLegada,
+  type ItemColecao,
+  type MapaCategorias,
+  type Modalidade,
+  type NovoAnuncio,
+  type OrdenacaoCatalogo,
+  type RespostaExclusaoAnuncio,
+  respostaEhOffline,
+} from "./types";
+
+type CampoFormulario =
+  | HTMLInputElement
+  | HTMLSelectElement
+  | HTMLTextAreaElement;
+type CampoColecao = HTMLInputElement | HTMLSelectElement;
+type DecodificadorResposta<T> = (dados: unknown) => T;
+type DadosErroApi = ErroApi | ErroApiLegado;
+
+interface ResultadoApi<T> {
+  dados: T;
+  offline: boolean;
+}
+
+class ErroRequisicaoApi extends Error {
+  readonly name = "ErroRequisicaoApi";
+
+  constructor(
+    readonly status: number,
+    readonly dados: DadosErroApi,
+    readonly offline: boolean,
+  ) {
+    super(dados.erro);
+  }
+}
+
+function ehErroRequisicaoApi(
+  erro: unknown,
+): erro is ErroRequisicaoApi {
+  return erro instanceof ErroRequisicaoApi;
+}
+
+type DialogImagem = HTMLDialogElement & {
+  elementoAcionador: HTMLElement | null;
+};
+
+const valorItem = document.querySelector<HTMLInputElement>("#valor-item");
+const modalidadeVenda =
+  document.querySelector<HTMLInputElement>("#modalidade-venda");
+const modalidadeDoacao =
+  document.querySelector<HTMLInputElement>("#modalidade-doacao");
+const campoImagem =
+  document.querySelector<HTMLInputElement>("#imagem-item");
+const errosImagem = document.querySelector<HTMLElement>("#erro-imagem");
+const formularioNovoAnuncio = document.querySelector<HTMLFormElement>(
   "#formulario-novo-anuncio",
 );
-const botaoPublicarAnuncio = document.querySelector("#botao-publicar-anuncio");
-const painelNovoAnuncio = document.querySelector("#painel-novo-anuncio");
-const botaoAbrirAnuncio = document.querySelector("#botao-abrir-anuncio");
-const botaoFecharAnuncio = document.querySelector("#botao-fechar-anuncio");
-const botaoCriarColecao = document.querySelector("#botao-criar-colecao");
-const painelNovaColecao = document.querySelector("#painel-nova-colecao");
-const botaoFecharColecao = document.querySelector("#botao-fechar-colecao");
-const formularioNovaColecao = document.querySelector(
+const botaoPublicarAnuncio =
+  document.querySelector<HTMLButtonElement>("#botao-publicar-anuncio");
+const painelNovoAnuncio =
+  document.querySelector<HTMLElement>("#painel-novo-anuncio");
+const botaoAbrirAnuncio =
+  document.querySelector<HTMLButtonElement>("#botao-abrir-anuncio");
+const botaoFecharAnuncio =
+  document.querySelector<HTMLButtonElement>("#botao-fechar-anuncio");
+const botaoCriarColecao =
+  document.querySelector<HTMLButtonElement>("#botao-criar-colecao");
+const painelNovaColecao =
+  document.querySelector<HTMLElement>("#painel-nova-colecao");
+const botaoFecharColecao =
+  document.querySelector<HTMLButtonElement>("#botao-fechar-colecao");
+const formularioNovaColecao = document.querySelector<HTMLFormElement>(
   "#formulario-nova-colecao",
 );
-const campoNomeColecao = document.querySelector("#nome-colecao");
-const listaItensColecao = document.querySelector("#lista-itens-colecao");
-const botaoAdicionarItemColecao = document.querySelector(
+const campoNomeColecao =
+  document.querySelector<HTMLInputElement>("#nome-colecao");
+const listaItensColecao =
+  document.querySelector<HTMLElement>("#lista-itens-colecao");
+const botaoAdicionarItemColecao = document.querySelector<HTMLButtonElement>(
   "#botao-adicionar-item-colecao",
 );
-const botaoSalvarColecao = document.querySelector("#botao-salvar-colecao");
-const feedbackColecao = document.querySelector("#feedback-colecao");
-const secaoColecoes = document.querySelector("#colecoes-destaque");
-const gradeColecoes = secaoColecoes?.querySelector(".colecoes-grid");
-const listaAnuncios = document.querySelector("#lista-anuncios");
-const listaMeusAnuncios = document.querySelector("#lista-meus-anuncios");
-const resultadosContagem = document.querySelector("#resultados-contagem");
-const feedbackAnuncio = document.querySelector("#feedback-anuncio");
-const botaoContaUsuario = document.querySelector("#nome-usuario");
-const containerContaUsuario = document.querySelector(".conta-usuario");
-const menuContaUsuario = document.querySelector("#menu-conta");
-const botaoSairConta = document.querySelector("#botao-sair-conta");
-const headerPrincipal = document.querySelector("header");
-const botaoMenuPrincipal = document.querySelector("#botao-menu-principal");
-const navegacaoPrincipal = document.querySelector("#navegacao-principal");
+const botaoSalvarColecao =
+  document.querySelector<HTMLButtonElement>("#botao-salvar-colecao");
+const feedbackColecao =
+  document.querySelector<HTMLElement>("#feedback-colecao");
+const secaoColecoes =
+  document.querySelector<HTMLElement>("#colecoes-destaque");
+const gradeColecoes =
+  secaoColecoes?.querySelector<HTMLElement>(".colecoes-grid");
+const listaAnuncios =
+  document.querySelector<HTMLElement>("#lista-anuncios");
+const listaMeusAnuncios =
+  document.querySelector<HTMLElement>("#lista-meus-anuncios");
+const resultadosContagem =
+  document.querySelector<HTMLElement>("#resultados-contagem");
+const feedbackAnuncio =
+  document.querySelector<HTMLElement>("#feedback-anuncio");
+const botaoContaUsuario =
+  document.querySelector<HTMLButtonElement>("#nome-usuario");
+const containerContaUsuario =
+  document.querySelector<HTMLElement>(".conta-usuario");
+const menuContaUsuario =
+  document.querySelector<HTMLElement>("#menu-conta");
+const botaoSairConta =
+  document.querySelector<HTMLButtonElement>("#botao-sair-conta");
+const headerPrincipal = document.querySelector<HTMLElement>("header");
+const botaoMenuPrincipal =
+  document.querySelector<HTMLButtonElement>("#botao-menu-principal");
+const navegacaoPrincipal =
+  document.querySelector<HTMLElement>("#navegacao-principal");
 const mediaMenuCompacto = window.matchMedia("(max-width: 68rem)");
-const formularioBuscaVitrine = document.querySelector("#formulario-busca-vitrine");
-const campoBuscaVitrine = document.querySelector("#busca-vitrine");
-const ordenacaoVitrine = document.querySelector("#ordenacao-vitrine");
-const abasCatalogo = document.querySelectorAll("[data-aba-catalogo]");
-const botoesLayout = document.querySelectorAll("[data-layout]");
-const filtrosCategoria = document.querySelectorAll("[data-categoria-filtro]");
-const filtrosCondicao = document.querySelectorAll("[data-condicao-filtro]");
-const filtrosModalidade = document.querySelectorAll("[data-modalidade-filtro]");
-const modalImagem = document.querySelector("#modal-imagem");
-const imagemAmpliada = document.querySelector("#imagem-ampliada");
-const tituloModalImagem = document.querySelector("#modal-imagem-titulo");
-const botaoFecharModalImagem = document.querySelector("#fechar-modal-imagem");
+const formularioBuscaVitrine =
+  document.querySelector<HTMLFormElement>("#formulario-busca-vitrine");
+const campoBuscaVitrine =
+  document.querySelector<HTMLInputElement>("#busca-vitrine");
+const ordenacaoVitrine =
+  document.querySelector<HTMLSelectElement>("#ordenacao-vitrine");
+const abasCatalogo =
+  document.querySelectorAll<HTMLElement>("[data-aba-catalogo]");
+const botoesLayout =
+  document.querySelectorAll<HTMLButtonElement>("[data-layout]");
+const filtrosCategoria =
+  document.querySelectorAll<HTMLElement>("[data-categoria-filtro]");
+const filtrosCondicao =
+  document.querySelectorAll<HTMLElement>("[data-condicao-filtro]");
+const filtrosModalidade =
+  document.querySelectorAll<HTMLElement>("[data-modalidade-filtro]");
+const modalImagem =
+  document.querySelector<DialogImagem>("#modal-imagem");
+const imagemAmpliada =
+  document.querySelector<HTMLImageElement>("#imagem-ampliada");
+const tituloModalImagem =
+  document.querySelector<HTMLElement>("#modal-imagem-titulo");
+const botaoFecharModalImagem =
+  document.querySelector<HTMLButtonElement>("#fechar-modal-imagem");
 
 const CHAVE_USUARIO = "marketplace-vortex:usuario";
 const CHAVE_COLECOES = "marketplace-vortex:colecoes";
@@ -60,7 +158,7 @@ const MENSAGEM_TAMANHO_IMAGEM_INVALIDO =
 const IMAGEM_PADRAO_ANUNCIO =
   "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80";
   
-const categorias = {
+const categorias: MapaCategorias = {
   livros: {
     nome: "Livros e papelaria",
     emoji: "📚",
@@ -91,30 +189,30 @@ const categorias = {
     imagemPadrao: IMAGEM_PADRAO_ANUNCIO,
   },
 };
-const nomesCondicoes = {
+const nomesCondicoes: Record<Condicao, string> = {
   novo: "Novo",
   seminovo: "Seminovo",
   usado: "Usado",
 };
 
-let temporizadorAvisoBotao;
-let temporizadorFeedback;
+let temporizadorAvisoBotao: number | undefined;
+let temporizadorFeedback: number | undefined;
 let scrollHeaderAgendado = false;
 let termoBuscaVitrine = "";
-let abaCatalogoAtiva = "todos";
-let categoriaFiltroAtiva = "todas";
-let ordenacaoAtiva = "recentes";
+let abaCatalogoAtiva: AbaCatalogo = "todos";
+let categoriaFiltroAtiva: CategoriaFiltro = "todas";
+let ordenacaoAtiva: OrdenacaoCatalogo = "recentes";
 // Snapshots de leitura preenchidos exclusivamente pelas respostas da API.
 // Toda alteração persistente deve ser seguida por um novo carregamento do servidor.
-let cacheCatalogoApi = [];
-let cacheAnunciosUsuarioApi = [];
-let cacheContagemApi = [];
+let cacheCatalogoApi: Anuncio[] = [];
+let cacheAnunciosUsuarioApi: Anuncio[] = [];
+let cacheContagemApi: Anuncio[] = [];
 let sequenciaRequisicaoCatalogo = 0;
 let sequenciaRequisicaoUsuario = 0;
-const idsEmExclusao = new Set();
+const idsEmExclusao = new Set<string>();
 let publicacaoEmAndamento = false;
 let sequenciaItemColecao = 0;
-let temporizadorFeedbackColecao;
+let temporizadorFeedbackColecao: number | undefined;
 
 const formatadorMoeda = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -124,52 +222,173 @@ const ordenadorAlfabetico = new Intl.Collator("pt-BR", {
   sensitivity: "base",
 });
 
-async function requisitarApi(caminho, opcoes = {}) {
-  const { headers = {}, ...demaisOpcoes } = opcoes;
-  const resposta = await fetch(caminho, {
-    ...demaisOpcoes,
-    headers: {
-      Accept: "application/json",
-      ...headers,
-    },
-  });
+async function requisitarApi<T>(
+  caminho: string,
+  decodificar: DecodificadorResposta<T>,
+  opcoes: RequestInit = {},
+): Promise<ResultadoApi<T>> {
+  const cabecalhos = new Headers(opcoes.headers);
+  if (!cabecalhos.has("Accept")) {
+    cabecalhos.set("Accept", "application/json");
+  }
 
-  let dados = null;
+  const resposta = await fetch(caminho, {
+    ...opcoes,
+    headers: cabecalhos,
+  });
+  const offline = respostaEhOffline(resposta);
+
+  let dados: unknown = null;
 
   try {
     dados = await resposta.json();
   } catch {
-    // Uma resposta sem JSON será tratada pela mensagem genérica abaixo pra mostrar que tá errado
+    // O decodificador ou o erro HTTP produz uma mensagem segura abaixo.
   }
 
   if (!resposta.ok) {
-    const erro = new Error(
-      dados?.erro || "Não foi possível concluir a solicitação.",
+    throw new ErroRequisicaoApi(
+      resposta.status,
+      normalizarErroDaApi(dados),
+      offline,
     );
-    erro.status = resposta.status;
-    erro.dados = dados;
-    throw erro;
   }
 
-  return dados;
+  return {
+    dados: decodificar(dados),
+    offline,
+  };
 }
 
-function normalizarAnuncioDaApi(anuncio) {
-  const id = Number(anuncio?.id);
-  const valor = Number(anuncio?.valor);
+function ehRegistro(valor: unknown): valor is Record<string, unknown> {
+  return Boolean(valor) && typeof valor === "object" && !Array.isArray(valor);
+}
+
+function normalizarCamposDoErro(
+  campos: unknown,
+): ErroApi["campos"] {
+  if (!ehRegistro(campos)) {
+    return undefined;
+  }
+
+  const entradasValidas = Object.entries(campos).filter(
+    (entrada): entrada is [string, string] =>
+      typeof entrada[1] === "string",
+  );
+
+  return entradasValidas.length > 0
+    ? Object.fromEntries(entradasValidas)
+    : undefined;
+}
+
+function normalizarErroDaApi(dados: unknown): DadosErroApi {
+  const mensagemPadrao = "Não foi possível concluir a solicitação.";
+
+  if (!ehRegistro(dados)) {
+    return { erro: mensagemPadrao };
+  }
+
+  const erro =
+    typeof dados.erro === "string" && dados.erro.trim()
+      ? dados.erro
+      : mensagemPadrao;
+  const campos = normalizarCamposDoErro(dados.campos);
+
+  if (typeof dados.codigo === "string" && dados.codigo.trim()) {
+    return {
+      erro,
+      codigo: dados.codigo,
+      ...(campos ? { campos } : {}),
+    };
+  }
+
+  return {
+    erro,
+    ...(campos ? { campos } : {}),
+  };
+}
+
+function obterTextoDoAnuncio(
+  dados: Record<string, unknown>,
+  campo: keyof Pick<
+    Anuncio,
+    | "nome"
+    | "localizacao"
+    | "descricao"
+    | "imagemUrl"
+    | "usuarioId"
+    | "usuarioNome"
+    | "criadoEm"
+  >,
+): string {
+  const valor = dados[campo];
+
+  if (typeof valor !== "string") {
+    throw new TypeError(
+      `A API retornou um anúncio com ${campo} inválido.`,
+    );
+  }
+
+  return valor;
+}
+
+function normalizarAnuncioDaApi(anuncio: unknown): Anuncio {
+  if (!ehRegistro(anuncio)) {
+    throw new TypeError("A API retornou um anúncio inválido.");
+  }
+
+  const dados = anuncio;
+  const id = Number(dados.id);
+  const valor = Number(dados.valor);
 
   if (!Number.isInteger(id) || id <= 0) {
     throw new TypeError("A API retornou um anúncio com ID inválido.");
   }
 
+  if (!Number.isFinite(valor) || valor < 0) {
+    throw new TypeError("A API retornou um anúncio com valor inválido.");
+  }
+
+  if (!ehCategoria(dados.categoria)) {
+    throw new TypeError(
+      "A API retornou um anúncio com categoria inválida.",
+    );
+  }
+
+  if (!ehCondicao(dados.condicao)) {
+    throw new TypeError(
+      "A API retornou um anúncio com condição inválida.",
+    );
+  }
+
+  if (!ehModalidade(dados.modalidade)) {
+    throw new TypeError(
+      "A API retornou um anúncio com modalidade inválida.",
+    );
+  }
+
   return {
-    ...anuncio,
     id,
-    valor: Number.isFinite(valor) ? valor : 0,
+    nome: obterTextoDoAnuncio(dados, "nome"),
+    categoria: dados.categoria,
+    condicao: dados.condicao,
+    modalidade: dados.modalidade,
+    valor,
+    localizacao: obterTextoDoAnuncio(dados, "localizacao"),
+    descricao: obterTextoDoAnuncio(dados, "descricao"),
+    imagemUrl: obterTextoDoAnuncio(dados, "imagemUrl"),
+    usuarioId: obterTextoDoAnuncio(dados, "usuarioId"),
+    usuarioNome: obterTextoDoAnuncio(dados, "usuarioNome"),
+    criadoEm: obterTextoDoAnuncio(dados, "criadoEm"),
   };
 }
 
-function criarUrlDaApiDeAnuncios({ categoria, usuarioId } = {}) {
+function criarUrlDaApiDeAnuncios(
+  {
+    categoria,
+    usuarioId,
+  }: { categoria?: CategoriaFiltro; usuarioId?: string } = {},
+): string {
   const parametros = new URLSearchParams();
 
   if (categoria && categoria !== "todas") {
@@ -184,7 +403,7 @@ function criarUrlDaApiDeAnuncios({ categoria, usuarioId } = {}) {
   return `/api/anuncios${queryString ? `?${queryString}` : ""}`;
 }
 
-function normalizarListaDeAnuncios(resposta) {
+function normalizarListaDeAnuncios(resposta: unknown): Anuncio[] {
   if (!Array.isArray(resposta)) {
     throw new TypeError("A API retornou uma lista de anúncios inválida.");
   }
@@ -192,6 +411,33 @@ function normalizarListaDeAnuncios(resposta) {
   // A API entrega os mais recentes primeiro; o cache mantém a ordem histórica
   // esperada pelas rotinas atuais de renderização.
   return resposta.map(normalizarAnuncioDaApi).reverse();
+}
+
+function normalizarRespostaDeExclusao(
+  resposta: unknown,
+): RespostaExclusaoAnuncio {
+  if (!ehRegistro(resposta)) {
+    throw new TypeError(
+      "A API retornou uma confirmação de exclusão inválida.",
+    );
+  }
+
+  const id = Number(resposta.id);
+
+  if (
+    typeof resposta.mensagem !== "string" ||
+    !Number.isInteger(id) ||
+    id <= 0
+  ) {
+    throw new TypeError(
+      "A API retornou uma confirmação de exclusão inválida.",
+    );
+  }
+
+  return {
+    mensagem: resposta.mensagem,
+    id,
+  };
 }
 
 function exibirEstadoDeCarregamento() {
@@ -229,7 +475,9 @@ function exibirErroAoCarregarAnuncios() {
     );
 
     botaoTentarNovamente.type = "button";
-    botaoTentarNovamente.addEventListener("click", carregarAnunciosDaApi);
+    botaoTentarNovamente.addEventListener("click", () => {
+      void carregarAnunciosDaApi();
+    });
     estado.append(mensagem, botaoTentarNovamente);
     listaAnuncios.replaceChildren(estado);
     listaAnuncios.removeAttribute("aria-busy");
@@ -257,7 +505,9 @@ function exibirErroAoCarregarAnunciosDoUsuario() {
     botaoTentarNovamente.type = "button";
     botaoTentarNovamente.addEventListener(
       "click",
-      carregarMeusAnunciosDaApi,
+      () => {
+        void carregarMeusAnunciosDaApi();
+      },
     );
     estado.append(mensagem, botaoTentarNovamente);
     listaMeusAnuncios.replaceChildren(estado);
@@ -265,7 +515,9 @@ function exibirErroAoCarregarAnunciosDoUsuario() {
   }
 }
 
-async function carregarAnunciosDaApi({ mostrarCarregamento = true } = {}) {
+async function carregarAnunciosDaApi(
+  { mostrarCarregamento = true }: { mostrarCarregamento?: boolean } = {},
+): Promise<boolean> {
   const sequenciaDestaRequisicao = ++sequenciaRequisicaoCatalogo;
   const categoria = categoriaFiltroAtiva;
 
@@ -276,10 +528,13 @@ async function carregarAnunciosDaApi({ mostrarCarregamento = true } = {}) {
   try {
     const urlCatalogo = criarUrlDaApiDeAnuncios({ categoria });
     const precisaCarregarContagensGerais = categoria !== "todas";
-    const [resposta, respostaParaContagem] = await Promise.all([
-      requisitarApi(urlCatalogo),
+    const [resultadoCatalogo, resultadoParaContagem] = await Promise.all([
+      requisitarApi(urlCatalogo, normalizarListaDeAnuncios),
       precisaCarregarContagensGerais
-        ? requisitarApi(criarUrlDaApiDeAnuncios())
+        ? requisitarApi(
+            criarUrlDaApiDeAnuncios(),
+            normalizarListaDeAnuncios,
+          )
         : Promise.resolve(null),
     ]);
 
@@ -287,9 +542,9 @@ async function carregarAnunciosDaApi({ mostrarCarregamento = true } = {}) {
       return false;
     }
 
-    cacheCatalogoApi = normalizarListaDeAnuncios(resposta);
-    cacheContagemApi = respostaParaContagem
-      ? normalizarListaDeAnuncios(respostaParaContagem)
+    cacheCatalogoApi = resultadoCatalogo.dados;
+    cacheContagemApi = resultadoParaContagem
+      ? resultadoParaContagem.dados
       : [...cacheCatalogoApi];
     listaAnuncios?.removeAttribute("aria-busy");
     renderizarAnuncios();
@@ -308,8 +563,8 @@ async function carregarAnunciosDaApi({ mostrarCarregamento = true } = {}) {
 }
 
 async function carregarMeusAnunciosDaApi(
-  { mostrarCarregamento = true } = {},
-) {
+  { mostrarCarregamento = true }: { mostrarCarregamento?: boolean } = {},
+): Promise<boolean> {
   const sequenciaDestaRequisicao = ++sequenciaRequisicaoUsuario;
   const usuarioDaRequisicao = usuarioAtual;
 
@@ -325,8 +580,9 @@ async function carregarMeusAnunciosDaApi(
   }
 
   try {
-    const resposta = await requisitarApi(
+    const resultado = await requisitarApi(
       criarUrlDaApiDeAnuncios({ usuarioId: usuarioDaRequisicao.id }),
+      normalizarListaDeAnuncios,
     );
 
     if (
@@ -336,7 +592,7 @@ async function carregarMeusAnunciosDaApi(
       return false;
     }
 
-    cacheAnunciosUsuarioApi = normalizarListaDeAnuncios(resposta);
+    cacheAnunciosUsuarioApi = resultado.dados;
     listaMeusAnuncios?.removeAttribute("aria-busy");
     renderizarMeusAnuncios();
     return true;
@@ -355,7 +611,7 @@ async function carregarMeusAnunciosDaApi(
   }
 }
 
-function gerarId(prefixo) {
+function gerarId(prefixo: string): string {
   if (window.crypto && typeof window.crypto.randomUUID === "function") {
     return `${prefixo}-${window.crypto.randomUUID()}`;
   }
@@ -363,17 +619,24 @@ function gerarId(prefixo) {
   return `${prefixo}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function usuarioSalvoEhValido(usuario) {
+function usuarioSalvoEhValido(
+  usuario: unknown,
+): usuario is IdentidadeUsuarioLegada {
+  if (!usuario || typeof usuario !== "object") {
+    return false;
+  }
+
+  const candidato = usuario as Record<string, unknown>;
+
   return (
-    usuario &&
-    typeof usuario.id === "string" &&
-    usuario.id.trim() !== "" &&
-    typeof usuario.nome === "string" &&
-    usuario.nome.trim() !== ""
+    typeof candidato.id === "string" &&
+    candidato.id.trim() !== "" &&
+    typeof candidato.nome === "string" &&
+    candidato.nome.trim() !== ""
   );
 }
 
-function lerUsuarioSalvo() {
+function lerUsuarioSalvo(): IdentidadeUsuarioLegada | null {
   try {
     const usuarioSalvo = window.localStorage.getItem(CHAVE_USUARIO);
 
@@ -381,7 +644,7 @@ function lerUsuarioSalvo() {
       return null;
     }
 
-    const usuario = JSON.parse(usuarioSalvo);
+    const usuario: unknown = JSON.parse(usuarioSalvo);
     return usuarioSalvoEhValido(usuario) ? usuario : null;
   } catch (erro) {
     console.warn("Não foi possível recuperar o usuário salvo.", erro);
@@ -389,7 +652,7 @@ function lerUsuarioSalvo() {
   }
 }
 
-function salvarUsuario(usuario) {
+function salvarUsuario(usuario: IdentidadeUsuarioLegada): void {
   try {
     window.localStorage.setItem(CHAVE_USUARIO, JSON.stringify(usuario));
   } catch (erro) {
@@ -397,7 +660,7 @@ function salvarUsuario(usuario) {
   }
 }
 
-function removerUsuarioSalvo() {
+function removerUsuarioSalvo(): void {
   try {
     window.localStorage.removeItem(CHAVE_USUARIO);
   } catch (erro) {
@@ -407,28 +670,38 @@ function removerUsuarioSalvo() {
 
 let usuarioAtual = lerUsuarioSalvo();
 
-function colecaoSalvaEhValida(colecao) {
+function colecaoSalvaEhValida(colecao: unknown): colecao is Colecao {
+  if (!colecao || typeof colecao !== "object") {
+    return false;
+  }
+
+  const candidata = colecao as Record<string, unknown>;
+
   return (
-    colecao &&
-    typeof colecao.id === "string" &&
-    typeof colecao.usuarioId === "string" &&
-    typeof colecao.usuarioNome === "string" &&
-    typeof colecao.nome === "string" &&
-    colecao.nome.trim() !== "" &&
-    Array.isArray(colecao.itens) &&
-    colecao.itens.length > 0 &&
-    colecao.itens.every(
-      (item) =>
-        item &&
-        typeof item.nome === "string" &&
-        item.nome.trim() !== "" &&
-        typeof item.categoria === "string" &&
-        Object.hasOwn(categorias, item.categoria),
-    )
+    typeof candidata.id === "string" &&
+    typeof candidata.usuarioId === "string" &&
+    typeof candidata.usuarioNome === "string" &&
+    typeof candidata.nome === "string" &&
+    candidata.nome.trim() !== "" &&
+    typeof candidata.criadaEm === "string" &&
+    Array.isArray(candidata.itens) &&
+    candidata.itens.length > 0 &&
+    candidata.itens.every((item: unknown) => {
+      if (!item || typeof item !== "object") {
+        return false;
+      }
+
+      const candidato = item as Record<string, unknown>;
+      return (
+        typeof candidato.nome === "string" &&
+        candidato.nome.trim() !== "" &&
+        ehCategoria(candidato.categoria)
+      );
+    })
   );
 }
 
-function lerColecoesSalvas() {
+function lerColecoesSalvas(): Colecao[] {
   try {
     const conteudoSalvo = window.localStorage.getItem(CHAVE_COLECOES);
 
@@ -436,7 +709,7 @@ function lerColecoesSalvas() {
       return [];
     }
 
-    const colecoes = JSON.parse(conteudoSalvo);
+    const colecoes: unknown = JSON.parse(conteudoSalvo);
     return Array.isArray(colecoes)
       ? colecoes.filter(colecaoSalvaEhValida)
       : [];
@@ -446,7 +719,7 @@ function lerColecoesSalvas() {
   }
 }
 
-function salvarColecoes(colecoes) {
+function salvarColecoes(colecoes: readonly Colecao[]): boolean {
   try {
     window.localStorage.setItem(CHAVE_COLECOES, JSON.stringify(colecoes));
     return true;
@@ -456,7 +729,7 @@ function salvarColecoes(colecoes) {
   }
 }
 
-function criarCardColecaoUsuario(colecao) {
+function criarCardColecaoUsuario(colecao: Colecao): HTMLElement {
   const card = criarElemento("article", "card-colecao card-colecao-usuario");
   const cabecalho = criarElemento("div", "colecao-header");
   const avatar = document.createElement("img");
@@ -530,8 +803,9 @@ function renderizarColecoesDoUsuario() {
     return;
   }
 
+  const idUsuarioAtual = usuarioAtual.id;
   const colecoesDoUsuario = lerColecoesSalvas()
-    .filter((colecao) => colecao.usuarioId === usuarioAtual.id)
+    .filter((colecao) => colecao.usuarioId === idUsuarioAtual)
     .reverse();
   const fragmento = document.createDocumentFragment();
 
@@ -542,7 +816,7 @@ function renderizarColecoesDoUsuario() {
   gradeColecoes.insertBefore(fragmento, gradeColecoes.firstChild);
 }
 
-function obterIniciaisDoUsuario(nome) {
+function obterIniciaisDoUsuario(nome: string): string {
   return nome
     .trim()
     .split(/\s+/)
@@ -551,7 +825,9 @@ function obterIniciaisDoUsuario(nome) {
     .join("");
 }
 
-function fecharMenuConta({ devolverFoco = false } = {}) {
+function fecharMenuConta(
+  { devolverFoco = false }: { devolverFoco?: boolean } = {},
+): void {
   if (!menuContaUsuario || !botaoContaUsuario) {
     return;
   }
@@ -564,17 +840,17 @@ function fecharMenuConta({ devolverFoco = false } = {}) {
   }
 }
 
-function atualizarContaNoHeader() {
-  if (!botaoContaUsuario) {
+function atualizarContaNoHeader(): void {
+  if (!botaoContaUsuario || !menuContaUsuario) {
     return;
   }
 
-  const usuarioEstaLogado = Boolean(usuarioAtual);
+  const usuarioEstaLogado = usuarioAtual !== null;
   botaoContaUsuario.replaceChildren();
   botaoContaUsuario.classList.toggle("is-autenticado", usuarioEstaLogado);
   botaoContaUsuario.setAttribute("aria-expanded", "false");
 
-  if (!usuarioEstaLogado) {
+  if (!usuarioAtual) {
     const icone = document.createElement("span");
     const rotulo = document.createElement("span");
     const indicador = document.createElement("span");
@@ -613,7 +889,7 @@ function atualizarContaNoHeader() {
   menuContaUsuario.hidden = true;
 }
 
-function entrarNaConta() {
+function entrarNaConta(): void {
   const resposta = window.prompt("Qual é o seu nome?");
   const nome = resposta?.trim();
 
@@ -635,7 +911,7 @@ function entrarNaConta() {
   mostrarFeedback(`Olá, ${usuarioAtual.nome}. Você entrou na sua conta.`);
 }
 
-function sairDaConta() {
+function sairDaConta(): void {
   removerUsuarioSalvo();
   usuarioAtual = null;
   sequenciaRequisicaoUsuario += 1;
@@ -648,8 +924,8 @@ function sairDaConta() {
   botaoContaUsuario?.focus();
 }
 
-function inicializarContaUsuario() {
-  if (!botaoContaUsuario) {
+function inicializarContaUsuario(): void {
+  if (!botaoContaUsuario || !menuContaUsuario) {
     return;
   }
 
@@ -670,7 +946,9 @@ function inicializarContaUsuario() {
     if (
       usuarioAtual &&
       !menuContaUsuario.hidden &&
-      !containerContaUsuario?.contains(evento.target)
+      !containerContaUsuario?.contains(
+        evento.target instanceof Node ? evento.target : null,
+      )
     ) {
       fecharMenuConta();
     }
@@ -685,7 +963,7 @@ function inicializarContaUsuario() {
   atualizarContaNoHeader();
 }
 
-function obterValorNumerico(valor) {
+function obterValorNumerico(valor: string): number {
   const valorNormalizado = valor
     .replace(/[^\d,.-]/g, "")
     .replace(/\./g, "")
@@ -698,7 +976,7 @@ function obterValorNumerico(valor) {
   return Number(valorNormalizado);
 }
 
-function formatarValorComoMoeda() {
+function formatarValorComoMoeda(): void {
   if (!valorItem || valorItem.value === "") {
     return;
   }
@@ -713,7 +991,7 @@ function formatarValorComoMoeda() {
   valorItem.value = formatadorMoeda.format(valorNumerico);
 }
 
-function sincronizarModalidadeComValor() {
+function sincronizarModalidadeComValor(): void {
   if (!valorItem || !modalidadeVenda || !modalidadeDoacao) {
     return;
   }
@@ -744,9 +1022,9 @@ function sincronizarModalidadeComValor() {
   valorItem.addEventListener("blur", formatarValorComoMoeda);
 }
 
-function campoEstaPreenchido(campo) {
-  if (campo.type === "file") {
-    return campo.files.length > 0;
+function campoEstaPreenchido(campo: CampoFormulario): boolean {
+  if (campo instanceof HTMLInputElement && campo.type === "file") {
+    return Boolean(campo.files?.length);
   }
 
   if (campo === valorItem) {
@@ -757,8 +1035,8 @@ function campoEstaPreenchido(campo) {
   return campo.value.trim() !== "";
 }
 
-function obterMensagemDeCampo(campo) {
-  const mensagensObrigatorias = {
+function obterMensagemDeCampo(campo: CampoFormulario): string {
+  const mensagensObrigatorias: Record<string, string> = {
     nome: "Informe o nome do item.",
     categoria: "Selecione uma categoria.",
     condicao: "Selecione a condição do item.",
@@ -769,7 +1047,7 @@ function obterMensagemDeCampo(campo) {
   };
 
   if (campo.type === "radio") {
-    const selecionado = formularioNovoAnuncio.querySelector(
+    const selecionado = formularioNovoAnuncio?.querySelector(
       `input[name="${campo.name}"]:checked`,
     );
     return selecionado ? "" : mensagensObrigatorias[campo.name];
@@ -794,22 +1072,23 @@ function obterMensagemDeCampo(campo) {
   return "";
 }
 
-function obterCamposRelacionados(campo) {
+function obterCamposRelacionados(campo: CampoFormulario): CampoFormulario[] {
   if (campo.type !== "radio") {
     return [campo];
   }
 
   return [
-    ...formularioNovoAnuncio.querySelectorAll(
+    ...formularioNovoAnuncio?.querySelectorAll<CampoFormulario>(
       `input[name="${campo.name}"]`,
-    ),
+    ) ?? [],
   ];
 }
 
-function obterElementoErroCampo(campo) {
+function obterElementoErroCampo(campo: CampoFormulario): HTMLElement {
   const identificador = campo.type === "radio" ? campo.name : campo.id;
   const idErro = `erro-${identificador}`;
-  let elementoErro = formularioNovoAnuncio.querySelector(`#${idErro}`);
+  let elementoErro =
+    formularioNovoAnuncio?.querySelector<HTMLElement>(`#${idErro}`) ?? null;
 
   if (!elementoErro) {
     elementoErro = document.createElement("p");
@@ -838,7 +1117,10 @@ function obterElementoErroCampo(campo) {
   return elementoErro;
 }
 
-function definirErroCampo(campo, mensagem) {
+function definirErroCampo(
+  campo: CampoFormulario,
+  mensagem: string,
+): void {
   const elementoErro = obterElementoErroCampo(campo);
 
   for (const campoRelacionado of obterCamposRelacionados(campo)) {
@@ -854,18 +1136,29 @@ function definirErroCampo(campo, mensagem) {
   elementoErro.hidden = !mensagem;
 }
 
-function validarCampo(campo) {
+function validarCampo(campo: CampoFormulario): boolean {
   const mensagem = obterMensagemDeCampo(campo);
   definirErroCampo(campo, mensagem);
   return mensagem === "";
 }
 
-function validarCamposDoFormulario() {
-  let primeiroCampoInvalido = null;
-  const gruposValidados = new Set();
+function validarCamposDoFormulario(): CampoFormulario | null {
+  let primeiroCampoInvalido: CampoFormulario | null = null;
+  const gruposValidados = new Set<string>();
+
+  if (!formularioNovoAnuncio) {
+    return null;
+  }
 
   for (const campo of formularioNovoAnuncio.elements) {
-    if (!(campo instanceof HTMLElement) || campo.type === "file") {
+    if (
+      !(
+        campo instanceof HTMLInputElement ||
+        campo instanceof HTMLSelectElement ||
+        campo instanceof HTMLTextAreaElement
+      ) ||
+      campo.type === "file"
+    ) {
       continue;
     }
 
@@ -886,24 +1179,31 @@ function validarCamposDoFormulario() {
   return primeiroCampoInvalido;
 }
 
-function limparErrosDosCampos() {
+function limparErrosDosCampos(): void {
   formularioNovoAnuncio
-    .querySelectorAll(".erro-campo")
+    ?.querySelectorAll<HTMLElement>(".erro-campo")
     .forEach((elementoErro) => {
       elementoErro.textContent = "";
       elementoErro.hidden = true;
     });
 
   formularioNovoAnuncio
-    .querySelectorAll('[aria-invalid="true"]:not(#imagem-item)')
+    ?.querySelectorAll<CampoFormulario>(
+      '[aria-invalid="true"]:not(#imagem-item)',
+    )
     .forEach((campo) => {
       campo.removeAttribute("aria-invalid");
       campo.setCustomValidity("");
     });
 }
 
-function mostrarAvisoNoBotao() {
-  const textoOriginal = botaoPublicarAnuncio.dataset.textoOriginal;
+function mostrarAvisoNoBotao(): void {
+  if (!botaoPublicarAnuncio) {
+    return;
+  }
+
+  const textoOriginal =
+    botaoPublicarAnuncio.dataset.textoOriginal ?? "";
 
   botaoPublicarAnuncio.textContent = "Revise os campos destacados";
   botaoPublicarAnuncio.classList.add("is-warning");
@@ -915,7 +1215,7 @@ function mostrarAvisoNoBotao() {
   }, 2600);
 }
 
-function mostrarFeedback(mensagem) {
+function mostrarFeedback(mensagem: string): void {
   if (!feedbackAnuncio) {
     return;
   }
@@ -927,7 +1227,7 @@ function mostrarFeedback(mensagem) {
   }, 5000);
 }
 
-function arquivoEhImagemPermitida(arquivo) {
+function arquivoEhImagemPermitida(arquivo: unknown): arquivo is File {
   const tiposPermitidos = ["image/jpeg", "image/png"];
   const extensoesPermitidas = [".jpeg", ".jpg", ".png"];
 
@@ -940,8 +1240,8 @@ function arquivoEhImagemPermitida(arquivo) {
   );
 }
 
-function converterArquivoParaDataUrl(arquivo) {
-  return new Promise((resolve, reject) => {
+function converterArquivoParaDataUrl(arquivo: File): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
     const leitor = new FileReader();
 
     leitor.addEventListener(
@@ -978,14 +1278,14 @@ function converterArquivoParaDataUrl(arquivo) {
 }
 
 async function obterErrosImagem(
-  arquivo,
-  { imagemObrigatoria = false } = {},
-) {
+  arquivo: File | undefined,
+  { imagemObrigatoria = false }: { imagemObrigatoria?: boolean } = {},
+): Promise<string[]> {
   if (!arquivo) {
     return imagemObrigatoria ? [MENSAGEM_IMAGEM_OBRIGATORIA] : [];
   }
 
-  const erros = [];
+  const erros: string[] = [];
   const formatoPermitido = arquivoEhImagemPermitida(arquivo);
 
   if (!formatoPermitido) {
@@ -1003,7 +1303,7 @@ async function obterErrosImagem(
   return erros;
 }
 
-function exibirErrosDaImagem(erros) {
+function exibirErrosDaImagem(erros: readonly string[]): void {
   if (!errosImagem) {
     return;
   }
@@ -1029,13 +1329,16 @@ function exibirErrosDaImagem(erros) {
 }
 
 async function atualizarValidacaoDaImagem(
-  { anunciarErro = false, imagemObrigatoria = false } = {},
-) {
+  {
+    anunciarErro = false,
+    imagemObrigatoria = false,
+  }: { anunciarErro?: boolean; imagemObrigatoria?: boolean } = {},
+): Promise<boolean> {
   if (!campoImagem) {
     return false;
   }
 
-  const arquivo = campoImagem.files[0];
+  const arquivo = campoImagem.files?.[0];
   const erros = await obterErrosImagem(arquivo, { imagemObrigatoria });
   const mensagemErro = erros.join(" ");
   const arquivoInvalido = erros.length > 0;
@@ -1059,7 +1362,11 @@ async function atualizarValidacaoDaImagem(
   return Boolean(arquivo) && !arquivoInvalido;
 }
 
-function criarElemento(tag, classe, texto) {
+function criarElemento<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  classe = "",
+  texto?: string,
+): HTMLElementTagNameMap[K] {
   const elemento = document.createElement(tag);
 
   if (classe) {
@@ -1073,15 +1380,17 @@ function criarElemento(tag, classe, texto) {
   return elemento;
 }
 
-function obterDadosVisuaisCategoria(categoria) {
-  return categorias[categoria] || {
+function obterDadosVisuaisCategoria(
+  categoria: unknown,
+): MapaCategorias[Categoria] {
+  return (ehCategoria(categoria) && categorias[categoria]) || {
     nome: "Outros",
     emoji: "♻️",
     imagemPadrao: IMAGEM_PADRAO_ANUNCIO,
   };
 }
 
-function obterImagemDoAnuncio(anuncio) {
+function obterImagemDoAnuncio(anuncio: Anuncio): string {
   if (typeof anuncio.imagemUrl === "string" && anuncio.imagemUrl.trim() !== "") {
     return anuncio.imagemUrl;
   }
@@ -1089,15 +1398,20 @@ function obterImagemDoAnuncio(anuncio) {
   return obterDadosVisuaisCategoria(anuncio.categoria).imagemPadrao;
 }
 
-function criarMediaDoAnuncio(anuncio, classe) {
+function criarMediaDoAnuncio(
+  anuncio: Anuncio,
+  classe: string,
+): HTMLElement {
   const imagemUrl = obterImagemDoAnuncio(anuncio);
   const media = imagemUrl
     ? criarElemento("button", `${classe} botao-ampliar-imagem`)
     : criarElemento("div", classe);
 
   if (imagemUrl) {
-    media.type = "button";
-    media.dataset.anuncioId = anuncio.id;
+    if (media instanceof HTMLButtonElement) {
+      media.type = "button";
+    }
+    media.dataset.anuncioId = String(anuncio.id);
     media.style.backgroundImage = `url("${imagemUrl}")`;
     media.style.backgroundPosition = "center";
     media.style.backgroundSize = "cover";
@@ -1119,13 +1433,22 @@ function criarMediaDoAnuncio(anuncio, classe) {
   return media;
 }
 
-function abrirImagemDoAnuncio(id, elementoAcionador) {
+function abrirImagemDoAnuncio(
+  id: string | undefined,
+  elementoAcionador: HTMLElement,
+): void {
   const anuncio = [...cacheCatalogoApi, ...cacheAnunciosUsuarioApi].find(
     (item) => String(item.id) === String(id),
   );
   const imagemUrl = anuncio ? obterImagemDoAnuncio(anuncio) : "";
 
-  if (!imagemUrl || !modalImagem || !imagemAmpliada || !tituloModalImagem) {
+  if (
+    !anuncio ||
+    !imagemUrl ||
+    !modalImagem ||
+    !imagemAmpliada ||
+    !tituloModalImagem
+  ) {
     return;
   }
 
@@ -1137,20 +1460,23 @@ function abrirImagemDoAnuncio(id, elementoAcionador) {
   modalImagem.showModal();
 }
 
-function fecharImagemAmpliada() {
+function fecharImagemAmpliada(): void {
   if (modalImagem?.open) {
     modalImagem.close();
   }
 }
 
-function inicializarVisualizacaoDeImagens() {
+function inicializarVisualizacaoDeImagens(): void {
   if (!modalImagem || !botaoFecharModalImagem) {
     return;
   }
 
   [listaAnuncios, listaMeusAnuncios].forEach((lista) => {
     lista?.addEventListener("click", (evento) => {
-      const botaoImagem = evento.target.closest(".botao-ampliar-imagem");
+      const botaoImagem =
+        evento.target instanceof Element
+          ? evento.target.closest<HTMLElement>(".botao-ampliar-imagem")
+          : null;
 
       if (botaoImagem && lista.contains(botaoImagem)) {
         abrirImagemDoAnuncio(botaoImagem.dataset.anuncioId, botaoImagem);
@@ -1162,7 +1488,11 @@ function inicializarVisualizacaoDeImagens() {
 
   modalImagem.addEventListener("click", (evento) => {
     const clicouNoConteudo =
-      evento.target.closest("#imagem-ampliada, #fechar-modal-imagem, #modal-imagem-titulo");
+      evento.target instanceof Element
+        ? evento.target.closest(
+            "#imagem-ampliada, #fechar-modal-imagem, #modal-imagem-titulo",
+          )
+        : null;
 
     if (!clicouNoConteudo) {
       fecharImagemAmpliada();
@@ -1171,13 +1501,13 @@ function inicializarVisualizacaoDeImagens() {
 
   modalImagem.addEventListener("close", () => {
     document.body.classList.remove("modal-aberto");
-    imagemAmpliada.removeAttribute("src");
+    imagemAmpliada?.removeAttribute("src");
     modalImagem.elementoAcionador?.focus();
     modalImagem.elementoAcionador = null;
   });
 }
 
-function criarCardDaVitrine(anuncio) {
+function criarCardDaVitrine(anuncio: Anuncio): HTMLElement {
   const categoria = obterDadosVisuaisCategoria(anuncio.categoria);
   const card = criarElemento("article", "card-anuncio");
   const media = criarMediaDoAnuncio(anuncio, "card-media");
@@ -1199,7 +1529,7 @@ function criarCardDaVitrine(anuncio) {
   );
   const detalhes = criarElemento("a", "btn-detalhes", "Ver detalhes");
 
-  card.dataset.id = anuncio.id;
+  card.dataset.id = String(anuncio.id);
   card.dataset.categoria = anuncio.categoria;
   card.dataset.condicao = anuncio.condicao;
   card.dataset.modalidade = anuncio.modalidade;
@@ -1216,7 +1546,7 @@ function criarCardDaVitrine(anuncio) {
   return card;
 }
 
-function criarCardDoUsuario(anuncio) {
+function criarCardDoUsuario(anuncio: Anuncio): HTMLElement {
   const card = criarElemento("article", "card-meu-anuncio");
   const media = criarMediaDoAnuncio(anuncio, "meu-anuncio-media");
   const detalhes = criarElemento("div", "meu-anuncio-detalhes");
@@ -1238,9 +1568,9 @@ function criarCardDoUsuario(anuncio) {
   const acoes = criarElemento("div", "meu-anuncio-acoes");
   const botaoExcluir = criarElemento("button", "btn-excluir", "Excluir");
 
-  card.dataset.id = anuncio.id;
+  card.dataset.id = String(anuncio.id);
   botaoExcluir.type = "button";
-  botaoExcluir.dataset.id = anuncio.id;
+  botaoExcluir.dataset.id = String(anuncio.id);
   botaoExcluir.setAttribute("aria-label", `Excluir ${anuncio.nome}`);
 
   detalhes.append(status, titulo, informacoes);
@@ -1250,11 +1580,11 @@ function criarCardDoUsuario(anuncio) {
   return card;
 }
 
-function criarEstadoVazio(mensagem) {
+function criarEstadoVazio(mensagem: string): HTMLParagraphElement {
   return criarElemento("p", "estado-vazio", mensagem);
 }
 
-function normalizarTexto(texto) {
+function normalizarTexto(texto: unknown): string {
   return String(texto)
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
@@ -1262,7 +1592,7 @@ function normalizarTexto(texto) {
     .trim();
 }
 
-function obterAnunciosVisiveis() {
+function obterAnunciosVisiveis(): Anuncio[] {
   const termoNormalizado = normalizarTexto(termoBuscaVitrine);
   let itens = cacheCatalogoApi.map((anuncio, indice) => ({
     anuncio,
@@ -1322,8 +1652,8 @@ function obterAnunciosVisiveis() {
   return itens.map(({ anuncio }) => anuncio);
 }
 
-function atualizarContadoresDosFiltros() {
-  const contagensCategoria = {
+function atualizarContadoresDosFiltros(): void {
+  const contagensCategoria: Record<CategoriaFiltro, number> = {
     todas: cacheContagemApi.length,
     livros: 0,
     eletronicos: 0,
@@ -1331,13 +1661,13 @@ function atualizarContadoresDosFiltros() {
     moda: 0,
     outros: 0,
   };
-  const contagensCondicao = {
+  const contagensCondicao: Record<Condicao | "todas", number> = {
     todas: cacheCatalogoApi.length,
     novo: 0,
     seminovo: 0,
     usado: 0,
   };
-  const contagensModalidade = {
+  const contagensModalidade: Record<Modalidade | "todas", number> = {
     todas: cacheCatalogoApi.length,
     venda: 0,
     doacao: 0,
@@ -1365,7 +1695,7 @@ function atualizarContadoresDosFiltros() {
     const contador = filtro.querySelector(".filtro-contagem");
     const categoria = filtro.dataset.categoriaFiltro;
 
-    if (contador && Object.hasOwn(contagensCategoria, categoria)) {
+    if (contador && ehCategoriaFiltro(categoria)) {
       contador.textContent = String(contagensCategoria[categoria]);
     }
   });
@@ -1374,7 +1704,10 @@ function atualizarContadoresDosFiltros() {
     const contador = filtro.querySelector(".filtro-contagem");
     const condicao = filtro.dataset.condicaoFiltro;
 
-    if (contador && Object.hasOwn(contagensCondicao, condicao)) {
+    if (
+      contador &&
+      (condicao === "todas" || ehCondicao(condicao))
+    ) {
       contador.textContent = String(contagensCondicao[condicao]);
     }
   });
@@ -1383,13 +1716,16 @@ function atualizarContadoresDosFiltros() {
     const contador = filtro.querySelector(".filtro-contagem");
     const modalidade = filtro.dataset.modalidadeFiltro;
 
-    if (contador && Object.hasOwn(contagensModalidade, modalidade)) {
+    if (
+      contador &&
+      (modalidade === "todas" || ehModalidade(modalidade))
+    ) {
       contador.textContent = String(contagensModalidade[modalidade]);
     }
   });
 }
 
-function renderizarAnuncios() {
+function renderizarAnuncios(): void {
   if (!listaAnuncios) {
     return;
   }
@@ -1430,7 +1766,7 @@ function renderizarAnuncios() {
   atualizarContadoresDosFiltros();
 }
 
-function inicializarControlesDaVitrine() {
+function inicializarControlesDaVitrine(): void {
   formularioBuscaVitrine?.addEventListener("submit", (evento) => {
     evento.preventDefault();
   });
@@ -1441,14 +1777,22 @@ function inicializarControlesDaVitrine() {
   });
 
   ordenacaoVitrine?.addEventListener("change", () => {
-    ordenacaoAtiva = ordenacaoVitrine.value;
-    renderizarAnuncios();
+    if (ehOrdenacaoCatalogo(ordenacaoVitrine.value)) {
+      ordenacaoAtiva = ordenacaoVitrine.value;
+      renderizarAnuncios();
+    }
   });
 
   filtrosCategoria.forEach((filtro) => {
     filtro.addEventListener("click", (evento) => {
       evento.preventDefault();
-      categoriaFiltroAtiva = filtro.dataset.categoriaFiltro;
+      const categoria = filtro.dataset.categoriaFiltro;
+
+      if (!ehCategoriaFiltro(categoria)) {
+        return;
+      }
+
+      categoriaFiltroAtiva = categoria;
 
       filtrosCategoria.forEach((item) => {
         const estaAtivo = item === filtro;
@@ -1467,7 +1811,13 @@ function inicializarControlesDaVitrine() {
 
   abasCatalogo.forEach((aba) => {
     aba.addEventListener("click", () => {
-      abaCatalogoAtiva = aba.dataset.abaCatalogo;
+      const proximaAba = aba.dataset.abaCatalogo;
+
+      if (!ehAbaCatalogo(proximaAba)) {
+        return;
+      }
+
+      abaCatalogoAtiva = proximaAba;
 
       abasCatalogo.forEach((item) => {
         const estaAtiva = item === aba;
@@ -1496,7 +1846,7 @@ function inicializarControlesDaVitrine() {
   });
 }
 
-function renderizarMeusAnuncios() {
+function renderizarMeusAnuncios(): void {
   if (!listaMeusAnuncios) {
     return;
   }
@@ -1526,7 +1876,7 @@ function renderizarMeusAnuncios() {
   listaMeusAnuncios.append(fragmento);
 }
 
-async function criarAnuncio() {
+async function criarAnuncio(): Promise<boolean> {
   if (publicacaoEmAndamento) {
     return false;
   }
@@ -1538,13 +1888,29 @@ async function criarAnuncio() {
   }
 
   const usuarioDoAnuncio = usuarioAtual;
+  if (
+    !formularioNovoAnuncio ||
+    !botaoPublicarAnuncio ||
+    !valorItem
+  ) {
+    return false;
+  }
+
   const dados = new FormData(formularioNovoAnuncio);
   const arquivoImagem = dados.get("imagem");
-  const modalidade = dados.get("modalidade");
+  const modalidadeRecebida = dados.get("modalidade");
+  const modalidade = ehModalidade(modalidadeRecebida)
+    ? modalidadeRecebida
+    : null;
+  const valorRecebido = dados.get("valor");
   const valor =
-    modalidade === "doacao" ? 0 : obterValorNumerico(dados.get("valor"));
+    modalidade === "doacao"
+      ? 0
+      : obterValorNumerico(
+          typeof valorRecebido === "string" ? valorRecebido : "",
+        );
 
-  if (!arquivoEhImagemPermitida(arquivoImagem)) {
+  if (!arquivoEhImagemPermitida(arquivoImagem) || !modalidade) {
     void atualizarValidacaoDaImagem({ anunciarErro: true });
     campoImagem?.focus();
     return false;
@@ -1565,26 +1931,48 @@ async function criarAnuncio() {
 
   try {
     const imagemUrl = await converterArquivoParaDataUrl(arquivoImagem);
-    const dadosDoAnuncio = {
-      nome: dados.get("nome").trim(),
-      categoria: dados.get("categoria"),
-      condicao: dados.get("condicao"),
+    const nome = dados.get("nome");
+    const categoria = dados.get("categoria");
+    const condicao = dados.get("condicao");
+    const localizacao = dados.get("localizacao");
+    const descricao = dados.get("descricao");
+
+    if (
+      typeof nome !== "string" ||
+      !ehCategoria(categoria) ||
+      !ehCondicao(condicao) ||
+      typeof localizacao !== "string" ||
+      typeof descricao !== "string"
+    ) {
+      mostrarFeedback(
+        "Revise os dados do anúncio e tente novamente.",
+      );
+      return false;
+    }
+
+    const dadosDoAnuncio: NovoAnuncio = {
+      nome: nome.trim(),
+      categoria,
+      condicao,
       modalidade,
       valor,
-      localizacao: dados.get("localizacao").trim(),
-      descricao: dados.get("descricao").trim(),
+      localizacao: localizacao.trim(),
+      descricao: descricao.trim(),
       imagemUrl,
       usuarioId: usuarioDoAnuncio.id,
       usuarioNome: usuarioDoAnuncio.nome,
     };
-    const resposta = await requisitarApi("/api/anuncios", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const { dados: novoAnuncio } = await requisitarApi(
+      "/api/anuncios",
+      normalizarAnuncioDaApi,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(dadosDoAnuncio),
       },
-      body: JSON.stringify(dadosDoAnuncio),
-    });
-    const novoAnuncio = normalizarAnuncioDaApi(resposta);
+    );
 
     await Promise.all([
       carregarAnunciosDaApi({ mostrarCarregamento: false }),
@@ -1603,16 +1991,16 @@ async function criarAnuncio() {
   } catch (erro) {
     console.error("Não foi possível publicar o anúncio.", erro);
 
-    if (erro.status === 400) {
+    if (ehErroRequisicaoApi(erro) && erro.status === 400) {
       const primeiroErroDeCampo = Object.values(
-        erro.dados?.campos || {},
+        erro.dados.campos || {},
       ).find((mensagem) => typeof mensagem === "string");
       mostrarFeedback(
         primeiroErroDeCampo ||
-          erro.dados?.erro ||
+          erro.dados.erro ||
           "Revise os dados do anúncio e tente novamente.",
       );
-    } else if (erro.status >= 500) {
+    } else if (ehErroRequisicaoApi(erro) && erro.status >= 500) {
       mostrarFeedback(
         "O servidor não conseguiu publicar o anúncio. Tente novamente.",
       );
@@ -1622,7 +2010,8 @@ async function criarAnuncio() {
       );
     } else {
       mostrarFeedback(
-        erro.message || "Não foi possível publicar o anúncio. Tente novamente.",
+        (erro instanceof Error ? erro.message : "") ||
+          "Não foi possível publicar o anúncio. Tente novamente.",
       );
     }
 
@@ -1632,11 +2021,14 @@ async function criarAnuncio() {
     botaoPublicarAnuncio.disabled = false;
     botaoPublicarAnuncio.removeAttribute("aria-busy");
     botaoPublicarAnuncio.textContent =
-      botaoPublicarAnuncio.dataset.textoOriginal;
+      botaoPublicarAnuncio.dataset.textoOriginal ?? "";
   }
 }
 
-async function excluirAnuncio(id, botaoExcluir) {
+async function excluirAnuncio(
+  id: string | undefined,
+  botaoExcluir: HTMLButtonElement | null,
+): Promise<boolean> {
   const idNormalizado = String(id);
   const anuncio = cacheAnunciosUsuarioApi.find(
     (item) => String(item.id) === idNormalizado,
@@ -1673,12 +2065,16 @@ async function excluirAnuncio(id, botaoExcluir) {
   }
 
   try {
-    await requisitarApi(`/api/anuncios/${encodeURIComponent(idNormalizado)}`, {
-      method: "DELETE",
-      headers: {
-        "X-Usuario-Id": usuarioAtual.id,
+    await requisitarApi(
+      `/api/anuncios/${encodeURIComponent(idNormalizado)}`,
+      normalizarRespostaDeExclusao,
+      {
+        method: "DELETE",
+        headers: {
+          "X-Usuario-Id": usuarioAtual.id,
+        },
       },
-    });
+    );
 
     const [catalogoAtualizado, anunciosDoUsuarioAtualizados] =
       await Promise.all([
@@ -1695,17 +2091,17 @@ async function excluirAnuncio(id, botaoExcluir) {
   } catch (erro) {
     console.error("Não foi possível excluir o anúncio.", erro);
 
-    if (erro.status === 400) {
+    if (ehErroRequisicaoApi(erro) && erro.status === 400) {
       mostrarFeedback("O ID do anúncio é inválido.");
-    } else if (erro.status === 401) {
+    } else if (ehErroRequisicaoApi(erro) && erro.status === 401) {
       mostrarFeedback("Entre na sua conta para excluir um anúncio.");
-    } else if (erro.status === 403) {
+    } else if (ehErroRequisicaoApi(erro) && erro.status === 403) {
       mostrarFeedback("Você só pode excluir os seus próprios anúncios.");
-    } else if (erro.status === 404) {
+    } else if (ehErroRequisicaoApi(erro) && erro.status === 404) {
       mostrarFeedback(
         "Este anúncio não foi encontrado no servidor. Atualize a lista e tente novamente.",
       );
-    } else if (erro.status >= 500) {
+    } else if (ehErroRequisicaoApi(erro) && erro.status >= 500) {
       mostrarFeedback(
         "O servidor não conseguiu excluir o anúncio. Tente novamente.",
       );
@@ -1715,7 +2111,8 @@ async function excluirAnuncio(id, botaoExcluir) {
       );
     } else {
       mostrarFeedback(
-        erro.message || "Não foi possível excluir o anúncio. Tente novamente.",
+        (erro instanceof Error ? erro.message : "") ||
+          "Não foi possível excluir o anúncio. Tente novamente.",
       );
     }
 
@@ -1731,7 +2128,7 @@ async function excluirAnuncio(id, botaoExcluir) {
   }
 }
 
-function inicializarFormularioDeAnuncio() {
+function inicializarFormularioDeAnuncio(): void {
   if (!formularioNovoAnuncio || !botaoPublicarAnuncio) {
     return;
   }
@@ -1799,7 +2196,7 @@ function inicializarFormularioDeAnuncio() {
       mostrarFeedback(
         primeiroCampoIncompleto
           ? "Revise os campos destacados e tente publicar novamente."
-          : campoImagem.validationMessage || MENSAGEM_IMAGEM_INVALIDA,
+          : campoImagem?.validationMessage || MENSAGEM_IMAGEM_INVALIDA,
       );
       return;
     }
@@ -1809,7 +2206,10 @@ function inicializarFormularioDeAnuncio() {
   });
 }
 
-function definirPainelAnuncioAberto(aberto, { moverFoco = true } = {}) {
+function definirPainelAnuncioAberto(
+  aberto: boolean,
+  { moverFoco = true }: { moverFoco?: boolean } = {},
+): void {
   if (!painelNovoAnuncio || !botaoAbrirAnuncio) {
     return;
   }
@@ -1831,13 +2231,18 @@ function definirPainelAnuncioAberto(aberto, { moverFoco = true } = {}) {
       behavior: reduzirMovimento ? "auto" : "smooth",
       block: "start",
     });
-    document.querySelector("#nome-item")?.focus({ preventScroll: true });
+    document
+      .querySelector<HTMLInputElement>("#nome-item")
+      ?.focus({ preventScroll: true });
   } else {
     botaoAbrirAnuncio.focus();
   }
 }
 
-function mostrarFeedbackDaColecao(mensagem, { persistente = false } = {}) {
+function mostrarFeedbackDaColecao(
+  mensagem: string,
+  { persistente = false }: { persistente?: boolean } = {},
+): void {
   if (!feedbackColecao) {
     return;
   }
@@ -1852,14 +2257,26 @@ function mostrarFeedbackDaColecao(mensagem, { persistente = false } = {}) {
   }
 }
 
-function atualizarNumeracaoDosItens() {
-  const itens = [...listaItensColecao.querySelectorAll(".item-colecao-linha")];
+function atualizarNumeracaoDosItens(): void {
+  if (!listaItensColecao) {
+    return;
+  }
+
+  const itens = [
+    ...listaItensColecao.querySelectorAll<HTMLElement>(
+      ".item-colecao-linha",
+    ),
+  ];
   const unicoItem = itens.length === 1;
 
   itens.forEach((item, indice) => {
     const numero = indice + 1;
-    const titulo = item.querySelector(".item-colecao-titulo");
-    const botaoRemover = item.querySelector(".botao-remover-item-colecao");
+    const titulo =
+      item.querySelector<HTMLElement>(".item-colecao-titulo");
+    const botaoRemover =
+      item.querySelector<HTMLButtonElement>(
+        ".botao-remover-item-colecao",
+      );
 
     if (titulo) {
       titulo.textContent = `Item ${numero}`;
@@ -1877,7 +2294,7 @@ function atualizarNumeracaoDosItens() {
   });
 }
 
-function criarLinhaDeItemColecao() {
+function criarLinhaDeItemColecao(): HTMLDivElement {
   sequenciaItemColecao += 1;
   const identificador = sequenciaItemColecao;
   const linha = criarElemento("div", "item-colecao-linha");
@@ -1897,7 +2314,7 @@ function criarLinhaDeItemColecao() {
   const rotuloCategoria = document.createElement("label");
   const campoCategoria = document.createElement("select");
   const erroCategoria = criarElemento("p", "erro-campo-colecao");
-  const opcoesCategoria = [
+  const opcoesCategoria: ReadonlyArray<readonly [string, string]> = [
     ["", "Selecione uma categoria"],
     ["livros", "Livros e papelaria"],
     ["eletronicos", "Eletrônicos"],
@@ -1959,7 +2376,9 @@ function criarLinhaDeItemColecao() {
   return linha;
 }
 
-function adicionarLinhaDeItemColecao({ moverFoco = true } = {}) {
+function adicionarLinhaDeItemColecao(
+  { moverFoco = true }: { moverFoco?: boolean } = {},
+): void {
   if (!listaItensColecao) {
     return;
   }
@@ -1969,33 +2388,53 @@ function adicionarLinhaDeItemColecao({ moverFoco = true } = {}) {
   atualizarNumeracaoDosItens();
 
   if (moverFoco) {
-    linha.querySelector("input")?.focus();
+    linha.querySelector<HTMLInputElement>("input")?.focus();
     mostrarFeedbackDaColecao("Novo item adicionado à coleção.");
   }
 }
 
-function removerLinhaDeItemColecao(botaoRemover) {
-  const linhas = [...listaItensColecao.querySelectorAll(".item-colecao-linha")];
+function removerLinhaDeItemColecao(
+  botaoRemover: HTMLButtonElement,
+): void {
+  if (!listaItensColecao) {
+    return;
+  }
+
+  const linhas = [
+    ...listaItensColecao.querySelectorAll<HTMLElement>(
+      ".item-colecao-linha",
+    ),
+  ];
 
   if (linhas.length <= 1) {
     return;
   }
 
-  const linha = botaoRemover.closest(".item-colecao-linha");
+  const linha = botaoRemover.closest<HTMLElement>(".item-colecao-linha");
+
+  if (!linha) {
+    return;
+  }
+
   const indice = linhas.indexOf(linha);
-  linha?.remove();
+  linha.remove();
   atualizarNumeracaoDosItens();
 
   const linhasRestantes = [
-    ...listaItensColecao.querySelectorAll(".item-colecao-linha"),
+    ...listaItensColecao.querySelectorAll<HTMLElement>(
+      ".item-colecao-linha",
+    ),
   ];
   const linhaParaFoco =
     linhasRestantes[Math.min(indice, linhasRestantes.length - 1)];
-  linhaParaFoco?.querySelector("input")?.focus();
+  linhaParaFoco?.querySelector<HTMLInputElement>("input")?.focus();
   mostrarFeedbackDaColecao("Item removido da coleção.");
 }
 
-function definirErroDoCampoColecao(campo, mensagem) {
+function definirErroDoCampoColecao(
+  campo: CampoColecao,
+  mensagem: string,
+): void {
   const idErro = (campo.getAttribute("aria-describedby") || "")
     .split(/\s+/)
     .find((id) => id.startsWith("erro-"));
@@ -2010,8 +2449,8 @@ function definirErroDoCampoColecao(campo, mensagem) {
   }
 }
 
-function validarCampoDaColecao(campo) {
-  const mensagens = {
+function validarCampoDaColecao(campo: CampoColecao): boolean {
+  const mensagens: Record<string, string> = {
     nomeColecao: "Informe o nome da coleção.",
     nomeItem: "Informe o nome deste item.",
     categoriaItem: "Selecione a categoria deste item.",
@@ -2022,11 +2461,15 @@ function validarCampoDaColecao(campo) {
   return !mensagem;
 }
 
-function validarFormularioDaColecao() {
-  let primeiroCampoInvalido = null;
+function validarFormularioDaColecao(): CampoColecao | null {
+  let primeiroCampoInvalido: CampoColecao | null = null;
+
+  if (!formularioNovaColecao) {
+    return null;
+  }
 
   formularioNovaColecao
-    .querySelectorAll("input[required], select[required]")
+    .querySelectorAll<CampoColecao>("input[required], select[required]")
     .forEach((campo) => {
       if (!validarCampoDaColecao(campo) && !primeiroCampoInvalido) {
         primeiroCampoInvalido = campo;
@@ -2036,10 +2479,14 @@ function validarFormularioDaColecao() {
   return primeiroCampoInvalido;
 }
 
-function limparFormularioDaColecao() {
+function limparFormularioDaColecao(): void {
+  if (!formularioNovaColecao || !listaItensColecao) {
+    return;
+  }
+
   formularioNovaColecao.reset();
   formularioNovaColecao
-    .querySelectorAll('[aria-invalid="true"]')
+    .querySelectorAll<CampoColecao>('[aria-invalid="true"]')
     .forEach((campo) => {
       campo.removeAttribute("aria-invalid");
       campo.setCustomValidity("");
@@ -2048,7 +2495,7 @@ function limparFormularioDaColecao() {
   adicionarLinhaDeItemColecao({ moverFoco: false });
 }
 
-function criarColecao() {
+function criarColecao(): boolean {
   if (!usuarioAtual) {
     mostrarFeedbackDaColecao(
       "Entre na sua conta para criar uma coleção.",
@@ -2058,13 +2505,32 @@ function criarColecao() {
     return false;
   }
 
+  if (!listaItensColecao || !campoNomeColecao) {
+    return false;
+  }
+
   const itens = [
-    ...listaItensColecao.querySelectorAll(".item-colecao-linha"),
-  ].map((linha) => ({
-    nome: linha.querySelector("input").value.trim(),
-    categoria: linha.querySelector("select").value,
-  }));
-  const colecao = {
+    ...listaItensColecao.querySelectorAll<HTMLElement>(
+      ".item-colecao-linha",
+    ),
+  ].flatMap((linha): ItemColecao[] => {
+    const campoNome = linha.querySelector<HTMLInputElement>("input");
+    const campoCategoria = linha.querySelector<HTMLSelectElement>("select");
+
+    if (
+      !campoNome ||
+      !campoCategoria ||
+      !ehCategoria(campoCategoria.value)
+    ) {
+      return [];
+    }
+
+    return [{
+      nome: campoNome.value.trim(),
+      categoria: campoCategoria.value,
+    }];
+  });
+  const colecao: Colecao = {
     id: gerarId("colecao"),
     usuarioId: usuarioAtual.id,
     usuarioNome: usuarioAtual.nome,
@@ -2099,7 +2565,10 @@ function criarColecao() {
   return true;
 }
 
-function definirPainelColecaoAberto(aberto, { moverFoco = true } = {}) {
+function definirPainelColecaoAberto(
+  aberto: boolean,
+  { moverFoco = true }: { moverFoco?: boolean } = {},
+): void {
   if (!painelNovaColecao || !botaoCriarColecao) {
     return;
   }
@@ -2129,7 +2598,7 @@ function definirPainelColecaoAberto(aberto, { moverFoco = true } = {}) {
   }
 }
 
-function inicializarFormularioDaColecao() {
+function inicializarFormularioDaColecao(): void {
   if (
     !formularioNovaColecao ||
     !listaItensColecao ||
@@ -2146,9 +2615,12 @@ function inicializarFormularioDaColecao() {
   });
 
   listaItensColecao.addEventListener("click", (evento) => {
-    const botaoRemover = evento.target.closest(
-      ".botao-remover-item-colecao",
-    );
+    const botaoRemover =
+      evento.target instanceof Element
+        ? evento.target.closest<HTMLButtonElement>(
+            ".botao-remover-item-colecao",
+          )
+        : null;
 
     if (botaoRemover && listaItensColecao.contains(botaoRemover)) {
       removerLinhaDeItemColecao(botaoRemover);
@@ -2156,9 +2628,12 @@ function inicializarFormularioDaColecao() {
   });
 
   formularioNovaColecao.addEventListener("input", (evento) => {
-    const campo = evento.target.closest(
-      "input[required], select[required]",
-    );
+    const campo =
+      evento.target instanceof Element
+        ? evento.target.closest<CampoColecao>(
+            "input[required], select[required]",
+          )
+        : null;
 
     if (campo && formularioNovaColecao.contains(campo)) {
       validarCampoDaColecao(campo);
@@ -2166,9 +2641,12 @@ function inicializarFormularioDaColecao() {
   });
 
   formularioNovaColecao.addEventListener("change", (evento) => {
-    const campo = evento.target.closest(
-      "input[required], select[required]",
-    );
+    const campo =
+      evento.target instanceof Element
+        ? evento.target.closest<CampoColecao>(
+            "input[required], select[required]",
+          )
+        : null;
 
     if (campo && formularioNovaColecao.contains(campo)) {
       validarCampoDaColecao(campo);
@@ -2191,7 +2669,7 @@ function inicializarFormularioDaColecao() {
   });
 }
 
-function inicializarPainelNovoAnuncio() {
+function inicializarPainelNovoAnuncio(): void {
   if (!painelNovoAnuncio || !botaoAbrirAnuncio) {
     return;
   }
@@ -2200,7 +2678,7 @@ function inicializarPainelNovoAnuncio() {
     if (painelNovoAnuncio.hidden) {
       definirPainelColecaoAberto(false, { moverFoco: false });
     }
-    definirPainelAnuncioAberto(painelNovoAnuncio.hidden);
+    definirPainelAnuncioAberto(Boolean(painelNovoAnuncio.hidden));
   });
 
   botaoFecharAnuncio?.addEventListener("click", () => {
@@ -2231,13 +2709,16 @@ function inicializarPainelNovoAnuncio() {
 
 }
 
-function inicializarExclusaoDeAnuncios() {
+function inicializarExclusaoDeAnuncios(): void {
   if (!listaMeusAnuncios) {
     return;
   }
 
   listaMeusAnuncios.addEventListener("click", (evento) => {
-    const botaoExcluir = evento.target.closest(".btn-excluir");
+    const botaoExcluir =
+      evento.target instanceof Element
+        ? evento.target.closest<HTMLButtonElement>(".btn-excluir")
+        : null;
 
     if (!botaoExcluir || !listaMeusAnuncios.contains(botaoExcluir)) {
       return;
@@ -2247,7 +2728,10 @@ function inicializarExclusaoDeAnuncios() {
   });
 }
 
-function definirMenuPrincipalAberto(aberto, { devolverFoco = false } = {}) {
+function definirMenuPrincipalAberto(
+  aberto: boolean,
+  { devolverFoco = false }: { devolverFoco?: boolean } = {},
+): void {
   if (!botaoMenuPrincipal || !navegacaoPrincipal) {
     return;
   }
@@ -2268,7 +2752,7 @@ function definirMenuPrincipalAberto(aberto, { devolverFoco = false } = {}) {
   }
 }
 
-function inicializarNavegacaoResponsiva() {
+function inicializarNavegacaoResponsiva(): void {
   if (!headerPrincipal || !botaoMenuPrincipal || !navegacaoPrincipal) {
     return;
   }
@@ -2280,7 +2764,10 @@ function inicializarNavegacaoResponsiva() {
   });
 
   navegacaoPrincipal.addEventListener("click", (evento) => {
-    if (evento.target.closest("a")) {
+    if (
+      evento.target instanceof Element &&
+      evento.target.closest("a")
+    ) {
       definirMenuPrincipalAberto(false);
     }
   });
@@ -2291,8 +2778,12 @@ function inicializarNavegacaoResponsiva() {
 
     if (
       menuEstaAberto &&
-      !navegacaoPrincipal.contains(evento.target) &&
-      !botaoMenuPrincipal.contains(evento.target)
+      !navegacaoPrincipal.contains(
+        evento.target instanceof Node ? evento.target : null,
+      ) &&
+      !botaoMenuPrincipal.contains(
+        evento.target instanceof Node ? evento.target : null,
+      )
     ) {
       definirMenuPrincipalAberto(false);
     }
@@ -2314,7 +2805,7 @@ function inicializarNavegacaoResponsiva() {
   definirMenuPrincipalAberto(false);
 }
 
-function atualizarEstadoDoHeader() {
+function atualizarEstadoDoHeader(): void {
   if (!headerPrincipal) {
     return;
   }
@@ -2323,7 +2814,7 @@ function atualizarEstadoDoHeader() {
   scrollHeaderAgendado = false;
 }
 
-function inicializarHeaderFixo() {
+function inicializarHeaderFixo(): void {
   if (!headerPrincipal) {
     return;
   }

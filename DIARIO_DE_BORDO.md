@@ -1279,3 +1279,86 @@ O próximo passo planejado é o Dia Bônus 2: converter os scripts autorais do f
 ### Commit
 
 `f48f812` — `feat: preparar base TypeScript do Dia Bônus 1`
+
+## Dia Bônus 2 — 28/07/2026
+
+### Objetivo do dia
+
+Converter integralmente o frontend autoral para TypeScript estrito, mantendo HTML, CSS e DOM nativos e preservando o comportamento existente. A etapa também deveria introduzir unions e contratos compartilhados, tornar seguras as fronteiras de `fetch` e migrar o registro PWA e o Service Worker para TypeScript com `injectManifest`.
+
+### Organização entre agentes
+
+O trabalho foi dividido entre quatro agentes especializados: DOM e eventos; unions e modelos; `fetch`, respostas e erros; e tipos do contexto Web Worker. Como havia três vagas simultâneas para subagentes, as frentes foram executadas em ondas para impedir edições concorrentes em `src/app.ts`.
+
+Depois da integração, um quinto agente realizou a revisão independente de todo o Dia Bônus 2. Ele comparou a implementação com o plano, conferiu a compatibilidade com a API SQLite atual, auditou a ausência de escapes de tipagem e repetiu typecheck, build, testes e smoke tests HTTP.
+
+### O que eu fiz
+
+Migrei `public/app.js`, `public/animations.js`, `public/pwa.js` e `public/service-worker.js` para `src/app.ts`, `src/animations.ts`, `src/pwa.ts` e `src/service-worker.ts`. `src/main.ts` passou a importar os três módulos executados na janela, e `index.html` deixou de carregar os scripts JavaScript antigos.
+
+Em `src/types.ts`, criei unions fechadas para categorias, condições e modalidades, além dos tipos de filtros, abas e ordenação. Também defini os contratos `Usuario`, `Sessao`, `Anuncio`, `ErroApi`, `RespostaOffline`, anúncios novos, coleções e a identidade legada ainda usada antes da autenticação. Constantes e guardas de runtime permitem validar valores originados do DOM, armazenamento local e HTTP.
+
+Os elementos DOM receberam tipos concretos de formulário, input, select, botão, dialog, imagem e contêiner. Os eventos usam tipos específicos e estreitamento de `EventTarget`. A conversão não usa `any`, `@ts-ignore` ou `@ts-expect-error`.
+
+A função de rede passou a ser genérica e exige um decodificador para cada resposta. O JSON é tratado inicialmente como `unknown`, e anúncios, listas e respostas de exclusão só entram na aplicação depois de validação. Criei uma classe de erro HTTP com guarda própria e normalizei tanto o envelope definitivo `ErroApi` quanto as respostas legadas da API atual. O cabeçalho `X-Vortex-Offline` também passou a ter detecção tipada.
+
+O Service Worker usa `ServiceWorkerGlobalScope`, `FetchEvent`, `ExtendableEvent` e `ExtendableMessageEvent`. Adicionei `vite-plugin-pwa` e configurei a estratégia `injectManifest`. O build gera `dist/service-worker.js` e injeta seis entradas: HTML, CSS, bundle hashado, manifesto e os dois ícones. O comportamento de cache existente foi preservado; a estratégia completa de catálogo offline continua reservada ao Dia Bônus 6.
+
+### O que funcionou
+
+Não restam scripts frontend autorais em JavaScript. O bundle principal, o registro PWA, as animações e o Service Worker agora são produzidos a partir dos arquivos TypeScript em `src`.
+
+O TypeScript estrito aprovou todos os módulos sem `any`, supressões ou casts duplos inseguros. O revisor confirmou que os 82 métodos funcionais do frontend anterior continuam presentes e que as adições se concentram em tipos, guardas, validadores e decodificadores.
+
+O build PWA foi aprovado. O `injectManifest` substituiu corretamente `self.__WB_MANIFEST`, sem deixar o placeholder no arquivo final. Todas as referências locais encontradas em `dist/index.html` existem.
+
+O preview local respondeu HTTP 200 para a página, bundle hashado, CSS, manifesto, Service Worker e ícones de 192 e 512 pixels. A API atual respondeu HTTP 200 em `/api/status`, e o revisor confirmou também o catálogo pelo smoke HTTP.
+
+### Como investiguei
+
+Comparei os contratos atuais de `server.js` com os tipos usados pelo frontend, mantendo a compatibilidade temporária com autoria e envelopes de erro legados. Dados externos só são convertidos para os tipos internos depois de verificações de estrutura, valores das unions e campos obrigatórios.
+
+Auditei `src` e a configuração Vite em busca de `any`, supressões do compilador, casts duplos e referências aos scripts JavaScript removidos. Também conferi o conteúdo gerado de `dist/service-worker.js`, a lista injetada pelo Workbox e os caminhos emitidos em `dist/index.html`.
+
+Depois do build, servi `dist` com o preview do Vite e solicitei individualmente a página e os recursos locais. A revisão final repetiu os comandos principais e verificou a paridade estrutural entre o frontend anterior e a versão TypeScript.
+
+### O que aprendi
+
+Aprendi que tipar o DOM exige selecionar o subtipo correto de cada elemento e ainda tratar a possibilidade de ele não existir. Eventos continuam entregando `EventTarget`, portanto o código precisa estreitar o alvo antes de acessar propriedades específicas de inputs, botões e selects.
+
+Aprendi que unions derivadas de tuplas `as const` podem servir simultaneamente como contrato estático e fonte para guardas de runtime. Isso evita que valores arbitrários vindos de atributos `data-*`, formulários ou JSON sejam aceitos apenas por meio de casts.
+
+Aprendi que declarar o retorno de `response.json()` como um tipo de domínio não valida a resposta. A fronteira segura recebe `unknown`, verifica a estrutura e somente então devolve `Anuncio` ou outro contrato conhecido.
+
+Aprendi que erros capturados também são `unknown`. Uma classe de erro HTTP e uma guarda própria permitem acessar status e envelope com segurança, sem assumir que toda falha é uma instância comum de `Error`.
+
+Aprendi que o código do Service Worker executa fora do contexto de `Window` e precisa dos tipos de Web Worker. Também confirmei que `injectManifest` depende do ponto literal `self.__WB_MANIFEST` e que a injeção deve ser comprovada no artefato final, não apenas pela configuração.
+
+### Testes realizados
+
+- `npm run typecheck` aprovado.
+- `npm run build` aprovado.
+- `npm test` aprovado: 1 de 1 teste.
+- Nenhum `any`, `@ts-ignore`, `@ts-expect-error` ou cast duplo inseguro encontrado.
+- Nenhum script frontend autoral em JavaScript restante.
+- Paridade estrutural dos 82 métodos funcionais anteriores confirmada.
+- Compatibilidade com os contratos da API SQLite atual confirmada.
+- `dist/service-worker.js` gerado com seis entradas injetadas.
+- Placeholder `self.__WB_MANIFEST` ausente do artefato final.
+- Referências locais do build existentes.
+- Página, bundle, CSS, manifesto, Service Worker e dois ícones respondendo HTTP 200 no preview local.
+- `/api/status` e catálogo respondendo HTTP 200 no smoke test.
+- `git diff --check` sem erros; apenas avisos informativos de LF para CRLF.
+- Revisão independente concluída depois das quatro frentes.
+
+### Limitações e próximo passo
+
+O ambiente não disponibilizou um navegador conectado. Por isso, carregamento visual, Console, interação completa dos formulários, animações, instalação PWA e conferência visual de desktop/mobile não foram marcados como aprovados. O build, a auditoria estrutural e o smoke HTTP cobriram o que era verificável nesta sessão.
+
+O preview inicial na Vercel não foi publicado porque o repositório não está vinculado a um projeto autenticado da Vercel nesta sessão. Esse passo exige a conta e a autorização externa previstas nas premissas do plano. O preview local não substitui essa evidência.
+
+O próximo passo planejado é o Dia Bônus 3: criar PostgreSQL no Neon, migrations idempotentes e substituir o acesso SQLite por consultas assíncronas com `pg`, preservando o banco local como histórico.
+
+### Commit
+
+`feat: converter frontend para TypeScript`

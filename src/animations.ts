@@ -1,4 +1,5 @@
-const contadoresEstatisticas = document.querySelectorAll("[data-counter]");
+const contadoresEstatisticas =
+  document.querySelectorAll<HTMLElement>("[data-counter]");
 const prefereMovimentoReduzido = window.matchMedia(
   "(prefers-reduced-motion: reduce)",
 ).matches;
@@ -7,16 +8,19 @@ const formatadorInteiro = new Intl.NumberFormat("pt-BR", {
   maximumFractionDigits: 0,
 });
 
-function easeOutCubic(progresso) {
+function easeOutCubic(progresso: number): number {
   return 1 - Math.pow(1 - progresso, 3);
 }
 
-function escreverValorDoContador(contador, valor) {
+function escreverValorDoContador(
+  contador: HTMLElement,
+  valor: number,
+): void {
   const sufixo = contador.dataset.counterSuffix ?? "";
   contador.textContent = `${formatadorInteiro.format(valor)}${sufixo}`;
 }
 
-function animarContador(contador) {
+function animarContador(contador: HTMLElement): void {
   if (contador.dataset.counterAnimated === "true") {
     return;
   }
@@ -37,7 +41,7 @@ function animarContador(contador) {
   const duracao = 1450;
   const inicio = performance.now();
 
-  function atualizarContador(agora) {
+  function atualizarContador(agora: DOMHighResTimeStamp): void {
     const tempoDecorrido = agora - inicio;
     const progresso = Math.min(tempoDecorrido / duracao, 1);
     const valorAtual = Math.round(valorFinal * easeOutCubic(progresso));
@@ -53,7 +57,7 @@ function animarContador(contador) {
   window.requestAnimationFrame(atualizarContador);
 }
 
-function inicializarContadoresEstatisticas() {
+function inicializarContadoresEstatisticas(): void {
   if (!contadoresEstatisticas.length) {
     return;
   }
@@ -70,7 +74,9 @@ function inicializarContadoresEstatisticas() {
           return;
         }
 
-        animarContador(entrada.target);
+        if (entrada.target instanceof HTMLElement) {
+          animarContador(entrada.target);
+        }
         observador.unobserve(entrada.target);
       });
     },
