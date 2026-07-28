@@ -4,6 +4,12 @@
   "description": "Aplicação Full Stack para cadastro, listagem, filtro e exclusão de anúncios de produtos destinados à reutilização, venda ou doação.",
   "main": "server.js",
   "scripts": {
+    "dev:web": "vite",
+    "dev:api": "node --watch server.js",
+    "typecheck": "tsc --noEmit",
+    "build": "vite build",
+    "test": "node --test",
+    "migrate": "node -e \"console.log('Migrações serão disponibilizadas no Dia Bônus 3.')\"",
     "start": "node server.js"
   },
   "repository": {
@@ -20,5 +26,10 @@
   "homepage": "https://github.com/PedroMapu/marketplace-vortex#readme",
   "dependencies": {
     "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.5"
   }
 }

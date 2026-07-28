@@ -59,6 +59,7 @@ const MENSAGEM_TAMANHO_IMAGEM_INVALIDO =
   "Envie uma imagem de até 5 MB.";
 const IMAGEM_PADRAO_ANUNCIO =
   "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80";
+  
 const categorias = {
   livros: {
     nome: "Livros e papelaria",
@@ -138,7 +139,7 @@ async function requisitarApi(caminho, opcoes = {}) {
   try {
     dados = await resposta.json();
   } catch {
-    // Uma resposta sem JSON será tratada pela mensagem genérica abaixo.
+    // Uma resposta sem JSON será tratada pela mensagem genérica abaixo pra mostrar que tá errado
   }
 
   if (!resposta.ok) {

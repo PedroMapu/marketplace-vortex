@@ -2,6 +2,11 @@ node_modules/
 data/*.db
 data/*.db-*
 .env
+.env.local
+.env.*
+!.env.example
+dist/
+.vercel/
 .DS_Store
 .agents/
 PLANO/
