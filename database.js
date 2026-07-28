@@ -103,6 +103,7 @@ const criarAnuncioStatement = database.prepare(`
 const excluirAnuncioPorIdStatement = database.prepare(`
   DELETE FROM anuncios
   WHERE id = ?
+    AND usuarioId = ?
 `);
 
 function listarAnuncios(filtros = {}) {
@@ -138,13 +139,18 @@ function criarAnuncio(dados) {
   return buscarAnuncioPorIdStatement.get(Number(resultado.lastInsertRowid));
 }
 
-function excluirAnuncioPorId(id) {
-  const resultado = excluirAnuncioPorIdStatement.run(id);
+function buscarAnuncioPorId(id) {
+  return buscarAnuncioPorIdStatement.get(id);
+}
+
+function excluirAnuncioPorId(id, usuarioId) {
+  const resultado = excluirAnuncioPorIdStatement.run(id, usuarioId);
   return resultado.changes > 0;
 }
 
 module.exports = {
   listarAnuncios,
   criarAnuncio,
+  buscarAnuncioPorId,
   excluirAnuncioPorId,
 };

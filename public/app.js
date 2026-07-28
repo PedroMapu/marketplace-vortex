@@ -1674,6 +1674,9 @@ async function excluirAnuncio(id, botaoExcluir) {
   try {
     await requisitarApi(`/api/anuncios/${encodeURIComponent(idNormalizado)}`, {
       method: "DELETE",
+      headers: {
+        "X-Usuario-Id": usuarioAtual.id,
+      },
     });
 
     const [catalogoAtualizado, anunciosDoUsuarioAtualizados] =
@@ -1693,6 +1696,10 @@ async function excluirAnuncio(id, botaoExcluir) {
 
     if (erro.status === 400) {
       mostrarFeedback("O ID do anúncio é inválido.");
+    } else if (erro.status === 401) {
+      mostrarFeedback("Entre na sua conta para excluir um anúncio.");
+    } else if (erro.status === 403) {
+      mostrarFeedback("Você só pode excluir os seus próprios anúncios.");
     } else if (erro.status === 404) {
       mostrarFeedback(
         "Este anúncio não foi encontrado no servidor. Atualize a lista e tente novamente.",

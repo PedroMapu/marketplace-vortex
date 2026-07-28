@@ -3,6 +3,7 @@ const path = require("path");
 const {
   listarAnuncios,
   criarAnuncio,
+  buscarAnuncioPorId,
   excluirAnuncioPorId,
 } = require("./database");
 
@@ -192,7 +193,31 @@ app.delete("/api/anuncios/:id", (request, response, next) => {
       });
     }
 
-    if (!excluirAnuncioPorId(id)) {
+    const usuarioId = request.get("X-Usuario-Id");
+
+    if (!textoObrigatorio(usuarioId)) {
+      return response.status(401).json({
+        erro: "Identifique o usuário para excluir um anúncio.",
+      });
+    }
+
+    const anuncio = buscarAnuncioPorId(id);
+
+    if (!anuncio) {
+      return response.status(404).json({
+        erro: "Anúncio não encontrado.",
+      });
+    }
+
+    const usuarioIdNormalizado = usuarioId.trim();
+
+    if (anuncio.usuarioId !== usuarioIdNormalizado) {
+      return response.status(403).json({
+        erro: "Você só pode excluir os seus próprios anúncios.",
+      });
+    }
+
+    if (!excluirAnuncioPorId(id, usuarioIdNormalizado)) {
       return response.status(404).json({
         erro: "Anúncio não encontrado.",
       });

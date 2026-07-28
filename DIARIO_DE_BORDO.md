@@ -43,7 +43,7 @@ Preencher depois da execução.
 
 Escrever com minhas próprias palavras.
 
-### Código que consigo explicar
+### Partes principais que eu acho bom explicar
 
 Hoje não houve implementação de código. A estrutura do projeto tem .agents, para caso o meu Codex necessite utilizar agentes para tarefas específicas
 
@@ -105,7 +105,7 @@ Revisei os seletores CSS, os valores de largura, os grids e os breakpoints. Tamb
 
 Aprendi a usar Grid e Flexbox de forma mais segura com `minmax(0, 1fr)`, a criar breakpoints para diferentes tamanhos de tela e a entender como `:hover`, `:focus` e `:focus-visible` afetam os elementos.
 
-### Código que consigo explicar
+### Partes principais que eu acho bom explicar
 
 Consigo explicar que as tags `section`, `header`, `main`, `aside` e `footer` organizam semanticamente a página. No CSS, consigo explicar como as variáveis guardam cores e medidas reutilizáveis, como os media queries adaptam o layout e como os estados `:hover` e `:focus` alteram a aparência dos componentes.
 
@@ -157,7 +157,7 @@ Verifiquei o HTML e o CSS, validei a estrutura do SVG, conferi o balanço de cha
 
 Aprendi que branches permitem testar mudanças sem alterar a versão principal do projeto. Também aprendi a usar `@keyframes`, `transform`, `opacity`, `prefers-reduced-motion` e `animation-timeline: view()` para criar animações mais leves e acessíveis.
 
-### Código que consigo explicar
+### Partes principais que eu acho bom explicar
 
 Consigo explicar que o SVG desenha as duas pessoas, a caixa e o coração dentro do `aside`. As classes CSS animam cada parte em momentos diferentes. Consigo explicar também que `@media (prefers-reduced-motion: reduce)` desativa movimentos para respeitar a preferência de acessibilidade da pessoa usuária.
 
@@ -219,7 +219,7 @@ Aprendi que um array pode guardar vários objetos com a mesma estrutura e que `f
 
 Também aprendi que manter uma única fonte de dados reduz duplicação: o array representa o estado dos anúncios e as funções de renderização transformam esse estado em elementos visuais.
 
-### Código que consigo explicar
+### Partes principais que eu acho bom explicar
 
 Consigo explicar que `anuncios` é o array temporário, `criarCardDaVitrine` transforma um objeto em um cartão e `renderizarAnuncios` percorre o array, cria cada cartão e atualiza a contagem de resultados.
 
@@ -299,7 +299,7 @@ Aprendi que `preventDefault` impede o comportamento padrão de envio do formulá
 
 Também aprendi que o nome não deve ser usado sozinho para verificar autoria, porque duas pessoas podem ter o mesmo nome. Por isso, cada usuário recebe um identificador. O `localStorage` mantém dados simples no navegador, mas não substitui autenticação ou validação no servidor.
 
-### Código que consigo explicar
+### Partes principais que eu acho bom explicar
 
 Consigo explicar que `anuncios` guarda os objetos exibidos na tela, `renderizarAnuncios` monta a vitrine e `renderizarMeusAnuncios` compara `anuncio.usuarioId` com `usuarioAtual.id`.
 
@@ -409,7 +409,7 @@ Aprendi que filtros não devem alterar a fonte original de dados. Em vez disso, 
 
 Também aprendi que números escritos diretamente no HTML ficam desatualizados. Quando a interface deriva as contagens do mesmo array usado para montar os cartões, os indicadores permanecem coerentes depois de criar ou excluir anúncios.
 
-### Código que consigo explicar
+### Partes principais que eu acho bom explicar
 
 Consigo explicar que `express()` cria a aplicação, `PORT` define a porta do servidor, `express.json()` prepara o recebimento de JSON e `app.listen` começa a aceitar conexões.
 
@@ -520,7 +520,7 @@ Também aprendi que `req.body` contém o JSON enviado pelo cliente, `res.status`
 
 Reiniciar o processo do servidor não remove os dados porque eles estão gravados no arquivo SQLite, e não apenas em uma variável na memória.
 
-### Código que consigo explicar
+### Partes principais que eu acho bom explicar
 
 Consigo explicar que `mkdirSync(pastaDados, { recursive: true })` garante a existência da pasta, `new DatabaseSync(caminhoBanco)` abre ou cria o banco e `database.exec` inicializa a tabela.
 
@@ -634,7 +634,7 @@ Também aprendi que respostas HTTP 304 indicam que o recurso não mudou e que o 
 
 Aprendi que uma interface assíncrona precisa evitar respostas fora de ordem e ações duplicadas. Contadores de sequência impedem que uma requisição antiga substitua dados mais recentes, enquanto travas e botões desabilitados evitam envios e exclusões repetidos.
 
-### Código que consigo explicar
+### Partes principais que eu acho bom explicar
 
 Consigo explicar que `requisitarApi` centraliza o uso de `fetch`, converte a resposta para JSON e transforma respostas HTTP de erro em exceções com status e detalhes.
 
@@ -797,7 +797,7 @@ Aprendi que contêineres com rolagem horizontal também precisam reservar espaç
 
 Aprendi que o `localStorage` pode persistir estruturas simples como coleções e itens, mas continua sendo armazenamento local do navegador. Também aprendi a criar campos repetíveis com IDs exclusivos, delegação de eventos e atualização de rótulos e botões após adicionar ou remover linhas.
 
-### Código que consigo explicar
+### Partes principais que eu acho bom explicar
 
 Consigo explicar que `window.matchMedia("(max-width: 68rem)")` informa ao JavaScript quando o menu compacto deve ser utilizado. A função `definirMenuPrincipalAberto` sincroniza os atributos do botão, o rótulo acessível e a visibilidade da navegação.
 
@@ -952,7 +952,7 @@ Também aprendi que operações da API não devem ser incluídas automaticamente
 
 Aprendi que `localhost` é aceito como contexto seguro durante o desenvolvimento, mas a aplicação publicada precisa de HTTPS para utilizar Service Workers e oferecer instalação de maneira confiável.
 
-### Código que consigo explicar
+### Partes principais que eu acho bom explicar
 
 Consigo explicar que `APP_SHELL` contém os arquivos mínimos necessários para abrir a interface. Durante `install`, `cache.addAll` busca esses recursos e só conclui quando todos estão disponíveis.
 
@@ -996,3 +996,78 @@ Consigo explicar que `pwa.js` testa a existência de `navigator.serviceWorker`, 
 ### Commit
 
 `feat: antecipar PWA instalável do Dia 10`
+
+## Dia 11 — 03/08/2026
+
+### Objetivo do dia
+
+Validar o fluxo completo de anúncios: criar, listar, filtrar, visualizar anúncios próprios e excluir com segurança. Também conferi o contrato JSON e os códigos HTTP da API, reiniciei o servidor para comprovar a persistência no SQLite e registrei os erros e as correções encontradas.
+
+### Organização entre agentes
+
+O trabalho foi separado entre agentes responsáveis pelos testes de CRUD e filtros, anúncios próprios, respostas JSON e códigos HTTP, reinício e persistência e consolidação deste Diário. A revisão final foi mantida separada das execuções para que as evidências, a limpeza dos dados e as alterações de produto pudessem ser conferidas de forma independente.
+
+### O que eu fiz
+
+Executei testes integrados reais contra instâncias locais isoladas. Foram criados anúncios identificáveis para usuários diferentes, conferidas as listagens geral e filtrada por `categoria` e `usuarioId`, testada a combinação dos dois filtros e validada a remoção dos próprios registros.
+
+O teste de anúncios próprios revelou que a proteção existia apenas no frontend. Antes da correção, Bruno conseguiu excluir pela API o anúncio de Alice: o servidor ignorou a identidade enviada, removeu o registro alheio e respondeu HTTP 200. Essa falha foi corrigida nas três camadas envolvidas.
+
+No frontend, `public/app.js` passou a enviar `X-Usuario-Id` na requisição DELETE e a apresentar mensagens específicas para 401 e 403. Na API, `server.js` passou a exigir a identificação, localizar o anúncio antes da exclusão, comparar o proprietário e responder 401 sem usuário, 403 para outro proprietário, 404 para anúncio inexistente e 200 somente para o dono. No SQLite, `database.js` passou a executar `DELETE FROM anuncios WHERE id = ? AND usuarioId = ?`, impedindo que a exclusão dependa apenas de uma verificação anterior no servidor.
+
+Também verifiquei todas as respostas com corpo quanto ao status, ao `Content-Type`, à possibilidade de leitura por `JSON.parse()` e ao formato esperado. Uma falha interna foi injetada somente em uma cópia temporária do servidor para exercitar o middleware 500 sem alterar o produto ou o banco principal.
+
+Por fim, criei um anúncio no banco real, encerrei efetivamente o processo do servidor, confirmei a linha diretamente no SQLite, iniciei uma segunda instância na mesma porta e recuperei o registro com os mesmos 12 campos. Depois da comprovação, o anúncio foi excluído pela API com a identidade do proprietário e o ambiente ficou limpo.
+
+### Erros encontrados e correções
+
+O erro principal permitia a exclusão de anúncio alheio por uma chamada direta à API. A interface escondia o botão e fazia uma conferência local, mas isso não constituía uma proteção de servidor.
+
+A investigação reproduziu a falha com duas identidades reais e acompanhou o registro antes e depois da requisição. Em seguida, revisei o contrato entre frontend, rota Express e instrução SQL. A correção foi aplicada em profundidade: cabeçalho no cliente, autorização e códigos adequados na API e condição de proprietário na própria exclusão SQL.
+
+Na primeira rodada do teste CRUD, o DELETE retornou 401 porque o teste ainda usava o contrato anterior enquanto a regra de `X-Usuario-Id` era integrada. O teste foi corrigido para enviar o proprietário, cobrir explicitamente 401 e 403 e limpar cada fixture com a identidade correspondente. Os resíduos daquela rodada também foram removidos pela API.
+
+Não foram encontradas outras falhas no contrato JSON/HTTP nem na persistência. Os agentes dessas áreas não modificaram arquivos do produto.
+
+### Como investiguei
+
+Usei marcadores exclusivos e duas identidades para distinguir propriedade, categoria e combinação de filtros. Após cada tentativa de exclusão negada, listei novamente os anúncios para confirmar que o registro continuava presente. Depois de uma exclusão autorizada, confirmei sua ausência e preservei o anúncio do outro usuário.
+
+Para os códigos HTTP, isolei servidor e banco em uma cópia temporária e cobri sucessos, validações, JSON malformado, falta de identificação, conflito de propriedade, recursos inexistentes e erro interno seguro. Para a persistência, identifiquei o PID pelo listener da porta, confirmei seu encerramento e comparei campo a campo as respostas obtidas antes e depois do reinício.
+
+### O que aprendi
+
+Aprendi que esconder uma ação no frontend melhora a experiência, mas não protege um recurso. A autorização precisa ser conferida no servidor e, quando possível, reforçada na operação do banco.
+
+Aprendi que 401 representa a ausência de identificação, 403 indica que o usuário identificado não pode executar a ação e 404 evita tratar como existente um recurso que não foi encontrado. Também aprendi que verificar somente o status não basta: o tipo de conteúdo, o JSON parseável e o formato do corpo fazem parte do contrato.
+
+Aprendi que reiniciar o servidor é uma prova mais forte de persistência do que listar logo após criar. Conferir o arquivo SQLite com o processo parado e reencontrar todos os campos em outra instância distingue dados persistidos de estado mantido em memória.
+
+### Partes principais que eu acho bom explicar
+
+Consigo explicar que `X-Usuario-Id` leva a identidade funcional do usuário atual até a rota de exclusão. A API normaliza esse valor, busca o anúncio, compara `anuncio.usuarioId` com o proprietário informado e somente então solicita a remoção.
+
+Consigo explicar que a condição `WHERE id = ? AND usuarioId = ?` faz a exclusão depender simultaneamente do anúncio e de seu proprietário. Assim, mesmo que a chamada ao banco receba um ID válido com outro usuário, nenhuma linha é removida.
+
+Consigo explicar que o filtro por `usuarioId` alimenta “Meus anúncios”, enquanto o filtro por `categoria` atende o catálogo; os dois podem ser combinados. Também consigo explicar que o SQLite mantém os registros no arquivo `data/marketplace.db`, permitindo que uma nova instância do servidor recupere os mesmos dados.
+
+### Testes realizados
+
+- CRUD, filtros, validações e exclusão: 16 de 16 cenários aprovados.
+- Anúncios próprios e autorização: 10 de 10 cenários aprovados após a correção.
+- JSON e códigos HTTP: 32 de 32 casos aprovados, incluindo 200, 201, 400, 401, 403, 404 e 500.
+- Todas as respostas testadas com corpo usaram `application/json; charset=utf-8` e JSON parseável.
+- Filtros por categoria, usuário e combinação dos dois aprovados.
+- Exclusão sem identidade rejeitada com 401.
+- Exclusão de anúncio alheio rejeitada com 403 e registro preservado.
+- Exclusão pelo proprietário aprovada com 200.
+- Persistência aprovada após encerramento e reinício reais do servidor.
+- Os 12 campos do anúncio permaneceram idênticos depois do reinício.
+- Fixtures removidas, banco sem os marcadores de teste, porta liberada e processos temporários encerrados.
+- Sintaxe de `server.js`, `database.js` e `public/app.js` validada.
+
+### Limitação do ambiente
+
+O navegador conectado foi solicitado para uma conferência visual do fluxo de “Meus anúncios”, mas o ambiente retornou `No browser is available`. Por isso, a interface foi conferida por inspeção reproduzível do código e os comportamentos foram comprovados pela API; não foi registrada evidência visual de clique, renderização ou DevTools.
+
+Também permanece uma limitação conhecida do produto: `X-Usuario-Id` implementa o contrato funcional de propriedade, mas não substitui autenticação, sessão ou token assinado. Um cliente que conheça o identificador de outro usuário ainda pode falsificar o cabeçalho. Autenticação real é uma evolução futura, fora do escopo da correção mínima do Dia 11.
