@@ -1,7 +1,7 @@
 "use strict";
 
 const CACHE_PREFIX = "marketplace-vortex";
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v3";
 const STATIC_CACHE = `${CACHE_PREFIX}-static-${CACHE_VERSION}`;
 
 const APP_SHELL = [

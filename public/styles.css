@@ -3711,6 +3711,22 @@ footer section p {
 }
 
 @media (max-width: 26rem) {
+  html {
+    scroll-padding-top: 5.5rem;
+  }
+
+  body {
+    overflow-x: clip;
+  }
+
+  header {
+    column-gap: 0.5rem;
+    min-height: 4rem;
+    padding:
+      0.55rem max(0.75rem, env(safe-area-inset-right))
+      0.55rem max(0.75rem, env(safe-area-inset-left));
+  }
+
   header > a.logo span:last-child {
     display: none;
   }
@@ -3719,6 +3735,414 @@ footer section p {
   .btn-login:not(.is-autenticado) .indicador-conta-cta,
   .btn-login.is-autenticado .saudacao-usuario {
     display: none;
+  }
+
+  .header-actions {
+    gap: 0.35rem;
+  }
+
+  .btn-login,
+  .btn-login.is-autenticado {
+    min-width: 2.75rem;
+    padding: 0.35rem;
+  }
+
+  .menu-conta {
+    max-width: calc(100vw - 1.5rem);
+    min-width: 9.5rem;
+  }
+
+  main > section {
+    padding-block: 3rem;
+    padding-left: max(0.875rem, env(safe-area-inset-left));
+    padding-right: max(0.875rem, env(safe-area-inset-right));
+  }
+
+  main > section h2 {
+    font-size: clamp(1.75rem, 8.5vw, 2.1rem);
+  }
+
+  #inicio {
+    padding-bottom: 3rem;
+    padding-top: 2.5rem;
+  }
+
+  #inicio > p:first-child {
+    font-size: 0.68rem;
+    letter-spacing: 0.075em;
+    margin-bottom: 1rem;
+    padding: 0.4rem 0.7rem;
+  }
+
+  #inicio h1 {
+    font-size: clamp(2.1rem, 10.5vw, 2.65rem);
+    line-height: 1.04;
+    margin-bottom: 1rem;
+    max-width: 12ch;
+  }
+
+  #inicio h1 + p {
+    line-height: 1.55;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero-ctas,
+  .vitrine-ctas {
+    gap: 0.65rem;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hero-cta,
+  .vitrine-cta {
+    min-height: 3rem;
+    padding: 0.75rem 1rem;
+    width: 100%;
+  }
+
+  #inicio aside {
+    border-radius: 1.15rem;
+    margin-top: 2rem;
+    min-height: 15rem;
+    padding: 1.25rem 0.75rem;
+  }
+
+  #inicio .doacao-animacao {
+    width: min(15.5rem, 100%);
+  }
+
+  #inicio aside p {
+    font-size: clamp(1.05rem, 5.5vw, 1.3rem);
+    margin-top: 0.5rem;
+  }
+
+  .ciclo-nucleo {
+    height: 8.5rem;
+    margin-bottom: 1.75rem;
+  }
+
+  #como-funciona ol {
+    gap: 0.75rem;
+    padding-left: 2.65rem;
+  }
+
+  #como-funciona ol::before {
+    left: 1rem;
+  }
+
+  #como-funciona li,
+  #como-funciona li:nth-child(1),
+  #como-funciona li:nth-child(2),
+  #como-funciona li:nth-child(3),
+  #como-funciona li:nth-child(4) {
+    min-height: 0;
+    padding: 1.1rem;
+  }
+
+  #como-funciona li:nth-child(1)::after,
+  #como-funciona li:nth-child(2)::after,
+  #como-funciona li:nth-child(3)::after,
+  #como-funciona li:nth-child(4)::after {
+    left: -2.05rem;
+  }
+
+  main > section[aria-labelledby="titulo-impacto"] dl div {
+    min-height: 0;
+    padding: 1.35rem 0.5rem;
+  }
+
+  .vitrine-header-content,
+  .secao-header-centro {
+    margin-bottom: 2rem;
+    text-align: left;
+  }
+
+  .vitrine-header-content h2,
+  .secao-header-centro h2 {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .vitrine-header-content p:last-child,
+  .secao-header-centro p:last-child {
+    font-size: 1rem;
+    line-height: 1.55;
+    margin-left: 0;
+  }
+
+  .vitrine-layout,
+  .vitrine-conteudo {
+    gap: 1rem;
+  }
+
+  .sidebar-filtros {
+    align-items: stretch;
+    display: grid;
+    gap: 0.75rem;
+    grid-auto-columns: min(17rem, 78vw);
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.875rem;
+    scroll-padding-inline: 0.875rem;
+    scroll-snap-type: inline mandatory;
+    scrollbar-width: thin;
+  }
+
+  .filtro-grupo {
+    background: var(--off-white);
+    border: 1px solid var(--borda);
+    border-radius: 0.9rem;
+    min-width: 0;
+    padding: 0.9rem;
+    scroll-snap-align: start;
+  }
+
+  .filtro-grupo h3 {
+    margin-bottom: 0.7rem;
+  }
+
+  .filtro-lista-links,
+  .filtro-lista-check,
+  .filtro-lista-radio {
+    gap: 0.45rem;
+  }
+
+  .filtro-lista-links a,
+  .filtro-lista-check label,
+  .filtro-lista-radio label {
+    min-height: 2.75rem;
+  }
+
+  .filtro-tags {
+    gap: 0.4rem;
+  }
+
+  .filtro-preco-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filtro-preco-form button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .vitrine-busca-barra {
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .busca-input-container {
+    min-height: 2.9rem;
+    width: 100%;
+  }
+
+  .vitrine-acoes {
+    display: grid;
+    gap: 0.6rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    width: 100%;
+  }
+
+  .btn-ordenar {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .vitrine-abas-container {
+    gap: 0.65rem;
+  }
+
+  .vitrine-abas {
+    gap: 0.35rem;
+  }
+
+  .vitrine-abas .aba {
+    min-height: 2.75rem;
+    padding: 0.6rem 0.9rem;
+  }
+
+  .resultados-contagem {
+    white-space: normal;
+  }
+
+  .card-anuncio,
+  .visualizacao-lista .card-anuncio {
+    border-radius: 1rem;
+    min-height: 0;
+    padding: 0.75rem;
+  }
+
+  .card-media,
+  .visualizacao-lista .card-media {
+    aspect-ratio: auto;
+    height: clamp(10.5rem, 52vw, 12.5rem);
+    min-height: 0;
+  }
+
+  .card-anuncio > p.card-cat,
+  .visualizacao-lista .card-anuncio > p.card-cat {
+    font-size: 0.68rem;
+    margin: 0.75rem 0 0.25rem;
+  }
+
+  .card-anuncio h3 {
+    font-size: 1.05rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .card-anuncio p.card-info {
+    font-size: 0.8rem;
+    line-height: 1.45;
+    margin-bottom: 0.65rem;
+  }
+
+  .card-anuncio p.card-price {
+    font-size: 1.2rem;
+    margin: 0.2rem 0 0.65rem;
+  }
+
+  .card-anuncio a.btn-detalhes {
+    font-size: 0.82rem;
+    min-height: 2.75rem;
+    padding-block: 0.55rem;
+  }
+
+  .card-creators {
+    left: 0.6rem;
+    top: 0.6rem;
+  }
+
+  .card-creators img {
+    height: 1.35rem;
+    width: 1.35rem;
+  }
+
+  .painel-novo-anuncio,
+  .formulario-novo-anuncio,
+  .painel-nova-colecao,
+  .formulario-nova-colecao {
+    border-radius: 0.9rem;
+    padding: 0.875rem;
+  }
+
+  .painel-novo-anuncio-cabecalho,
+  .painel-colecao-cabecalho {
+    gap: 0.65rem;
+  }
+
+  .painel-novo-anuncio-cabecalho > div,
+  .painel-colecao-cabecalho > div {
+    min-width: 0;
+  }
+
+  .painel-novo-anuncio h3,
+  .painel-nova-colecao h3 {
+    font-size: 1.45rem;
+    overflow-wrap: anywhere;
+  }
+
+  .formulario-novo-anuncio,
+  .formulario-nova-colecao {
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .formulario-novo-anuncio fieldset {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0.75rem;
+  }
+
+  .formulario-novo-anuncio fieldset label {
+    width: 100%;
+  }
+
+  .formulario-novo-anuncio input[type="file"] {
+    font-size: 0.85rem;
+  }
+
+  .formulario-novo-anuncio input[type="file"]::file-selector-button {
+    display: block;
+    margin: 0 0 0.55rem;
+    width: 100%;
+  }
+
+  .formulario-novo-anuncio > button,
+  .botao-salvar-colecao {
+    justify-self: stretch;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .item-colecao-linha {
+    padding: 0.75rem;
+  }
+
+  .item-colecao-cabecalho {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .botao-remover-item-colecao {
+    width: 100%;
+  }
+
+  .card-colecao,
+  .card-colaborador,
+  .card-meu-anuncio {
+    padding: 1rem;
+  }
+
+  .colecao-preview {
+    gap: 0.4rem;
+  }
+
+  .meu-anuncio-media {
+    height: min(12rem, 56vw);
+  }
+
+  .meu-anuncio-acoes {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .meu-anuncio-acoes button {
+    min-height: 2.75rem;
+    width: 100%;
+  }
+
+  .modal-imagem {
+    padding:
+      max(0.75rem, env(safe-area-inset-top))
+      max(0.75rem, env(safe-area-inset-right))
+      max(0.75rem, env(safe-area-inset-bottom))
+      max(0.75rem, env(safe-area-inset-left));
+  }
+
+  .modal-imagem-cabecalho {
+    align-items: flex-start;
+  }
+
+  .modal-imagem-conteudo img {
+    max-height: calc(100dvh - 8rem);
+  }
+
+  footer {
+    gap: 2rem;
+    padding:
+      3rem max(0.875rem, env(safe-area-inset-right))
+      1.5rem max(0.875rem, env(safe-area-inset-left));
+  }
+
+  .footer-nav-container {
+    gap: 1.5rem;
+  }
+
+  .footer-bottom {
+    gap: 1rem;
+    margin-top: 1rem;
+    padding-top: 1.5rem;
   }
 }
 

@@ -1071,3 +1071,61 @@ Consigo explicar que o filtro por `usuarioId` alimenta “Meus anúncios”, enq
 O navegador conectado foi solicitado para uma conferência visual do fluxo de “Meus anúncios”, mas o ambiente retornou `No browser is available`. Por isso, a interface foi conferida por inspeção reproduzível do código e os comportamentos foram comprovados pela API; não foi registrada evidência visual de clique, renderização ou DevTools.
 
 Também permanece uma limitação conhecida do produto: `X-Usuario-Id` implementa o contrato funcional de propriedade, mas não substitui autenticação, sessão ou token assinado. Um cliente que conheça o identificador de outro usuário ainda pode falsificar o cabeçalho. Autenticação real é uma evolução futura, fora do escopo da correção mínima do Dia 11.
+
+## Dia 12 — 04/08/2026
+
+### Objetivo do dia
+
+Executar um teste completo do Marketplace Vortex em desktop e mobile, revisar os requisitos da PWA, confirmar que as correções anteriores não causaram regressões, procurar mensagens de erro no Console e percorrer o fluxo principal do início ao fim.
+
+### Organização entre agentes
+
+As frentes de regressão e fluxo completo foram executadas separadamente, e uma auditoria independente consolidou as evidências. Os testes que dependiam de uma sessão real de navegador foram identificados como uma etapa própria, para não confundir validação estrutural com comprovação visual.
+
+### O que eu fiz
+
+Revisei o manifesto, os ícones, o registro e o ciclo de vida do Service Worker. O shell da aplicação continuou disponível, os arquivos obrigatórios mantiveram respostas válidas e a estratégia de cache permaneceu sem interceptar operações da API.
+
+Repeti os testes automatizados das funcionalidades já entregues. O fluxo de anúncios continuou criando, listando, filtrando e excluindo corretamente, inclusive com as regras de propriedade implementadas no Dia 11. Também foram revalidados os contratos JSON, os códigos HTTP e a sintaxe dos arquivos JavaScript.
+
+Ao testar as resoluções de 390×844, 360×800 e 320×568, identifiquei que os anúncios e outros elementos do catálogo ocupavam espaço vertical excessivo. Criei um breakpoint específico para telas de até 26 rem e compactei cabeçalho, seções, filtros, cartões, formulários, modais e rodapé. No catálogo mobile, os filtros passaram a usar uma faixa horizontal e a mídia dos anúncios recebeu altura controlada para preservar espaço para as informações principais.
+
+Como o Service Worker podia manter uma folha de estilos anterior no cache, atualizei a versão do cache estático para `marketplace-vortex-static-v3`. Isso força a renovação dos arquivos do shell depois da atualização do Service Worker.
+
+### Resultados
+
+Os testes automatizados de regressão foram aprovados em 69 de 69 cenários. O fluxo integrado da API foi aprovado, e as validações de sintaxe e da estrutura da PWA também passaram. O cache `v3` foi criado, utilizado e limpo corretamente no teste isolado do Service Worker.
+
+A responsividade ficou melhor após os ajustes, mas a avaliação visual mostrou que ainda há espaço para refinamento, principalmente na proporção dos cartões e na densidade das informações em telas pequenas.
+
+### Partes principais que eu acho bom explicar
+
+Consigo explicar que o breakpoint de 26 rem atende as três larguras críticas sem alterar o layout das telas maiores. Dentro dele, tamanhos, espaçamentos e alturas são reduzidos de forma coordenada, evitando que apenas um componente fique menor enquanto o restante continue ocupando espaço demais.
+
+Consigo explicar que a alteração do nome do cache invalida a versão estática anterior. No evento `activate`, o Service Worker remove caches antigos do Marketplace Vortex; nas próximas requisições, o navegador passa a receber os arquivos da versão atual.
+
+Consigo explicar que testes estruturais confirmam manifesto, ícones, rotas e lógica do Service Worker, mas a instalação pelo navegador e a aparência em cada viewport precisam de uma sessão visual real para serem comprovadas.
+
+### Testes realizados
+
+- Regressão automatizada: 69 de 69 cenários aprovados.
+- Fluxo completo da API aprovado do início ao fim.
+- Criação, listagem, filtros, anúncios próprios e exclusão novamente validados.
+- Respostas JSON e códigos HTTP novamente validados.
+- Sintaxe dos arquivos JavaScript aprovada.
+- Manifesto, referências de ícones e registro do Service Worker conferidos.
+- Ciclo de cache do Service Worker aprovado com `marketplace-vortex-static-v3`.
+- Estrutura mobile revisada para 390×844, 360×800 e 320×568.
+- Alterações verificadas sem erros de espaços ou conflitos no diff.
+
+### Limitação do ambiente
+
+O ambiente automatizado não disponibilizou um navegador conectado para concluir a instalação da PWA, capturar o Console em execução e executar toda a conferência visual de desktop e mobile. Essas etapas foram registradas como bloqueadas pela ferramenta, e não como aprovadas sem evidência.
+
+### Observação para a revisão final
+
+Antes de encerrar o projeto, devo voltar à responsividade e fazer uma nova rodada visual em navegador real nas resoluções 390×844, 360×800 e 320×568. É importante refinar principalmente altura e proporção dos cartões, espaçamentos e hierarquia tipográfica do catálogo. A responsividade melhorou neste dia, mas ainda não deve ser considerada finalizada.
+
+### Commit
+
+`fix: ajustar responsividade mobile do Dia 12`
