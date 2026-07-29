@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "build": "vite build",
     "test": "node --test",
+    "regression:published": "node scripts/regression-published.js",
     "migrate": "node scripts/migrate.js",
     "start": "node server.js"
   },

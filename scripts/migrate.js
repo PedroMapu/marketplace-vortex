@@ -171,6 +171,25 @@ async function runMigrations({
   }
 }
 
+async function runTestMigrations({
+  testDatabaseUrl = process.env.TEST_DATABASE_URL,
+  databaseUrl = process.env.DATABASE_URL,
+  databaseUrlDirect = process.env.DATABASE_URL_DIRECT,
+  ...opcoes
+} = {}) {
+  const { exigirTestDatabaseUrlIsolada } = require("./database-safety");
+  const connectionString = exigirTestDatabaseUrlIsolada({
+    testDatabaseUrl,
+    databaseUrl,
+    databaseUrlDirect,
+  });
+
+  return runMigrations({
+    ...opcoes,
+    connectionString,
+  });
+}
+
 async function main() {
   try {
     const resultado = await runMigrations();
@@ -193,4 +212,5 @@ module.exports = {
   calcularChecksum,
   descobrirMigrations,
   runMigrations,
+  runTestMigrations,
 };

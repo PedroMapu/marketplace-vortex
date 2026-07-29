@@ -1818,3 +1818,162 @@ O próximo passo planejado é o Dia Bônus 7: transformar os testes temporários
 ### Commit
 
 Implementação e registro versionados juntos em `feat: concluir dia bonus 6 com cache offline e polimento`.
+
+## Dia Bônus 7 — regressão local e publicada
+
+Data de execução: 29/07/2026.
+
+### Objetivo
+
+Transformar os harnesses temporários úteis em testes permanentes, impedir que a
+suíte use um banco não isolado, ampliar a cobertura de migrations, banco, API,
+autenticação, cache e frontend, repetir a regressão local e publicada, corrigir
+erros antes do deploy e validar o artefato destinado à Vercel.
+
+### Principais prompts usados
+
+**Prompt 1 — Divisão das frentes**
+
+> Seguindo o `PLAN.md`, avance para o Dia Bônus 7. Separe um agente para cada
+> tarefa e use um agente extra para revisar tudo depois da conclusão.
+
+**Prompt 2 — Segurança do banco de testes**
+
+> Exija `TEST_DATABASE_URL` de forma fail-closed. A validação deve acontecer
+> antes de criar pool, executar migration ou limpar fixtures e deve reconhecer
+> destinos equivalentes mesmo com credenciais, parâmetros ou endpoints Neon
+> pooled/direct diferentes.
+
+**Prompt 3 — Regressão publicada**
+
+> Valide a API publicada com dois usuários temporários, criação, listagens,
+> bloqueio 403 e exclusão pelo proprietário. Remova somente o anúncio criado
+> pela execução e nunca registre senha, token ou URL de banco.
+
+**Prompt 4 — Revisão independente**
+
+> Audite o diff completo, repita verificações focadas e a suíte integral,
+> inspecione o build Vercel e corrija somente achados inequívocos. Não repita a
+> regressão pública mutante durante a revisão.
+
+### Resposta da IA
+
+A IA organizou as seis frentes em ondas por causa do limite de quatro agentes
+simultâneos. Um sétimo agente revisou o conjunto depois que todas as entregas
+estavam integradas.
+
+A suíte permanente ganhou harnesses para o Service Worker e para o registro e
+invalidação PWA. Os scripts históricos em `tmp/` foram preservados como
+evidência, mas não foram promovidos porque ainda dependem de SQLite,
+`X-Usuario-Id` e contratos removidos.
+
+A proteção de banco foi centralizada em `scripts/database-safety.js`.
+`TEST_DATABASE_URL` tornou-se obrigatória para a integração real e é comparada
+com `DATABASE_URL` e `DATABASE_URL_DIRECT` pelo destino efetivo: host, porta e
+banco. A normalização reconhece endpoints pooled/direct do Neon, ignora
+diferenças de credenciais e opções SSL e recusa parâmetros capazes de
+sobrescrever o destino. A checagem ocorre antes de pool, migration ou limpeza.
+
+Foi criado um fluxo permanente com dois usuários usando a aplicação Express
+real, JWT, bcrypt e middleware. Ele comprova autoria derivada do token,
+isolamento de `/api/anuncios/me`, resposta 403 para exclusão alheia, preservação
+do anúncio depois da tentativa indevida e exclusão 200 pelo proprietário.
+
+O comando `npm run regression:published` passou a executar de forma
+reprodutível o fluxo HTTPS contra a API Render. A execução usa contas e dados
+aleatórios, não imprime credenciais e tenta remover no `finally` somente o
+anúncio que ela própria criou.
+
+### O que funcionou
+
+O teste PostgreSQL real aplicou migrations, exerceu CRUD e filtros e comprovou
+persistência entre conexões. A suíte completa passou com 91 testes e nenhum
+skip quando as variáveis locais foram carregadas somente no processo.
+
+A regressão publicada aprovou status, dois cadastros, login, `/api/auth/me`,
+criação, catálogo, anúncios próprios, bloqueio 403 para o segundo usuário e
+exclusão pelo proprietário. O anúncio temporário foi removido. As duas contas
+aleatórias permanecem sem anúncios porque a API não oferece exclusão de conta.
+
+Os harnesses permanentes comprovaram cache network-first por query exata,
+fallback offline, miss 503, exclusão de dados autenticados, invalidação de todas
+as variantes, confirmação por `MessageChannel`, registro do Service Worker e
+compatibilidade quando o recurso não está disponível.
+
+O build representativo da Vercel incorporou
+`https://marketplace-vortex-api.onrender.com` no bundle e no Service Worker.
+HTML, CSS, JavaScript, manifesto e ícones foram gerados com caminhos válidos. O
+artefato não contém localhost, URLs PostgreSQL nem nomes de segredos.
+
+### Erros encontrados e corrigidos
+
+Depois de POST ou DELETE, `invalidarCacheCatalogoPublico()` podia aguardar
+`navigator.serviceWorker.ready` indefinidamente quando o navegador expunha a
+API, mas nenhum registro chegava ao estado ativo. A espera agora termina em
+750 ms sem transformar uma mutação já confirmada em bloqueio da interface. Um
+teste permanente cobre o worker que nunca fica ativo.
+
+O projeto não possuía configuração explícita para o artefato Vercel. Foi
+adicionado `vercel.json` com `npm run build`, saída `dist` e
+`Cache-Control: no-cache` para `/service-worker.js`.
+
+### Como investiguei
+
+Comparei a suíte existente e os harnesses de `tmp/` com os critérios do Dia
+Bônus 7. Revisei os pontos em que migrations, pools e limpeza poderiam ocorrer
+antes da validação de ambiente. Auditei separadamente os contratos de erro 400,
+401, 403, 404, 409, 413 e 500 e o fluxo de propriedade.
+
+Executei a regressão local primeiro sem banco externo, confirmando que a
+integração era ignorada sem efeito colateral, e depois com `.env` carregado
+somente no processo, depois que o guard aprovou o isolamento. A API publicada
+foi exercitada por HTTPS com fixtures aleatórias e limpeza defensiva.
+
+Por fim, gerei o build com a URL pública somente no processo, conferi o
+precache, procurei referências a localhost, variáveis de banco, JWT e URLs
+PostgreSQL e validei a presença da origem Render nos dois artefatos executáveis.
+
+### O que aprendi
+
+Aprendi que comparar strings de conexão literalmente não protege o banco:
+credenciais, porta padrão, percent-encoding e endpoint pooled podem mudar a
+string sem mudar o destino real.
+
+Aprendi que um teste de integração seguro deve validar o destino antes mesmo de
+importar ou construir recursos que possam conectar. A proteção precisa falhar
+fechada no primeiro ponto do fluxo.
+
+Aprendi que `navigator.serviceWorker.ready` não possui timeout próprio. Uma
+rotina best-effort usada depois de uma mutação precisa limitar a espera para não
+prender a atualização da interface.
+
+Aprendi que uma regressão publicada reutilizável deve gerar fixtures únicas,
+validar exatamente o ID criado e limitar a limpeza a esse recurso. A ausência
+de uma rota de exclusão de conta também precisa ser registrada explicitamente.
+
+### Testes realizados
+
+- `npm run typecheck`: aprovado.
+- `npm run build`: aprovado com a URL pública do Render somente no processo.
+- Build PWA: 6 entradas e 192,68 KiB de precache.
+- `npm test` sem URL de teste: 90 aprovados e 1 integração ignorada.
+- `npm test` com banco isolado: 91 aprovados, 0 falhas e 0 ignorados.
+- PostgreSQL real: migrations, CRUD, filtros e persistência entre conexões.
+- API publicada: fluxo completo com dois usuários aprovado.
+- Códigos 400, 401, 403, 404, 409, 413 e 500 comprovados.
+- `git diff --check`: aprovado.
+- JavaScript novo e alterado: verificação sintática aprovada.
+- `dist`: sem localhost, URL de banco ou nomes de segredos.
+- `vercel.json`: build, saída e header do Service Worker validados.
+- Revisão independente: parecer aprovado.
+
+### Limitações e próximo passo
+
+A persistência foi comprovada entre conexões, mas ainda não há evidência direta
+de permanência depois de um redeploy real do Render. A matriz visual completa
+em 1440, 1024, 390, 360 e 320 px, teclado, foco e instalação PWA também continua
+como validação manual em navegador.
+
+O próximo passo é o Dia Bônus 8: publicar o frontend na Vercel, adicionar a URL
+definitiva à allowlist do Render e executar o fluxo real, a inspeção visual,
+Application/Network/Console e o teste offline em produção.

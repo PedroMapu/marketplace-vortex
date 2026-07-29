@@ -8,41 +8,20 @@ const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL?.trim();
 const DATABASE_URL_ORIGINAL = process.env.DATABASE_URL;
 const DATABASE_URL_DIRECT_ORIGINAL = process.env.DATABASE_URL_DIRECT;
 
-function validarConexaoDeTeste(connectionString) {
-  let url;
-
-  try {
-    url = new URL(connectionString);
-  } catch {
-    throw new Error("TEST_DATABASE_URL deve ser uma URL PostgreSQL válida.");
-  }
-
-  if (!["postgres:", "postgresql:"].includes(url.protocol)) {
-    throw new Error("TEST_DATABASE_URL deve usar o protocolo PostgreSQL.");
-  }
-
-  const proibidas = [
-    DATABASE_URL_ORIGINAL,
-    DATABASE_URL_DIRECT_ORIGINAL,
-  ]
-    .filter((valor) => typeof valor === "string" && valor.trim() !== "")
-    .map((valor) => valor.trim());
-
-  if (proibidas.includes(connectionString)) {
-    throw new Error(
-      "TEST_DATABASE_URL não pode ser igual a DATABASE_URL ou DATABASE_URL_DIRECT.",
-    );
-  }
-}
-
 test(
   "CRUD real usa PostgreSQL de teste e persiste entre conexões",
   { skip: !TEST_DATABASE_URL && "TEST_DATABASE_URL não configurada" },
   async () => {
-    validarConexaoDeTeste(TEST_DATABASE_URL);
-
     const { Pool } = require("pg");
-    const { runMigrations } = require("../scripts/migrate");
+    const { runTestMigrations } = require("../scripts/migrate");
+    const {
+      exigirTestDatabaseUrlIsolada,
+    } = require("../scripts/database-safety");
+    const testDatabaseUrl = exigirTestDatabaseUrlIsolada({
+      testDatabaseUrl: TEST_DATABASE_URL,
+      databaseUrl: DATABASE_URL_ORIGINAL,
+      databaseUrlDirect: DATABASE_URL_DIRECT_ORIGINAL,
+    });
     const usuarioId = randomUUID();
     const email = `fixture-${usuarioId}@example.invalid`;
     const logSilencioso = { info() {}, error() {} };
@@ -50,15 +29,17 @@ test(
     let fixtureCriada = false;
     let poolDaAplicacaoEncerrado = false;
     const poolDeLimpeza = new Pool({
-      connectionString: TEST_DATABASE_URL,
+      connectionString: testDatabaseUrl,
       max: 1,
     });
 
-    process.env.DATABASE_URL = TEST_DATABASE_URL;
+    process.env.DATABASE_URL = testDatabaseUrl;
 
     try {
-      await runMigrations({
-        connectionString: TEST_DATABASE_URL,
+      await runTestMigrations({
+        testDatabaseUrl,
+        databaseUrl: DATABASE_URL_ORIGINAL,
+        databaseUrlDirect: DATABASE_URL_DIRECT_ORIGINAL,
         log: logSilencioso,
       });
 

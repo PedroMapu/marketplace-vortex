@@ -74,10 +74,17 @@ quando:
 - `TEST_DATABASE_URL` estiver ausente;
 - `TEST_DATABASE_URL` for igual a `DATABASE_URL` ou `DATABASE_URL_DIRECT`;
 
-Valide no painel que as três branches existem e que as URLs apontam aos ambientes
-esperados e não execute a suíte se o endpoint de teste pertencer à produção.
-Faça o teste de conexão sem imprimir as URLs. A migration deve ser executada
-duas vezes em cada ambiente sem duplicar estrutura.
+A validação é fail-closed e acontece antes de criar o pool usado por migrations
+ou limpeza. Ela compara o destino normalizado (host, porta e banco), ignorando
+diferenças de protocolo, credenciais e opções de conexão; endpoints pooled e
+diretos do Neon também são tratados como o mesmo destino. Parâmetros capazes de
+sobrescrever o destino são recusados por serem ambíguos.
+
+Valide também no painel que as três branches existem e que as URLs apontam aos
+ambientes esperados: uma URL não informa de forma confiável o nome amigável da
+branch. Não execute a suíte se o endpoint de teste pertencer à produção. Faça o
+teste de conexão sem imprimir as URLs. A migration deve ser executada duas vezes
+em cada ambiente sem duplicar estrutura.
 
 Validação executada em 28/07/2026:
 
@@ -103,10 +110,10 @@ conexão, e remove apenas a fixture ao final. Sem `TEST_DATABASE_URL`, esse test
 é ignorado e nenhuma limpeza é executada. Se a URL for igual a `DATABASE_URL` ou
 `DATABASE_URL_DIRECT`, ele falha antes de conectar.
 
-Comparar strings protege contra a configuração local mais perigosa, mas uma URL
-Neon não informa de forma confiável o nome amigável da branch. Por isso a
-confirmação de que o endpoint pertence à branch `test` continua sendo uma etapa
-obrigatória no painel.
+A comparação normalizada protege contra variações textuais da mesma conexão,
+mas uma URL Neon não informa de forma confiável o nome amigável da branch. Por
+isso a confirmação de que o endpoint pertence à branch `test` continua sendo
+uma etapa obrigatória no painel.
 
 Referências oficiais: [projetos e branches no
 Neon](https://neon.com/docs/manage/projects) e [conexões pooled e
