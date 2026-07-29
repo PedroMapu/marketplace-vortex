@@ -1495,3 +1495,144 @@ O próximo passo planejado é o Dia Bônus 4: implementar autenticação JWT, ha
 ### Commit
 
 `55d1736` — `feat: concluir dia bonus 3 com PostgreSQL no Neon`
+
+## Dia Bônus 5 — 28/07/2026
+
+### Objetivo do dia
+
+Publicar a API no plano gratuito do Render e conectar o frontend à autenticação JWT implementada na etapa anterior. O trabalho deveria fixar o runtime Node 24, executar migrations durante a inicialização, configurar as variáveis de produção, substituir a identidade local por cadastro e login acessíveis, persistir a sessão apenas na aba, enviar Bearer nas rotas protegidas e preservar as coleções antigas por meio de uma importação explícita e não destrutiva.
+
+### Organização entre agentes
+
+Cada uma das doze entregas do plano foi atribuída a um agente separado. Como havia somente três vagas simultâneas para subagentes, o trabalho foi executado em ondas e as tarefas que alteravam `render.yaml` ou `src/app.ts` foram mantidas em sequência para evitar sobrescritas concorrentes.
+
+As frentes foram: manifesto Render; Node 24; comando de build; comando de inicialização; variáveis de produção; deploy e health check; dialog de cadastro/login; `sessionStorage`; Bearer; aviso de cold start; coleções por UUID; e importação da identidade legada. Depois da conclusão e do deploy, um agente adicional realizou uma revisão independente de todo o Dia Bônus 5.
+
+### O que eu fiz
+
+Criei `render.yaml` com um Web Service Node gratuito chamado `marketplace-vortex-api`, health check em `/api/status`, `buildCommand: npm ci` e `startCommand: npm run migrate && npm start`. As variáveis `DATABASE_URL`, `DATABASE_URL_DIRECT`, `JWT_SECRET` e `FRONTEND_ORIGINS` foram declaradas com `sync: false`, para que o Render solicite os valores no painel sem armazená-los no repositório.
+
+Fixei Node em `24.x` no `package.json` e sincronizei o metadado no `package-lock.json`. O deploy usou o commit `89f4a8fd17cf99b19b2d5fcf0468b56cf600b6f0`.
+
+No frontend, substituí o `window.prompt` de nome por um `<dialog>` nativo com modos de login e cadastro. O dialog possui título e descrição associados, labels visíveis, autocomplete, mensagens de erro por campo, navegação por abas, foco inicial, fechamento por `Escape`, backdrop e devolução de foco ao botão da conta.
+
+Cadastro e login passaram a usar `POST /api/auth/register` e `POST /api/auth/login`. A resposta `{ token, usuario }` é validada antes de entrar no estado da aplicação e armazenada em `sessionStorage` na chave `marketplace-vortex:sessao`. Ao recarregar a página, `GET /api/auth/me` valida o token e atualiza a identidade.
+
+Criei um helper central para requisições autenticadas. Ele envia `Authorization: Bearer <token>` em `POST /api/anuncios`, `DELETE /api/anuncios/:id`, `GET /api/auth/me` e `GET /api/anuncios/me`. A listagem de anúncios do usuário deixou de enviar UUID por query e passou a depender exclusivamente do token.
+
+Somente uma resposta HTTP 401 invalida a sessão. Nesse caso, o frontend remove o valor de `sessionStorage`, limpa o estado autenticado, abre o dialog e informa que é necessário entrar novamente. Falhas de rede, indisponibilidade temporária e respostas diferentes de 401 preservam a sessão.
+
+O cliente agora respeita `VITE_API_URL`. Quando a variável está vazia, os caminhos relativos e o proxy local continuam funcionando. Quando configurada, todas as chamadas usam a API publicada.
+
+Adicionei um aviso atrasado de 1,5 segundo com o texto exato “A API gratuita está iniciando”. Ele aparece em carregamentos demorados do catálogo, anúncios do usuário e cadastro/login, sem piscar em respostas rápidas. Todos os timers são cancelados em sucesso, erro e requisições obsoletas.
+
+As coleções novas e a renderização das coleções pessoais passaram a usar somente o UUID validado de `sessaoAtual.usuario`. A identidade antiga em `localStorage` deixou de autenticar o usuário, mas continua preservada para o fluxo de importação.
+
+Criei um segundo dialog para a importação das coleções legadas. A oferta só aparece quando existem uma identidade antiga e coleções associadas a ela. A decisão é registrada por uma chave versionada e específica ao par `ID legado + UUID autenticado`.
+
+Ao aceitar, somente as coleções cujo `usuarioId` corresponde à identidade antiga são reassociadas ao UUID e ao nome autenticados. Demais coleções, entradas desconhecidas e campos adicionais são preservados. Ao recusar, apenas o marcador de decisão é gravado; a identidade e as coleções antigas não são apagadas nem regravadas.
+
+### Deploy no Render
+
+Conectei o Render ao GitHub com acesso restrito ao repositório `PedroMapu/marketplace-vortex` e criei o Blueprint `marketplace-vortex`. As quatro variáveis foram preenchidas no painel sem exposição de valores.
+
+O primeiro deploy executou `npm ci`, `npm run migrate` e `npm start`. As migrations 001 e 002 foram reconhecidas como já aplicadas, e a migration 003 de tokens de redefinição de senha foi aplicada. O servidor iniciou na porta 10000 fornecida pelo Render.
+
+A API ficou disponível em:
+
+`https://marketplace-vortex-api.onrender.com`
+
+O endpoint `GET /api/status` respondeu HTTP 200 com:
+
+`{"mensagem":"API do Marketplace Vortex funcionando."}`
+
+Como o health check executa `SELECT 1`, essa resposta também confirmou a conexão do serviço publicado com o Neon de produção.
+
+### O que funcionou
+
+O serviço gratuito ficou live por HTTPS no commit esperado. O build, as migrations e a inicialização foram concluídos pelo mesmo `startCommand`, sem depender de pre-deploy indisponível no plano gratuito.
+
+O fluxo real de produção foi comprovado com uma conta sintética: cadastro respondeu 201, `/api/auth/me` respondeu 200, login respondeu 200 com o mesmo UUID, um novo `/api/auth/me` respondeu 200 e `/api/anuncios/me` respondeu 200 com lista vazia.
+
+O preflight de produção respondeu 204 para uma origem local autorizada e permitiu `Authorization` e `Content-Type`. Uma origem fora da allowlist recebeu 403.
+
+A inspeção visual confirmou que o dialog de autenticação mantém a identidade visual do Marketplace Vortex, recebe foco no campo de e-mail e devolve o foco ao botão da conta quando fechado por teclado.
+
+A revisão independente concluiu com parecer `GO`. Todos os doze itens e todos os critérios do Dia Bônus 5 foram considerados atendidos.
+
+### Erros e riscos encontrados
+
+Logo depois da criação do serviço, o roteamento do Render apresentou respostas intermitentes `404 Not Found` com `x-render-routing: no-server`, embora o processo permanecesse live. A primeira rodada do revisor teve 14 respostas 200 e 6 respostas 404; uma reprodução independente teve 16 respostas 200 e 4 respostas 404.
+
+O comportamento desapareceu depois da propagação inicial. Uma nova rodada obteve 30 respostas 200 em 30 tentativas, e todo o fluxo autenticado publicado passou sem retry. O incidente foi reclassificado como risco transitório de provisionamento, não como falha da aplicação. Deve ser investigado novamente se o `no-server` reaparecer.
+
+O `npm ci` do Render informou oito vulnerabilidades de severidade alta em dependências de desenvolvimento relacionadas a `vite-plugin-pwa` e Workbox. `npm audit --omit=dev` encontrou zero vulnerabilidades nas dependências de produção.
+
+O driver `pg` emitiu um aviso sobre mudança futura na interpretação de `sslmode`. A conexão atual funcionou com TLS e o aviso não bloqueou o deploy, mas deverá ser revisto antes de uma atualização futura do driver.
+
+Duas contas sintéticas, ambas sem anúncios, permaneceram no Neon de produção porque ainda não existe endpoint de exclusão de conta. A primeira foi criada durante a instabilidade inicial de roteamento; a segunda comprovou o fluxo completo.
+
+### Como investiguei
+
+Comparei cada entrega com a seção Dia Bônus 5 do `PLANO/PLAN.md`. Auditei o manifesto, runtime, comandos, variáveis, contratos da API, CORS, persistência de sessão, pontos de envio do Bearer, tratamento de 401, timers de cold start, autoria das coleções e transformação dos dados legados.
+
+Executei uma busca por URLs PostgreSQL e segredos em arquivos versionados. Os únicos valores encontrados eram exemplos fictícios em testes. `.env` e `.env.production.local` permaneceram ignorados pelo Git.
+
+No frontend, verifiquei o dialog no navegador local, seu estado ARIA, foco inicial, fechamento por `Escape` e retorno do foco. Para a importação, extraí a transformação para `src/legacy-import.mjs` e criei testes específicos de reassociação seletiva e marcador idempotente.
+
+No ambiente publicado, acompanhei os logs do Render até `Build successful`, execução das migrations, inicialização do servidor e estado live. Depois, repeti health checks, preflight, cadastro, login, `/me` e `/anuncios/me`.
+
+### O que aprendi
+
+Aprendi que o Blueprint gratuito do Render não oferece pre-deploy separado. Por isso, migrations precisam fazer parte do `startCommand` e devem ser idempotentes, protegidas por lock e seguras para execução a cada novo processo.
+
+Aprendi que `sync: false` permite declarar a existência de um segredo no manifesto sem incluir seu valor. No primeiro sync, o Render solicita o preenchimento pelo painel; em Blueprints existentes, novas variáveis podem exigir configuração manual.
+
+Aprendi que sessão no navegador envolve duas responsabilidades diferentes: armazenar o token e validar sua validade no servidor. `sessionStorage` limita a sessão à aba, enquanto `/api/auth/me` impede que uma identidade local seja tratada como autenticada sem Bearer.
+
+Aprendi que falha de rede não significa sessão inválida. Remover o token em qualquer erro desconectaria o usuário durante um cold start ou período offline. A invalidação deve ocorrer somente quando o servidor responde 401.
+
+Aprendi que uma migração de dados locais precisa oferecer escolha e manter reversibilidade. A recusa não deve alterar os dados antigos, e a aceitação deve modificar somente registros que pertencem à identidade confirmada.
+
+Aprendi também que um serviço recém-provisionado pode apresentar propagação de roteamento mesmo depois do processo ficar live. A validação de produção deve usar várias tentativas e distinguir respostas do roteador de respostas da aplicação.
+
+### Testes realizados
+
+- `npm run typecheck` aprovado.
+- `npm run build` aprovado.
+- `npm test` aprovado: 70 testes executados, 0 falhas e 1 teste PostgreSQL real ignorado por ausência de `TEST_DATABASE_URL` nesse processo.
+- Dois testes específicos de importação legada aprovados.
+- `git diff --check` aprovado.
+- Auditoria de segredos aprovada.
+- `npm audit --omit=dev` aprovado com zero vulnerabilidades de produção.
+- Build do Render aprovado com Node 24.
+- `npm run migrate && npm start` confirmado nos logs de produção.
+- Migration 003 aplicada no Neon de produção.
+- API publicada por HTTPS.
+- `/api/status` respondendo HTTP 200 e confirmando o Neon.
+- Rodada estabilizada de 30 health checks com 30 respostas HTTP 200.
+- Cadastro real respondendo 201.
+- Login real respondendo 200 com o mesmo UUID.
+- `/api/auth/me` respondendo 200 com Bearer.
+- `/api/anuncios/me` respondendo 200 com lista vazia.
+- Preflight respondendo 204 com `Authorization` e `Content-Type`.
+- Origem não autorizada recebendo 403.
+- Dialog de autenticação validado visualmente.
+- Foco inicial, `Escape` e retorno de foco aprovados.
+- Revisão independente final concluída com parecer `GO`.
+
+### Limitações e próximo passo
+
+O teste CRUD PostgreSQL real continua opt-in e foi ignorado nesta execução porque `TEST_DATABASE_URL` não estava presente no processo do revisor. Os demais 70 testes passaram.
+
+O frontend ainda não possui uma suíte DOM/E2E automatizada para sessão, falha de rede, 401 e dialogs. Esses comportamentos foram auditados pelo código e parcialmente comprovados no navegador e na API publicada, mas devem receber automação no Dia Bônus 7.
+
+Para executar o frontend local contra a API publicada, `VITE_API_URL` precisa apontar temporariamente para `https://marketplace-vortex-api.onrender.com`. A configuração local atual continua apontando para o servidor de desenvolvimento.
+
+O domínio definitivo da Vercel ainda não foi incluído em `FRONTEND_ORIGINS`, porque o deploy do frontend pertence ao Dia Bônus 8.
+
+O próximo passo planejado é o Dia Bônus 6: implementar cache público do catálogo, fallback offline, invalidação explícita e polimento visual dos estados de carregamento e reconexão.
+
+### Commit
+
+`89f4a8f` — `feat: concluir dia bonus 5 com deploy e autenticacao`
