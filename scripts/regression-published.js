@@ -184,6 +184,29 @@ async function main() {
     assert.ok(Array.isArray(catalogo.body));
     assert.ok(catalogo.body.some(({ id }) => id === anuncioId));
 
+    const filtroCorrespondente = await requisitar(
+      baseUrl,
+      "/api/anuncios?categoria=eletronicos",
+    );
+    exigirStatus(filtroCorrespondente, 200, "Filtro correspondente");
+    assert.ok(Array.isArray(filtroCorrespondente.body));
+    assert.ok(
+      filtroCorrespondente.body.some(({ id }) => id === anuncioId),
+      "O filtro correspondente deveria incluir a fixture.",
+    );
+
+    const filtroDiferente = await requisitar(
+      baseUrl,
+      "/api/anuncios?categoria=casa",
+    );
+    exigirStatus(filtroDiferente, 200, "Filtro diferente");
+    assert.ok(Array.isArray(filtroDiferente.body));
+    assert.ok(
+      !filtroDiferente.body.some(({ id }) => id === anuncioId),
+      "O filtro diferente não deveria incluir a fixture.",
+    );
+    console.info("Filtros públicos por categoria: APROVADO.");
+
     const meusDoDono = await requisitar(baseUrl, "/api/anuncios/me", {
       token: tokenDoDono,
     });

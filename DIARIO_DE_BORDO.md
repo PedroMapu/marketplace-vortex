@@ -1977,3 +1977,125 @@ como validação manual em navegador.
 O próximo passo é o Dia Bônus 8: publicar o frontend na Vercel, adicionar a URL
 definitiva à allowlist do Render e executar o fluxo real, a inspeção visual,
 Application/Network/Console e o teste offline em produção.
+
+## Dia Bônus 8 — Vercel, teste real e links finais
+
+Data de execução: 29/07/2026.
+
+Status desta entrada: **deploy técnico concluído, com validações manuais
+pendentes**. O registro abaixo separa as evidências confirmadas das verificações
+de navegador que ainda não foram comprovadas.
+
+### Objetivo
+
+Publicar o frontend estático na Vercel, conectar o build à API Render pela
+origem pública, concluir a allowlist de CORS e validar em ambiente real o fluxo
+de autenticação e anúncios, a experiência PWA e a consulta offline. Encerrar a
+entrega com arquitetura, configuração, comandos, contratos, limitações,
+evidências e links públicos documentados.
+
+### Prompt principal
+
+> Seguindo o PLAN.MD, vamos para o dia bonus 8. Separe um agente para cada
+> tarefa: importar o repositório na Vercel; configurar VITE_API_URL; usar npm
+> run build e dist; servir service-worker.js com Cache-Control: no-cache;
+> adicionar a URL final à allowlist do Render; executar o fluxo real; comprovar
+> o catálogo offline; testar instalação PWA e DevTools; atualizar README e
+> Diário; e registrar os links públicos. Use um agente extra para revisar tudo.
+
+### Organização do trabalho
+
+As dez tarefas foram distribuídas em frentes exclusivas, com revisão final
+prevista somente depois da conclusão de todas elas. Esta frente ficou limitada
+à documentação e preservou integralmente o histórico dos dias anteriores.
+
+O `README.md` foi transformado em guia de entrega: descreve a arquitetura,
+variáveis, comandos, rotas da API, comportamento offline, passos de deploy,
+segurança, evidências e limitações. A seção de links públicos recebeu somente
+os endereços definitivos confirmados.
+
+### Links públicos finais
+
+- Frontend:
+  [https://marketplace-vortex-nine.vercel.app](https://marketplace-vortex-nine.vercel.app)
+- Status da API:
+  [https://marketplace-vortex-api.onrender.com/api/status](https://marketplace-vortex-api.onrender.com/api/status)
+
+### Arquitetura registrada
+
+- O frontend usa HTML/CSS nativos, TypeScript estrito e Vite; a Vercel publica
+  o conteúdo estático gerado em `dist`.
+- O Service Worker é compilado com `vite-plugin-pwa` em modo
+  `injectManifest`, pré-armazenando o shell e mantendo um cache separado para
+  consultas públicas do catálogo.
+- `VITE_API_URL` liga o frontend à origem HTTPS da API Render e é
+  intencionalmente público; segredos não podem usar o prefixo `VITE_`.
+- A API usa Node.js, Express 5, Zod, JWT e bcryptjs. `FRONTEND_ORIGINS`
+  controla as origens CORS permitidas em produção.
+- O PostgreSQL fica no Neon: `DATABASE_URL` atende a aplicação,
+  `DATABASE_URL_DIRECT` atende migrations e `TEST_DATABASE_URL` deve apontar
+  para um destino isolado.
+- JWT, credenciais, anúncios próprios, POST e DELETE ficam fora do cache. Uma
+  mutação concluída apenas invalida as variantes públicas do catálogo.
+
+### Variáveis e configuração documentadas
+
+O README diferencia variáveis públicas e privadas. Foram documentadas
+`VITE_API_URL`, `PORT`, `DATABASE_URL`, `DATABASE_URL_DIRECT`,
+`TEST_DATABASE_URL`, `JWT_SECRET`, `FRONTEND_ORIGINS` e
+`PASSWORD_RESET_EXPOSE_TOKEN`.
+
+Também ficaram registrados os contratos de deploy já presentes:
+
+- Vercel com `npm run build`;
+- diretório de saída `dist`;
+- `Cache-Control: no-cache` para `/service-worker.js`;
+- Render com `npm ci` e `npm run migrate && npm start`;
+- origem definitiva da Vercel incluída em `FRONTEND_ORIGINS`, com CORS
+  validado.
+
+### Comandos e API documentados
+
+O guia lista `dev:web`, `dev:api`, `typecheck`, `build`, `test`, `migrate`,
+`regression:published` e `start`. Também registra as rotas públicas e
+autenticadas de status, cadastro, login, sessão, redefinição de senha, catálogo,
+anúncios próprios, criação e exclusão pelo proprietário.
+
+### Evidências concluídas no deploy final
+
+- O frontend público da Vercel respondeu HTTP 200.
+- O deploy da API no Render ficou live e `/api/status` respondeu publicamente.
+- `VITE_API_URL` foi incorporada com a origem
+  `https://marketplace-vortex-api.onrender.com`.
+- O bundle e o Service Worker publicados apontam para o Render e não contêm
+  localhost, URLs PostgreSQL ou nomes de segredos.
+- `.env` e `.env.production.local` permanecem ignorados; apenas
+  `.env.example` é versionado.
+- `/service-worker.js` respondeu com `Cache-Control: no-cache`.
+- A origem `https://marketplace-vortex-nine.vercel.app` foi adicionada à
+  allowlist do Render e o CORS foi validado.
+- O fluxo real da API aprovou cadastro, login, criação, listagem, filtro,
+  anúncios próprios, bloqueio 403 para o segundo usuário e exclusão pelo
+  proprietário.
+- `npm run typecheck` e `npm run build` foram repetidos e aprovados durante a
+  documentação; o build local gerou seis entradas e 192,66 KiB de precache.
+- A suíte integral anterior aprovou 91 testes com banco isolado.
+- A revisão final abriu a produção no Chrome em `390x844` e `320x568`; hero,
+  menu móvel, ações principais e catálogo permaneceram utilizáveis, sem avisos
+  ou erros no Console.
+- Na repetição final, `npm run typecheck`, `npm run build` e `npm test`
+  encerraram com sucesso. A suíte atual registrou 90 aprovações e um teste de
+  integração PostgreSQL pulado porque `TEST_DATABASE_URL` não estava
+  configurada neste terminal.
+
+### Limitações e verificações pendentes
+
+- Instalação real da PWA e inspeção de Application/Cache Storage.
+- Catálogo previamente carregado visualizado offline pela interface publicada.
+- Validação específica da URL Vercel em janela anônima.
+- Conexão automática GitHub–Vercel: a integração ainda não possui acesso ao
+  repositório; o deploy inicial foi concluído pela CLI.
+
+O deploy, a integração Vercel–Render, o fluxo real da API e os links finais
+estão concluídos. Os itens acima permanecem sem aprovação até que haja
+evidência manual de navegador; este registro não presume esses resultados.
