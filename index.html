@@ -72,6 +72,21 @@
       </div>
     </header>
 
+    <div
+      id="banner-conectividade"
+      class="banner-conectividade"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      hidden
+    >
+      <span class="banner-conectividade-indicador" aria-hidden="true"></span>
+      <div>
+        <strong id="banner-conectividade-titulo"></strong>
+        <span id="banner-conectividade-mensagem"></span>
+      </div>
+    </div>
+
     <main id="conteudo-principal">
       <!-- 1. Hero inicial -->
       <section id="inicio" aria-labelledby="titulo-principal">
@@ -789,6 +804,7 @@
       class="dialogo-autenticacao"
       aria-labelledby="titulo-autenticacao"
       aria-describedby="descricao-autenticacao"
+      aria-busy="false"
     >
       <div class="autenticacao-layout">
         <aside class="autenticacao-assinatura" aria-hidden="true">
@@ -845,6 +861,7 @@
             role="tabpanel"
             aria-labelledby="aba-login"
             data-formulario-autenticacao="login"
+            aria-busy="false"
           >
             <div class="campo-autenticacao">
               <label for="login-email">E-mail</label>
@@ -893,6 +910,7 @@
             role="tabpanel"
             aria-labelledby="aba-cadastro"
             data-formulario-autenticacao="cadastro"
+            aria-busy="false"
             hidden
           >
             <div class="campo-autenticacao">

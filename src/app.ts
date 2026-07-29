@@ -31,6 +31,7 @@ import {
   reassociarColecoesLegadas,
   type DecisaoImportacao,
 } from "./legacy-import.mjs";
+import { invalidarCacheCatalogoPublico } from "./pwa";
 
 type CampoFormulario =
   | HTMLInputElement
@@ -52,6 +53,10 @@ interface ContextoImportacaoLegada {
 }
 
 type ModoAutenticacao = "login" | "cadastro";
+type EstadoBannerConectividade =
+  | "offline"
+  | "dados-salvos"
+  | "reconectado";
 
 class ErroRequisicaoApi extends Error {
   readonly name = "ErroRequisicaoApi";
@@ -186,6 +191,14 @@ const tituloModalImagem =
   document.querySelector<HTMLElement>("#modal-imagem-titulo");
 const botaoFecharModalImagem =
   document.querySelector<HTMLButtonElement>("#fechar-modal-imagem");
+const bannerConectividade =
+  document.querySelector<HTMLElement>("#banner-conectividade");
+const tituloBannerConectividade = document.querySelector<HTMLElement>(
+  "#banner-conectividade-titulo",
+);
+const mensagemBannerConectividade = document.querySelector<HTMLElement>(
+  "#banner-conectividade-mensagem",
+);
 
 const CHAVE_USUARIO = "marketplace-vortex:usuario";
 const CHAVE_COLECOES = "marketplace-vortex:colecoes";
@@ -260,6 +273,11 @@ const idsEmExclusao = new Set<string>();
 let publicacaoEmAndamento = false;
 let sequenciaItemColecao = 0;
 let temporizadorFeedbackColecao: number | undefined;
+let temporizadorBannerConectividade: number | undefined;
+let reconexaoEmAndamento = false;
+let catalogoUsaDadosSalvos = false;
+let autenticacaoEmAndamento = false;
+let elementoFocadoAntesDaAutenticacao: HTMLElement | null = null;
 
 const formatadorMoeda = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -268,6 +286,65 @@ const formatadorMoeda = new Intl.NumberFormat("pt-BR", {
 const ordenadorAlfabetico = new Intl.Collator("pt-BR", {
   sensitivity: "base",
 });
+
+function exibirBannerConectividade(
+  estado: EstadoBannerConectividade,
+  titulo: string,
+  mensagem: string,
+  { temporario = false }: { temporario?: boolean } = {},
+): void {
+  if (
+    !bannerConectividade ||
+    !tituloBannerConectividade ||
+    !mensagemBannerConectividade
+  ) {
+    return;
+  }
+
+  window.clearTimeout(temporizadorBannerConectividade);
+  tituloBannerConectividade.textContent = titulo;
+  mensagemBannerConectividade.textContent = mensagem;
+  bannerConectividade.dataset.estado = estado;
+  bannerConectividade.hidden = false;
+
+  if (temporario) {
+    temporizadorBannerConectividade = window.setTimeout(() => {
+      bannerConectividade.hidden = true;
+      bannerConectividade.removeAttribute("data-estado");
+    }, 4_000);
+  }
+}
+
+function registrarOrigemDoCatalogo(offline: boolean): void {
+  const usavaDadosSalvos = catalogoUsaDadosSalvos;
+  catalogoUsaDadosSalvos = offline;
+
+  if (offline) {
+    exibirBannerConectividade(
+      "dados-salvos",
+      "Catálogo salvo no dispositivo",
+      "Você está vendo dados salvos. Eles podem estar desatualizados até a conexão voltar.",
+    );
+    return;
+  }
+
+  if (usavaDadosSalvos && !reconexaoEmAndamento) {
+    exibirBannerConectividade(
+      "reconectado",
+      "Conexão restabelecida",
+      "O catálogo foi atualizado com os dados mais recentes.",
+      { temporario: true },
+    );
+  }
+}
+
+function registrarFalhaOffline(): void {
+  exibirBannerConectividade(
+    "offline",
+    "Você está offline",
+    "O que já foi carregado continua disponível. Algumas ações precisam de conexão.",
+  );
+}
 
 function agendarAvisoApiGratuita(exibirAviso: () => void): () => void {
   const temporizador = window.setTimeout(
@@ -305,6 +382,10 @@ async function requisitarApi<T>(
   }
 
   if (!resposta.ok) {
+    if (offline) {
+      registrarFalhaOffline();
+    }
+
     throw new ErroRequisicaoApi(
       resposta.status,
       normalizarErroDaApi(dados),
@@ -589,12 +670,79 @@ function normalizarRespostaDeExclusao(
   };
 }
 
+function criarSkeletonDoCatalogo(): HTMLDivElement {
+  const grupo = criarElemento(
+    "div",
+    "skeleton-catalogo",
+  );
+  grupo.setAttribute("aria-hidden", "true");
+
+  for (let indice = 0; indice < 3; indice += 1) {
+    const card = criarElemento("div", "skeleton-card-anuncio");
+    card.append(
+      criarElemento("span", "skeleton-bloco skeleton-card-media"),
+      criarElemento("span", "skeleton-bloco skeleton-linha skeleton-categoria"),
+      criarElemento("span", "skeleton-bloco skeleton-linha skeleton-titulo"),
+      criarElemento("span", "skeleton-bloco skeleton-linha skeleton-informacao"),
+      criarElemento("span", "skeleton-bloco skeleton-linha skeleton-preco"),
+      criarElemento("span", "skeleton-bloco skeleton-botao"),
+    );
+    grupo.append(card);
+  }
+
+  return grupo;
+}
+
+function criarSkeletonDosAnunciosDoUsuario(): HTMLDivElement {
+  const grupo = criarElemento(
+    "div",
+    "skeleton-anuncios-usuario",
+  );
+  grupo.setAttribute("aria-hidden", "true");
+
+  for (let indice = 0; indice < 2; indice += 1) {
+    const card = criarElemento("div", "skeleton-card-usuario");
+    const detalhes = criarElemento("div", "skeleton-detalhes-usuario");
+    detalhes.append(
+      criarElemento("span", "skeleton-bloco skeleton-status"),
+      criarElemento("span", "skeleton-bloco skeleton-linha skeleton-titulo"),
+      criarElemento("span", "skeleton-bloco skeleton-linha skeleton-informacao"),
+    );
+    card.append(
+      criarElemento("span", "skeleton-bloco skeleton-usuario-media"),
+      detalhes,
+      criarElemento("span", "skeleton-bloco skeleton-usuario-acao"),
+    );
+    grupo.append(card);
+  }
+
+  return grupo;
+}
+
+function criarEstadoDeCarregamento(
+  texto: string,
+  skeleton: HTMLElement,
+): HTMLDivElement {
+  const estado = criarElemento("div", "estado-carregamento");
+  const mensagem = criarElemento(
+    "p",
+    "somente-leitor",
+    texto,
+  );
+
+  mensagem.setAttribute("role", "status");
+  estado.append(mensagem, skeleton);
+  return estado;
+}
+
 function exibirEstadoDeCarregamento(
   texto = "Carregando anúncios...",
 ): void {
-  const mensagem = criarEstadoVazio(texto);
-
-  listaAnuncios?.replaceChildren(mensagem);
+  listaAnuncios?.replaceChildren(
+    texto === MENSAGEM_API_GRATUITA_INICIANDO
+      ? criarEstadoVazio(texto)
+      : criarEstadoDeCarregamento(texto, criarSkeletonDoCatalogo()),
+  );
   listaAnuncios?.setAttribute("aria-busy", "true");
 
   if (resultadosContagem) {
@@ -606,18 +754,33 @@ function exibirEstadoDeCarregamentoDoUsuario(
   texto = "Carregando seus anúncios...",
 ): void {
   if (listaMeusAnuncios) {
-    listaMeusAnuncios.replaceChildren(criarEstadoVazio(texto));
+    listaMeusAnuncios.replaceChildren(
+      texto === MENSAGEM_API_GRATUITA_INICIANDO
+        ? criarEstadoVazio(texto)
+        : criarEstadoDeCarregamento(
+            texto,
+            criarSkeletonDosAnunciosDoUsuario(),
+          ),
+    );
     listaMeusAnuncios.setAttribute("aria-busy", "true");
   }
 }
 
-function exibirErroAoCarregarAnuncios() {
+function exibirErroAoCarregarAnuncios(erro?: unknown) {
+  const offlineSemCache =
+    ehErroRequisicaoApi(erro) &&
+    erro.offline &&
+    "codigo" in erro.dados &&
+    erro.dados.codigo === "OFFLINE_SEM_CACHE";
+
   if (listaAnuncios) {
     const estado = criarElemento("div", "estado-vazio");
     const mensagem = criarElemento(
       "p",
       "",
-      "Não foi possível carregar os anúncios. Verifique sua conexão e tente novamente.",
+      offlineSemCache
+        ? "Este catálogo ainda não foi salvo neste dispositivo. Conecte-se à internet e carregue esta consulta antes de usá-la offline."
+        : "Não foi possível carregar os anúncios. Verifique sua conexão e tente novamente.",
     );
     const botaoTentarNovamente = criarElemento(
       "button",
@@ -635,7 +798,9 @@ function exibirErroAoCarregarAnuncios() {
   }
 
   if (resultadosContagem) {
-    resultadosContagem.textContent = "Anúncios indisponíveis";
+    resultadosContagem.textContent = offlineSemCache
+      ? "Catálogo indisponível offline"
+      : "Anúncios indisponíveis";
   }
 }
 
@@ -705,6 +870,10 @@ async function carregarAnunciosDaApi(
     cacheContagemApi = resultadoParaContagem
       ? resultadoParaContagem.dados
       : [...cacheCatalogoApi];
+    registrarOrigemDoCatalogo(
+      resultadoCatalogo.offline ||
+        resultadoParaContagem?.offline === true,
+    );
     listaAnuncios?.removeAttribute("aria-busy");
     renderizarAnuncios();
     return true;
@@ -716,7 +885,7 @@ async function carregarAnunciosDaApi(
     console.error("Não foi possível carregar os anúncios da API.", erro);
     cacheCatalogoApi = [];
     cacheContagemApi = [];
-    exibirErroAoCarregarAnuncios();
+    exibirErroAoCarregarAnuncios(erro);
     return false;
   } finally {
     cancelarAvisoApiGratuita();
@@ -1479,6 +1648,10 @@ function definirModoAutenticacao(
   modo: ModoAutenticacao,
   { moverFoco = false }: { moverFoco?: boolean } = {},
 ): void {
+  if (autenticacaoEmAndamento) {
+    return;
+  }
+
   botoesModoAutenticacao.forEach((botao) => {
     const selecionado = botao.dataset.modoAutenticacao === modo;
     botao.setAttribute("aria-selected", String(selecionado));
@@ -1504,6 +1677,10 @@ function abrirDialogoAutenticacao(): void {
     return;
   }
 
+  elementoFocadoAntesDaAutenticacao =
+    document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
   formulariosAutenticacao.forEach((formulario) => {
     formulario.reset();
     limparErrosAutenticacao(formulario);
@@ -1518,10 +1695,72 @@ function abrirDialogoAutenticacao(): void {
   });
 }
 
-function fecharDialogoAutenticacao(): void {
+function fecharDialogoAutenticacao(
+  { aposSucesso = false }: { aposSucesso?: boolean } = {},
+): void {
+  if (autenticacaoEmAndamento && !aposSucesso) {
+    return;
+  }
+
   if (dialogoAutenticacao?.open) {
     dialogoAutenticacao.close();
   }
+}
+
+function definirBloqueioAutenticacao(
+  formulario: HTMLFormElement,
+  botaoEnviar: HTMLButtonElement | null,
+  bloqueado: boolean,
+): void {
+  autenticacaoEmAndamento = bloqueado;
+  dialogoAutenticacao?.setAttribute("aria-busy", String(bloqueado));
+  formulario.setAttribute("aria-busy", String(bloqueado));
+
+  if (botaoEnviar) {
+    botaoEnviar.disabled = bloqueado;
+    botaoEnviar.setAttribute("aria-disabled", String(bloqueado));
+  }
+
+  if (botaoFecharAutenticacao) {
+    botaoFecharAutenticacao.disabled = bloqueado;
+    botaoFecharAutenticacao.setAttribute(
+      "aria-disabled",
+      String(bloqueado),
+    );
+  }
+
+  botoesModoAutenticacao.forEach((botao) => {
+    botao.disabled = bloqueado;
+    botao.setAttribute("aria-disabled", String(bloqueado));
+  });
+}
+
+function obterMensagemErroAutenticacao(
+  erro: unknown,
+): string {
+  if (!ehErroRequisicaoApi(erro)) {
+    return "Não foi possível conectar ao serviço. Verifique sua conexão e tente novamente.";
+  }
+
+  const codigo = "codigo" in erro.dados ? erro.dados.codigo : undefined;
+
+  if (erro.offline) {
+    return "Você está offline. Conecte-se à internet para acessar sua conta.";
+  }
+
+  if (erro.status === 401 || codigo === "CREDENCIAIS_INVALIDAS") {
+    return "E-mail ou senha incorretos. Confira os dados e tente novamente.";
+  }
+
+  if (erro.status === 409 || codigo === "EMAIL_EM_USO") {
+    return "Este e-mail já está cadastrado. Entre na sua conta ou use outro e-mail.";
+  }
+
+  if (erro.status >= 500) {
+    return "Servidor indisponível no momento. A API pode estar iniciando; aguarde alguns instantes e tente novamente.";
+  }
+
+  return erro.message;
 }
 
 async function enviarFormularioAutenticacao(
@@ -1529,7 +1768,11 @@ async function enviarFormularioAutenticacao(
 ): Promise<void> {
   const modo = formulario.dataset.formularioAutenticacao;
 
-  if (!ehModoAutenticacao(modo) || !formulario.reportValidity()) {
+  if (
+    autenticacaoEmAndamento ||
+    !ehModoAutenticacao(modo) ||
+    !formulario.reportValidity()
+  ) {
     return;
   }
 
@@ -1553,12 +1796,12 @@ async function enviarFormularioAutenticacao(
     formulario.querySelector<HTMLButtonElement>("[type='submit']");
   const rotuloOriginal = botaoEnviar?.textContent ?? "";
 
+  definirBloqueioAutenticacao(formulario, botaoEnviar, true);
+
   if (botaoEnviar) {
-    botaoEnviar.disabled = true;
     botaoEnviar.textContent =
       modo === "login" ? "Entrando..." : "Criando conta...";
   }
-  formulario.setAttribute("aria-busy", "true");
   const cancelarAvisoApiGratuita = agendarAvisoApiGratuita(() => {
     definirFeedbackAutenticacao(MENSAGEM_API_GRATUITA_INICIANDO);
   });
@@ -1582,7 +1825,7 @@ async function enviarFormularioAutenticacao(
     atualizarContaNoHeader();
     renderizarColecoesDoUsuario();
     void carregarMeusAnunciosDaApi();
-    fecharDialogoAutenticacao();
+    fecharDialogoAutenticacao({ aposSucesso: true });
     agendarOfertaImportacaoLegada(resultado.dados.usuario);
     mostrarFeedback(
       modo === "login"
@@ -1603,21 +1846,35 @@ async function enviarFormularioAutenticacao(
         );
         primeiroCampoComErro ??= entrada;
       }
-      definirFeedbackAutenticacao(erro.message, "erro");
+      if (
+        (erro.status === 409 ||
+          ("codigo" in erro.dados &&
+            erro.dados.codigo === "EMAIL_EM_USO")) &&
+        !primeiroCampoComErro
+      ) {
+        primeiroCampoComErro = mostrarErroDeCampoAutenticacao(
+          formulario,
+          "email",
+          "Este e-mail já está cadastrado.",
+        );
+      }
+      definirFeedbackAutenticacao(
+        obterMensagemErroAutenticacao(erro),
+        "erro",
+      );
       primeiroCampoComErro?.focus();
     } else {
       console.error("Não foi possível autenticar a conta.", erro);
       definirFeedbackAutenticacao(
-        "Não foi possível acessar a conta. Verifique sua conexão e tente novamente.",
+        obterMensagemErroAutenticacao(erro),
         "erro",
       );
     }
   } finally {
     cancelarAvisoApiGratuita();
-    formulario.removeAttribute("aria-busy");
+    definirBloqueioAutenticacao(formulario, botaoEnviar, false);
 
     if (botaoEnviar) {
-      botaoEnviar.disabled = false;
       botaoEnviar.textContent = rotuloOriginal;
     }
   }
@@ -1702,11 +1959,15 @@ function inicializarContaUsuario(): void {
   botaoSairConta?.addEventListener("click", sairDaConta);
   botaoFecharAutenticacao?.addEventListener(
     "click",
-    fecharDialogoAutenticacao,
+    () => fecharDialogoAutenticacao(),
   );
 
   botoesModoAutenticacao.forEach((botao, indice) => {
     botao.addEventListener("click", () => {
+      if (autenticacaoEmAndamento) {
+        return;
+      }
+
       const modo = botao.dataset.modoAutenticacao;
 
       if (ehModoAutenticacao(modo)) {
@@ -1715,6 +1976,10 @@ function inicializarContaUsuario(): void {
     });
 
     botao.addEventListener("keydown", (evento) => {
+      if (autenticacaoEmAndamento) {
+        return;
+      }
+
       if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(evento.key)) {
         return;
       }
@@ -1747,13 +2012,26 @@ function inicializarContaUsuario(): void {
   });
 
   dialogoAutenticacao?.addEventListener("click", (evento) => {
-    if (evento.target === dialogoAutenticacao) {
+    if (
+      evento.target === dialogoAutenticacao &&
+      !autenticacaoEmAndamento
+    ) {
       fecharDialogoAutenticacao();
+    }
+  });
+  dialogoAutenticacao?.addEventListener("cancel", (evento) => {
+    if (autenticacaoEmAndamento) {
+      evento.preventDefault();
     }
   });
   dialogoAutenticacao?.addEventListener("close", () => {
     document.body.classList.remove("modal-aberto");
-    botaoContaUsuario.focus();
+    const elementoParaRestaurar = elementoFocadoAntesDaAutenticacao;
+    elementoFocadoAntesDaAutenticacao = null;
+
+    if (elementoParaRestaurar?.isConnected) {
+      elementoParaRestaurar.focus({ preventScroll: true });
+    }
   });
 
   document.addEventListener("click", (evento) => {
@@ -2805,6 +3083,7 @@ async function criarAnuncio(): Promise<boolean> {
       },
     );
 
+    await invalidarCacheCatalogoPublico();
     await Promise.all([
       carregarAnunciosDaApi({ mostrarCarregamento: false }),
       carregarMeusAnunciosDaApi({ mostrarCarregamento: false }),
@@ -2908,6 +3187,7 @@ async function excluirAnuncio(
       },
     );
 
+    await invalidarCacheCatalogoPublico();
     const [catalogoAtualizado, anunciosDoUsuarioAtualizados] =
       await Promise.all([
         carregarAnunciosDaApi({ mostrarCarregamento: false }),
@@ -3669,7 +3949,58 @@ function inicializarHeaderFixo(): void {
   atualizarEstadoDoHeader();
 }
 
+function inicializarBannerConectividade(): void {
+  window.addEventListener("offline", () => {
+    reconexaoEmAndamento = false;
+    registrarFalhaOffline();
+  });
+
+  window.addEventListener("online", () => {
+    reconexaoEmAndamento = true;
+    exibirBannerConectividade(
+      "reconectado",
+      "Conexão restabelecida",
+      "Atualizando o catálogo com os dados mais recentes.",
+    );
+
+    void carregarAnunciosDaApi({ mostrarCarregamento: false }).then(
+      (catalogoAtualizado) => {
+        if (!reconexaoEmAndamento) {
+          return;
+        }
+
+        reconexaoEmAndamento = false;
+
+        if (!catalogoAtualizado) {
+          exibirBannerConectividade(
+            "offline",
+            "Não foi possível atualizar",
+            "A conexão ainda parece instável. Tente novamente em alguns instantes.",
+          );
+          return;
+        }
+
+        if (catalogoUsaDadosSalvos) {
+          return;
+        }
+
+        exibirBannerConectividade(
+          "reconectado",
+          "Conexão restabelecida",
+          "O catálogo foi atualizado com os dados mais recentes.",
+          { temporario: true },
+        );
+      },
+    );
+  });
+
+  if (!navigator.onLine) {
+    registrarFalhaOffline();
+  }
+}
+
 sincronizarModalidadeComValor();
+inicializarBannerConectividade();
 inicializarContaUsuario();
 inicializarImportacaoLegada();
 inicializarPainelNovoAnuncio();

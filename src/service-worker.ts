@@ -17,7 +17,24 @@ declare const self: VortexServiceWorkerScope;
 
 const CACHE_PREFIX = "marketplace-vortex";
 const CATALOG_CACHE = `${CACHE_PREFIX}-catalog-v1`;
+const OFFLINE_RESPONSE_HEADER = "X-Vortex-Offline";
+const OFFLINE_RESPONSE_VALUE = "1";
 const PRECACHE_ENTRIES = self.__WB_MANIFEST;
+const CONFIGURED_API_URL = (import.meta.env.VITE_API_URL ?? "").trim();
+
+function resolveApiOrigin(value: string): string | null {
+  if (value === "") {
+    return self.location.origin;
+  }
+
+  try {
+    return new URL(value, self.location.origin).origin;
+  } catch {
+    return null;
+  }
+}
+
+const CATALOG_API_ORIGIN = resolveApiOrigin(CONFIGURED_API_URL);
 
 function hashManifest(entries: ReadonlyArray<PrecacheEntry>): string {
   const serializedEntries = JSON.stringify(entries);
@@ -46,6 +63,31 @@ function isServiceWorkerMessage(value: unknown): value is ServiceWorkerMessage {
 function isCacheableResponse(response: Response): boolean {
   return (
     response.ok && (response.type === "basic" || response.type === "cors")
+  );
+}
+
+async function isCacheableCatalogResponse(
+  response: Response,
+): Promise<boolean> {
+  if (!isCacheableResponse(response)) {
+    return false;
+  }
+
+  try {
+    await response.clone().json();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function isPublicCatalogRequest(request: Request, url: URL): boolean {
+  return (
+    CATALOG_API_ORIGIN !== null &&
+    request.method === "GET" &&
+    !request.headers.has("Authorization") &&
+    url.origin === CATALOG_API_ORIGIN &&
+    url.pathname === "/api/anuncios"
   );
 }
 
@@ -89,6 +131,57 @@ async function networkFirstNavigation(request: Request): Promise<Response> {
         headers: { "Content-Type": "text/plain; charset=utf-8" },
       })
     );
+  }
+}
+
+function markResponseAsOffline(response: Response): Response {
+  const headers = new Headers(response.headers);
+  headers.set(OFFLINE_RESPONSE_HEADER, OFFLINE_RESPONSE_VALUE);
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+function createCatalogOfflineMissResponse(): Response {
+  return new Response(
+    JSON.stringify({
+      erro: "O catálogo não está disponível offline neste dispositivo.",
+      codigo: "OFFLINE_SEM_CACHE",
+    }),
+    {
+      status: 503,
+      statusText: "Service Unavailable",
+      headers: {
+        "Cache-Control": "no-store",
+        "Content-Type": "application/json",
+        [OFFLINE_RESPONSE_HEADER]: OFFLINE_RESPONSE_VALUE,
+      },
+    },
+  );
+}
+
+async function networkFirstCatalog(request: Request): Promise<Response> {
+  const cache = await caches.open(CATALOG_CACHE);
+
+  try {
+    const response = await fetch(request);
+
+    if (await isCacheableCatalogResponse(response)) {
+      await cache.put(request, response.clone());
+    }
+
+    return response;
+  } catch {
+    const cachedResponse = await cache.match(request);
+
+    if (cachedResponse) {
+      return markResponseAsOffline(cachedResponse);
+    }
+
+    return createCatalogOfflineMissResponse();
   }
 }
 
@@ -151,17 +244,32 @@ self.addEventListener("message", (event: ExtendableMessageEvent) => {
     return;
   }
 
-  event.waitUntil(caches.delete(CATALOG_CACHE));
+  event.waitUntil(
+    caches.delete(CATALOG_CACHE).then(() => {
+      event.ports[0]?.postMessage({
+        type: "CATALOG_CACHE_INVALIDATED",
+      });
+    }),
+  );
 });
 
 self.addEventListener("fetch", (event: FetchEvent) => {
   const { request } = event;
 
-  if (request.method !== "GET" || request.headers.has("range")) {
+  if (
+    request.method !== "GET" ||
+    request.headers.has("range") ||
+    request.headers.has("Authorization")
+  ) {
     return;
   }
 
   const url = new URL(request.url);
+
+  if (isPublicCatalogRequest(request, url)) {
+    event.respondWith(networkFirstCatalog(request));
+    return;
+  }
 
   if (url.origin === self.location.origin && isApiRequest(url)) {
     return;

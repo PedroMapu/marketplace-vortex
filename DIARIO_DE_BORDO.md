@@ -1636,3 +1636,185 @@ O próximo passo planejado é o Dia Bônus 6: implementar cache público do cat�
 ### Commit
 
 `89f4a8f` — `feat: concluir dia bonus 5 com deploy e autenticacao`
+
+## Dia Bônus 6 — 29/07/2026
+
+### Objetivo do dia
+
+Implementar o cache offline restrito ao catálogo público e refinar os estados visuais mais sensíveis da interface. A etapa deveria aplicar network-first somente a `GET /api/anuncios`, preservar cada combinação de URL e query string, sinalizar respostas salvas com um cabeçalho sintético, apresentar um estado específico quando não existisse cache e invalidar todas as variantes depois de criação ou exclusão.
+
+O polimento visual deveria acrescentar feedback de conectividade, skeletons para carregamentos demorados, melhorar o dialog de autenticação, reduzir a densidade dos cartões nas larguras críticas registradas anteriormente e manter as transições entre 150 e 250 ms, com respeito a `prefers-reduced-motion`.
+
+### Organização entre agentes
+
+As oito entregas foram atribuídas a agentes dedicados: cache público; fallback offline; invalidação após mutações; banner de conectividade; skeletons; refinamento da autenticação; densidade dos cartões; e política de movimento reduzido.
+
+Como o ambiente permitia somente três subagentes simultâneos, o trabalho foi executado em ondas. As tarefas que alteravam `src/service-worker.ts` foram mantidas em sequência, assim como as frentes que compartilhavam `src/app.ts` e `public/styles.css`, evitando que dois agentes sobrescrevessem o mesmo bloco.
+
+A frente de autenticação precisou ser reatribuída porque o primeiro agente não chegou a produzir uma alteração. O agente substituto concluiu o escopo e executou as validações previstas. Depois da integração das oito frentes, um agente adicional realizou a revisão independente de todo o Dia Bônus 6, encontrou cinco pontos de integração e aplicou as correções antes da validação final.
+
+### O que eu fiz
+
+Implementei em `src/service-worker.ts` um cache de dados separado, `marketplace-vortex-catalog-v1`. A origem autorizada é derivada de `VITE_API_URL`; quando a variável está vazia, a origem do próprio Service Worker é usada para o desenvolvimento com proxy.
+
+A estratégia network-first intercepta somente `GET /api/anuncios` na origem configurada. A chave entregue ao Cache Storage é a própria `Request`, portanto o caminho e a query string completos são preservados. Respostas só entram no cache quando possuem status de sucesso, tipo `basic` ou `cors` e corpo JSON válido.
+
+Requisições com `Authorization`, rotas de autenticação, `/api/anuncios/me`, métodos diferentes de GET e requisições parciais com `Range` permanecem fora da estratégia. POST e DELETE nunca são respondidos ou armazenados pelo Service Worker.
+
+Quando a rede falha e existe uma resposta para a consulta exata, o Service Worker reconstrói a resposta e adiciona `X-Vortex-Offline: 1`. O status, o `statusText`, o corpo e os demais cabeçalhos são preservados. Quando a consulta nunca foi salva, a resposta é 503 JSON com `codigo: "OFFLINE_SEM_CACHE"`, `Cache-Control: no-store` e o mesmo cabeçalho offline.
+
+Criei `invalidarCacheCatalogoPublico()` em `src/pwa.ts`. Depois de um POST ou DELETE confirmado pela API, a página remove o cache do catálogo, envia `postMessage({ type: "INVALIDATE_CATALOG_CACHE" })` ao Service Worker e aguarda uma confirmação por `MessageChannel`. A recarga das listas só começa depois dessa etapa, eliminando a corrida em que uma leitura imediata poderia repopular ou consumir uma variante antiga.
+
+A invalidação é best-effort. Navegadores sem Service Worker continuam funcionando, e uma falha do mecanismo de cache não transforma uma criação ou exclusão já confirmada pelo servidor em erro para o usuário.
+
+Adicionei um banner de conectividade abaixo do cabeçalho. Ele usa `role="status"`, `aria-live="polite"` e distingue quatro situações: navegador offline; catálogo servido com dados salvos possivelmente desatualizados; reconexão enquanto a atualização está em andamento; e conexão instável quando a tentativa de atualização falha. Depois de uma reconexão bem-sucedida, a confirmação desaparece automaticamente.
+
+O frontend passou a interpretar `X-Vortex-Offline` nas respostas do catálogo. Um cache hit mostra “Catálogo salvo no dispositivo”, enquanto `OFFLINE_SEM_CACHE` apresenta uma mensagem específica informando que aquela consulta ainda não foi salva, em vez de usar o erro genérico de rede. Falhas offline, 503 e reconexões não removem a sessão; somente uma resposta 401 continua invalidando o token.
+
+Substituí os estados iniciais de carregamento por três skeletons no catálogo e dois em “Meus anúncios”. O texto permanece disponível para leitores de tela, os blocos visuais usam `aria-hidden` e os contêineres mantêm `aria-busy`. Se a espera ultrapassa o limite existente, os skeletons cedem lugar à mensagem “A API gratuita está iniciando”. Erro, vazio e sucesso removem corretamente o estado de carregamento.
+
+Refinei o dialog de autenticação com uma flag explícita de requisição em andamento. Durante login ou cadastro, o botão de envio, o fechamento e as abas ficam bloqueados; backdrop e `Escape` também não fecham o dialog no meio da operação. `aria-busy`, `aria-disabled`, rótulos temporários e estilos de bloqueio são restaurados no `finally`.
+
+O elemento que possuía foco antes da abertura agora é armazenado e recebe o foco novamente ao fechar, desde que ainda esteja conectado ao documento. As mensagens distinguem credenciais inválidas, e-mail já cadastrado, servidor indisponível ou iniciando, modo offline e falha de rede. Erros de campo continuam associados aos inputs e o primeiro campo inválido recebe foco.
+
+No breakpoint de até 26 rem, usado pelas larguras 390, 360 e 320 px, os cartões do catálogo e de “Meus anúncios” passaram a usar mídia 16:9, espaçamentos menores e hierarquia tipográfica mais compacta. A grade continua em uma coluna, os textos podem encolher sem overflow e os controles interativos mantêm pelo menos 44 px.
+
+A transição global passou de 350 para 200 ms. A entrada do dialog foi reduzida de 280 para 220 ms, e microinterações de 120 ms foram ajustadas para 150 ms. Removi usos de `transition: all`, troquei a animação de largura do sublinhado do menu por `transform: scaleX()` e mantive propriedades explícitas.
+
+Em `prefers-reduced-motion: reduce`, transições, entradas de dialogs, ilustrações, scroll reveal e shimmer dos skeletons são desativados. As rotinas de rolagem programática e o contador já consultavam a preferência do sistema e foram preservados.
+
+### Principais prompts usados
+
+**Prompt 1 — Escopo completo do Dia Bônus 6**
+
+> Seguindo o `PLAN.md`, implemente o Dia Bônus 6: cache público do catálogo no Service Worker; fallback offline com cabeçalho sintético e miss 503; invalidação depois de criação ou exclusão; banner para offline, dados salvos e reconexão; skeletons nos estados lentos; refinamento do modal de autenticação; correção da densidade dos cartões nas larguras apontadas no Diário; e transições entre 150 e 250 ms com `prefers-reduced-motion`.
+
+**Prompt 2 — Organização entre agentes**
+
+> Separe um agente para cada uma das oito tarefas e use um agente extra para revisar todo o resultado depois da conclusão. Execute em rodadas quando os agentes precisarem alterar os mesmos arquivos, evitando sobrescritas concorrentes.
+
+**Prompt 3 — Contrato seguro do cache público**
+
+> Intercepte somente `GET /api/anuncios` na origem configurada por `VITE_API_URL`. Preserve URL e query string completas, armazene apenas respostas JSON válidas dos tipos `basic` e `cors`, nunca armazene autenticação, Bearer, `/api/anuncios/me`, POST ou DELETE e devolva somente a consulta exata quando a rede falhar.
+
+**Prompt 4 — Offline e invalidação**
+
+> Em cache hit, reconstrua a resposta com `X-Vortex-Offline: 1`. Em cache miss, responda 503 JSON com `codigo: "OFFLINE_SEM_CACHE"`. Depois de POST ou DELETE bem-sucedido, envie `postMessage({ type: "INVALIDATE_CATALOG_CACHE" })`, aguarde a conclusão da limpeza e só então recarregue as listas.
+
+**Prompt 5 — Polimento visual e acessibilidade**
+
+> Preserve a identidade visual existente. Crie feedback acessível para offline, dados salvos, reconexão e conexão instável; use skeletons com texto para leitores de tela; bloqueie corretamente o dialog de autenticação durante a requisição; restaure o foco ao elemento que abriu; compacte os cartões em 390, 360 e 320 px; mantenha alvos de toque de 44 px e desative movimentos não essenciais em `prefers-reduced-motion`.
+
+**Prompt 6 — Revisão independente**
+
+> Depois das oito frentes, compare o diff completo com o Dia Bônus 6 do plano e com as larguras registradas no Diário. Audite cache, query exata, exclusão de dados autenticados, fallback, invalidação, sessão, banner, skeletons, autenticação, responsividade e movimento. Corrija bugs claros, repita typecheck, build, testes e `git diff --check` e não afirme validação visual sem navegador disponível.
+
+### Resposta da IA
+
+A IA dividiu o trabalho em ondas para respeitar o limite de agentes e evitar edições simultâneas nos mesmos arquivos. Cada frente entregou sua parte com typecheck e build, e a integração reuniu o cache público, os estados offline, a invalidação sincronizada e o polimento visual sem alterar o contrato autenticado da API.
+
+Na revisão independente, a IA identificou uma corrida entre a mensagem de invalidação e a recarga do catálogo, uma passagem possível de Bearer pelas estratégias genéricas, um estado genérico para `OFFLINE_SEM_CACHE`, um banner de reconexão que poderia ficar inconclusivo e skeletons ainda altos no mobile. As cinco correções foram aplicadas e o conjunto recebeu parecer `GO` depois das validações.
+
+### O que funcionou
+
+O Service Worker gerado manteve seis entradas de precache para o shell e criou um cache separado para os dados públicos. O harness isolado comprovou que duas queries diferentes não compartilham a mesma resposta e que somente a consulta previamente carregada é devolvida offline.
+
+O cache hit offline preservou o JSON e recebeu `X-Vortex-Offline: 1`. Uma consulta ausente recebeu 503 e `OFFLINE_SEM_CACHE`. Bearer, `/api/anuncios/me` e POST permaneceram sem `respondWith`, comprovando que não entram no Cache Storage.
+
+A invalidação apagou todas as variantes do catálogo e respondeu `CATALOG_CACHE_INVALIDATED` pelo canal de confirmação. Criação e exclusão chamam o helper somente depois de sucesso da API e antes de recarregar o catálogo e os anúncios do usuário.
+
+O banner, os skeletons e o dialog mantiveram contratos consistentes entre HTML, TypeScript e CSS. O typecheck estrito não encontrou erros e o build PWA concluiu sem deixar `self.__WB_MANIFEST` no artefato final.
+
+A revisão independente terminou com parecer `GO`, sem findings altos ou médios pendentes.
+
+### Erros encontrados
+
+A primeira implementação da invalidação apenas enviava `postMessage` e iniciava imediatamente a recarga. A revisão identificou que o catálogo poderia ser consultado antes de `caches.delete()` terminar. Corrigi com exclusão no contexto da página e confirmação do Service Worker por `MessageChannel`.
+
+O filtro inicial protegia o catálogo, mas uma requisição Bearer ainda poderia alcançar as estratégias genéricas de navegação ou ativos. O Service Worker passou a ignorar globalmente qualquer `Request` que possua `Authorization`.
+
+O frontend tratava `OFFLINE_SEM_CACHE` como um erro comum de carregamento. A revisão separou esse caso e criou uma mensagem que explica que a consulta atual nunca foi salva no dispositivo.
+
+Uma reconexão cuja atualização falhasse podia deixar o banner preso em “Atualizando o catálogo”. O fluxo agora termina no estado de conexão instável, preservando a distinção entre falha, dados salvos e atualização concluída.
+
+Os skeletons inicialmente mantinham proporções de desktop no breakpoint mobile. Eles foram compactados junto com os cartões reais para não reintroduzir o excesso de altura observado no Diário.
+
+O navegador integrado não disponibilizou nenhum backend nesta sessão. Por isso, não foi possível produzir capturas nem marcar a conferência visual de 390×844, 360×800 e 320×568 como aprovada. Essa limitação foi registrada explicitamente, sem substituir evidência visual por uma afirmação baseada apenas no CSS.
+
+### Como investiguei
+
+Comparei cada entrega com a seção Dia Bônus 6 de `PLANO/PLAN.md` e com as observações do Diário sobre 390×844, 360×800 e 320×568. Mapeei separadamente os arquivos do Service Worker, conectividade, carregamento, autenticação, responsividade e movimento para evitar alterações concorrentes.
+
+Auditei o artefato `dist/service-worker.js` depois de cada build, verificando a substituição de `VITE_API_URL`, o manifesto injetado, os nomes de cache, os filtros de rota e os contratos de fallback e invalidação.
+
+Criei um harness temporário em memória para executar o Service Worker gerado. Ele simulou `fetch`, `CacheStorage`, `Request`, `Response`, `MessageChannel` e eventos de fetch e mensagem. O teste exerceu rede disponível, falha de rede, cache hit, cache miss, query diferente, Bearer, rota autenticada, POST, exclusão do cache e confirmação da invalidação.
+
+No frontend, revisei os pontos que removem `aria-busy`, os timers de cold start, a origem do indicador offline, a preservação da sessão, a trava de autenticação e a restauração de foco. No CSS, procurei durações fora da faixa, `transition: all`, animações não desativadas e regras conflitantes dentro dos breakpoints.
+
+Iniciei o preview do build e confirmei por HTTP que página, folha de estilos, manifesto e Service Worker respondiam 200. Os processos e logs temporários criados para esse smoke test foram encerrados e removidos ao final.
+
+### O que aprendi
+
+Aprendi que network-first não significa usar um cache genérico quando a rede falha. A segurança funcional depende de procurar a mesma `Request`, incluindo a query string, para não devolver resultados de outro filtro.
+
+Aprendi que uma resposta do Cache Storage precisa ser reconstruída para adicionar um cabeçalho sintético. A cópia deve preservar corpo, status e cabeçalhos originais para que o frontend receba o mesmo contrato de dados com apenas a indicação de origem offline.
+
+Aprendi que enviar uma mensagem de invalidação não garante que a exclusão terminou. Quando uma leitura ocorre logo depois, é necessário um acknowledgment ou outra forma de sincronização para impedir a corrida entre apagar e repopular o cache.
+
+Aprendi que `navigator.onLine` informa conectividade do navegador, mas não confirma que a API está acessível. Por isso, “reconectado” e “catálogo atualizado” são estados diferentes, e a interface precisa admitir uma conexão ainda instável.
+
+Aprendi que skeletons também fazem parte da responsividade. Se repetirem a altura antiga dos cartões, a interface parece pesada justamente durante a espera e volta a apresentar o problema de densidade que o breakpoint deveria resolver.
+
+Aprendi que bloquear somente o botão submit não resolve todo o estado assíncrono de um dialog. Abas, fechamento, backdrop, `Escape`, mensagens e foco precisam acompanhar a mesma flag para que a operação não seja interrompida visualmente.
+
+### Partes principais que eu acho bom explicar
+
+Consigo explicar que o Service Worker compara origem e caminho antes de interceptar o catálogo. A URL completa da `Request` vira a chave, por isso `/api/anuncios?categoria=livros` e `/api/anuncios?categoria=moveis` são entradas independentes.
+
+Consigo explicar que `X-Vortex-Offline: 1` não vem da API. Ele é adicionado pelo Service Worker somente quando uma resposta salva é usada ou quando ocorre um miss offline, permitindo que o frontend escolha a mensagem correta.
+
+Consigo explicar que autenticação e dados privados ficam fora do cache por várias barreiras: rota exata do catálogo, método GET, ausência de Bearer e retorno antecipado para qualquer cabeçalho `Authorization`.
+
+Consigo explicar que POST e DELETE não são cacheados. Depois do sucesso, eles apenas disparam a limpeza do cache público e aguardam a confirmação antes de solicitar os dados atualizados.
+
+Consigo explicar a diferença entre `aria-busy`, `aria-disabled` e o atributo `disabled`. O primeiro informa que uma região está sendo atualizada; o segundo comunica o estado às tecnologias assistivas; e o terceiro impede a interação nativa com o controle.
+
+### Testes realizados
+
+- `npm run typecheck` aprovado após a revisão final.
+- `npm run build` aprovado após a revisão final.
+- Build PWA aprovado com seis entradas e 192,48 KiB de precache.
+- `npm test` aprovado: 70 testes passaram, 0 falharam e 1 integração PostgreSQL foi ignorada por ausência de `TEST_DATABASE_URL`.
+- `git diff --check` aprovado, com apenas avisos informativos de LF para CRLF.
+- Smoke HTTP aprovado para página, CSS, manifesto e Service Worker.
+- Harness do Service Worker aprovado para cache da consulta exata.
+- Query diferente confirmada como cache miss.
+- Cache hit confirmado com `X-Vortex-Offline: 1`.
+- Cache miss confirmado com HTTP 503 e `OFFLINE_SEM_CACHE`.
+- `/api/anuncios/me` confirmado fora do cache.
+- Requisição Bearer confirmada fora do cache.
+- POST confirmado fora do cache.
+- Invalidação de todas as variantes confirmada.
+- Confirmação `CATALOG_CACHE_INVALIDATED` aprovada.
+- Sessão preservada em falhas diferentes de 401 por auditoria do fluxo.
+- Estados de loading, cold start, erro, vazio e offline auditados.
+- Foco inicial, bloqueios e devolução de foco auditados estruturalmente.
+- Durações CSS auditadas entre 150 e 220 ms para transições funcionais.
+- `prefers-reduced-motion` auditado para dialogs, skeletons, ilustrações, reveal e scroll.
+- Revisão independente concluída com parecer `GO`.
+
+### Limitações e próximo passo
+
+A conferência visual em navegador real nas resoluções 390×844, 360×800 e 320×568 continua pendente porque o navegador integrado não disponibilizou backend. O código e os breakpoints foram auditados, mas essa evidência não substitui a inspeção visual prevista no plano.
+
+O teste CRUD PostgreSQL real permaneceu ignorado porque `TEST_DATABASE_URL` não estava configurada no processo. Os outros 70 testes passaram e nenhuma rotina tentou limpar produção.
+
+Ainda não existe uma suíte DOM/E2E permanente para cache, banner, dialog e foco. O harness usado nesta etapa foi isolado e temporário. Transformar essas verificações em testes permanentes pertence ao Dia Bônus 7.
+
+O frontend ainda não foi publicado na Vercel e o domínio definitivo não foi adicionado à allowlist do Render. Essas entregas continuam reservadas ao Dia Bônus 8.
+
+O próximo passo planejado é o Dia Bônus 7: transformar os testes temporários úteis em suíte permanente, exigir banco de teste isolado e repetir a regressão local e publicada.
+
+### Commit
+
+Implementação e registro versionados juntos em `feat: concluir dia bonus 6 com cache offline e polimento`.
