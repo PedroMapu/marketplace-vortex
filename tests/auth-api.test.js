@@ -14,6 +14,7 @@ const USUARIO = {
   id: "79ce52fb-1acf-455c-8d91-54e09a77e76b",
   nome: "Ana",
   email: "ana@edu.unifor.br",
+  fotoPerfilUrl: null,
 };
 const SEGREDO_ORIGINAL = process.env.JWT_SECRET;
 
@@ -22,6 +23,8 @@ function carregarApiComDatabaseMock(sobrescritas = {}) {
     criarUsuario: async () => USUARIO,
     buscarUsuarioPorEmail: async () => undefined,
     buscarUsuarioPorId: async () => undefined,
+    buscarPerfilUsuarioPorId: async () => undefined,
+    atualizarFotoPerfilUsuario: async () => undefined,
     listarAnuncios: async () => [],
     criarAnuncio: async (anuncio) => anuncio,
     buscarAnuncioPorId: async () => undefined,
@@ -262,4 +265,47 @@ test("GET /api/auth/me usa a identidade carregada pelo Bearer", async () => {
       usuario: USUARIO,
     },
   });
+});
+
+test("PATCH /api/auth/me/foto atualiza e remove a foto do usuário autenticado", async () => {
+  const fotoPerfilUrl = "data:image/png;base64,iVBORw0KGgo=";
+  const atualizacoes = [];
+  const app = carregarApiComDatabaseMock({
+    buscarUsuarioPorId: async (id) => (id === USUARIO.id ? USUARIO : undefined),
+    atualizarFotoPerfilUsuario: async (id, foto) => {
+      atualizacoes.push({ id, foto });
+      return { ...USUARIO, fotoPerfilUrl: foto };
+    },
+  });
+  const cadastro = await requisitar(app, "/api/auth/register", {
+    method: "POST",
+    body: {
+      nome: "Ana",
+      email: "ana@edu.unifor.br",
+      senha: "senha-segura",
+    },
+  });
+  const headers = {
+    Authorization: `Bearer ${cadastro.body.token}`,
+  };
+
+  const atualizada = await requisitar(app, "/api/auth/me/foto", {
+    method: "PATCH",
+    headers,
+    body: { fotoPerfilUrl },
+  });
+  const removida = await requisitar(app, "/api/auth/me/foto", {
+    method: "PATCH",
+    headers,
+    body: { fotoPerfilUrl: null },
+  });
+
+  assert.equal(atualizada.status, 200);
+  assert.equal(atualizada.body.usuario.fotoPerfilUrl, fotoPerfilUrl);
+  assert.equal(removida.status, 200);
+  assert.equal(removida.body.usuario.fotoPerfilUrl, null);
+  assert.deepEqual(atualizacoes, [
+    { id: USUARIO.id, foto: fotoPerfilUrl },
+    { id: USUARIO.id, foto: null },
+  ]);
 });

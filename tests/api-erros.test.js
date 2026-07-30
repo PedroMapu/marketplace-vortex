@@ -91,9 +91,9 @@ test("JSON malformado recebe 400 no envelope uniforme", async () => {
   );
 });
 
-test("corpo JSON acima de 8 MB recebe 413 sem ecoar o conteúdo", async () => {
+test("corpo JSON acima de 22 MB recebe 413 sem ecoar o conteúdo", async () => {
   const conteudo = "segredo".repeat(
-    Math.ceil((8 * 1024 * 1024 + 1) / "segredo".length),
+    Math.ceil((22 * 1024 * 1024 + 1) / "segredo".length),
   );
   const resposta = await requisitarRaw("/api/auth/register", {
     method: "POST",
@@ -103,7 +103,7 @@ test("corpo JSON acima de 8 MB recebe 413 sem ecoar o conteúdo", async () => {
   assert.deepEqual(resposta, {
     status: 413,
     body: {
-      erro: "O corpo da requisição excede o limite de 8 MB.",
+      erro: "O corpo da requisição excede o limite permitido para imagens de até 15 MB.",
       codigo: "CORPO_MUITO_GRANDE",
     },
   });

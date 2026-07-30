@@ -60,5 +60,6 @@ test("usuarioPublico nunca inclui senha nem hash", () => {
     id: USUARIO.id,
     nome: USUARIO.nome,
     email: USUARIO.email,
+    fotoPerfilUrl: null,
   });
 });

@@ -118,6 +118,7 @@ function mapearUsuario(row) {
     id: row.id,
     nome: row.nome,
     email: row.email,
+    fotoPerfilUrl: row.foto_perfil_url ?? null,
   };
 }
 
@@ -137,7 +138,7 @@ async function criarUsuario(dados) {
 async function buscarUsuarioPorEmail(email) {
   const resultado = await pool.query(
     `
-      SELECT id, nome, email, senha_hash
+      SELECT id, nome, email, senha_hash, foto_perfil_url
       FROM usuarios
       WHERE email = $1
     `,
@@ -161,6 +162,35 @@ async function buscarUsuarioPorId(id) {
       WHERE id = $1
     `,
     [id],
+  );
+  const usuario = resultado.rows[0];
+
+  return usuario ? mapearUsuario(usuario) : undefined;
+}
+
+async function buscarPerfilUsuarioPorId(id) {
+  const resultado = await pool.query(
+    `
+      SELECT id, nome, email, foto_perfil_url
+      FROM usuarios
+      WHERE id = $1
+    `,
+    [id],
+  );
+  const usuario = resultado.rows[0];
+
+  return usuario ? mapearUsuario(usuario) : undefined;
+}
+
+async function atualizarFotoPerfilUsuario(id, fotoPerfilUrl) {
+  const resultado = await pool.query(
+    `
+      UPDATE usuarios
+      SET foto_perfil_url = $2
+      WHERE id = $1
+      RETURNING id, nome, email, foto_perfil_url
+    `,
+    [id, fotoPerfilUrl],
   );
   const usuario = resultado.rows[0];
 
@@ -596,6 +626,8 @@ module.exports = {
   criarUsuario,
   buscarUsuarioPorEmail,
   buscarUsuarioPorId,
+  buscarPerfilUsuarioPorId,
+  atualizarFotoPerfilUsuario,
   registrarTokenRedefinicaoSenha,
   redefinirSenhaComToken,
   listarAnuncios,

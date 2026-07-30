@@ -3,7 +3,24 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { mapearAnuncio } = require("../database");
+const { mapearAnuncio, mapearUsuario } = require("../database");
+
+test("mapeia a foto de perfil do usuário sem expor snake_case", () => {
+  assert.deepEqual(
+    mapearUsuario({
+      id: "d7ff9c07-4409-4cf3-9458-6a7bd8d94104",
+      nome: "Pedro",
+      email: "pedro@edu.unifor.br",
+      foto_perfil_url: "data:image/png;base64,iVBORw0KGgo=",
+    }),
+    {
+      id: "d7ff9c07-4409-4cf3-9458-6a7bd8d94104",
+      nome: "Pedro",
+      email: "pedro@edu.unifor.br",
+      fotoPerfilUrl: "data:image/png;base64,iVBORw0KGgo=",
+    },
+  );
+});
 
 test("mapeia a linha do PostgreSQL para o DTO esperado pelo frontend", () => {
   const criadoEm = new Date("2026-07-31T14:30:45.123Z");

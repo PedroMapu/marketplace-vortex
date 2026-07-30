@@ -6,6 +6,7 @@ const {
   TAMANHO_MAXIMO_IMAGEM_BYTES,
   schemaCadastro,
   schemaLogin,
+  schemaFotoPerfil,
   schemaSolicitacaoRedefinicao,
   schemaConfirmacaoRedefinicao,
   schemaAnuncio,
@@ -155,7 +156,7 @@ test("anúncio aplica enums, tamanhos, faixa monetária e duas casas", () => {
   );
 });
 
-test("imagem aceita somente PNG/JPEG data URL com até 5 MB decodificados", () => {
+test("imagem aceita somente PNG/JPEG data URL com até 15 MB decodificados", () => {
   const imagemNoLimite = Buffer.alloc(TAMANHO_MAXIMO_IMAGEM_BYTES);
   Buffer.from([0xff, 0xd8, 0xff]).copy(imagemNoLimite);
   const noLimite = imagemNoLimite.toString("base64");
@@ -192,6 +193,31 @@ test("imagem aceita somente PNG/JPEG data URL com até 5 MB decodificados", () =
   const semImagem = anuncioValido();
   delete semImagem.imagemUrl;
   assert.equal(schemaAnuncio.safeParse(semImagem).success, false);
+});
+
+test("foto de perfil aceita imagem válida de até 15 MB ou remoção", () => {
+  assert.equal(
+    schemaFotoPerfil.safeParse({
+      fotoPerfilUrl: "data:image/png;base64,iVBORw0KGgo=",
+    }).success,
+    true,
+  );
+  assert.equal(
+    schemaFotoPerfil.safeParse({ fotoPerfilUrl: null }).success,
+    true,
+  );
+  assert.equal(
+    schemaFotoPerfil.safeParse({
+      fotoPerfilUrl: "https://example.com/foto.png",
+    }).success,
+    false,
+  );
+  assert.equal(
+    schemaFotoPerfil.safeParse({
+      fotoPerfilUrl: "data:image/gif;base64,R0lGODlh",
+    }).success,
+    false,
+  );
 });
 
 test("autoria e quaisquer chaves desconhecidas são rejeitadas no anúncio", () => {

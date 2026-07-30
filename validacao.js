@@ -5,7 +5,7 @@ const { z } = require("zod");
 const CATEGORIAS = ["livros", "eletronicos", "casa", "moda", "outros"];
 const CONDICOES = ["novo", "seminovo", "usado"];
 const MODALIDADES = ["venda", "doacao"];
-const TAMANHO_MAXIMO_IMAGEM_BYTES = 5 * 1024 * 1024;
+const TAMANHO_MAXIMO_IMAGEM_BYTES = 15 * 1024 * 1024;
 const FORMATO_TOKEN_REDEFINICAO = /^[A-Za-z0-9_-]{43}$/u;
 const FORMATO_DATA_URL_IMAGEM =
   /^data:image\/(png|jpeg);base64,([A-Za-z0-9+/]+={0,2})$/u;
@@ -70,6 +70,21 @@ const schemaCadastro = z
 const schemaLogin = z.strictObject({
   email: schemaEmail,
   senha: schemaSenha,
+});
+
+const schemaFotoPerfil = z.strictObject({
+  fotoPerfilUrl: z.union([
+    z
+      .string({
+        error: "A foto deve ser uma imagem PNG ou JPEG.",
+      })
+      .trim()
+      .refine(validarDataUrlImagem, {
+        error:
+          "A foto deve ser PNG ou JPEG e ter no máximo 15 MB.",
+      }),
+    z.null(),
+  ]),
 });
 
 const schemaSolicitacaoRedefinicao = z.strictObject({
@@ -167,7 +182,7 @@ const schemaAnuncio = z
       .trim()
       .refine(validarDataUrlImagem, {
         error:
-          "A imagem deve ser PNG ou JPEG em data URL e ter no máximo 5 MB.",
+          "A imagem deve ser PNG ou JPEG em data URL e ter no máximo 15 MB.",
       }),
   })
   .superRefine((dados, contexto) => {
@@ -295,6 +310,7 @@ module.exports = {
   TAMANHO_MAXIMO_IMAGEM_BYTES,
   schemaCadastro,
   schemaLogin,
+  schemaFotoPerfil,
   schemaSolicitacaoRedefinicao,
   schemaConfirmacaoRedefinicao,
   schemaAnuncio,

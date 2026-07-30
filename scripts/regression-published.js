@@ -116,11 +116,11 @@ async function main() {
   const contas = [
     {
       nome: `Regressão A ${identificador.slice(0, 8)}`,
-      email: `vortex.regression.a.${identificador}@example.com`,
+      email: `vortex.regression.a.${identificador}@edu.unifor.br`,
     },
     {
       nome: `Regressão B ${identificador.slice(0, 8)}`,
-      email: `vortex.regression.b.${identificador}@example.com`,
+      email: `vortex.regression.b.${identificador}@edu.unifor.br`,
     },
   ];
   let anuncioId;

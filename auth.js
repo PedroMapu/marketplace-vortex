@@ -28,6 +28,7 @@ function usuarioPublico(usuario) {
     id: usuario.id,
     nome: usuario.nome,
     email: usuario.email,
+    fotoPerfilUrl: usuario.fotoPerfilUrl ?? null,
   };
 }
 

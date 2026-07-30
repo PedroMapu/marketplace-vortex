@@ -76,7 +76,43 @@
             <span class="indicador-conta-cta" aria-hidden="true">→</span>
           </button>
           <div id="menu-conta" class="menu-conta" role="menu" hidden>
-            <button id="botao-sair-conta" type="button" role="menuitem">
+            <button
+              id="botao-alterar-foto"
+              class="menu-conta-foto"
+              type="button"
+              role="menuitem"
+            >
+              Adicionar foto
+            </button>
+            <input
+              id="foto-perfil"
+              name="fotoPerfil"
+              type="file"
+              accept=".png,.jpg,.jpeg,image/png,image/jpeg"
+              aria-describedby="feedback-foto-perfil"
+              hidden
+            />
+            <button
+              id="botao-remover-foto"
+              class="menu-conta-remover-foto"
+              type="button"
+              role="menuitem"
+              hidden
+            >
+              Remover foto
+            </button>
+            <p
+              id="feedback-foto-perfil"
+              class="feedback-foto-perfil"
+              role="status"
+              aria-live="polite"
+            ></p>
+            <button
+              id="botao-sair-conta"
+              class="menu-conta-sair"
+              type="button"
+              role="menuitem"
+            >
               Sair da conta
             </button>
           </div>
@@ -532,7 +568,7 @@
                     <ul>
                       <li>Formatos aceitos: PNG, JPG e JPEG.</li>
                       <li>Tamanho ideal: 1200 x 900 px (4:3).</li>
-                      <li>Arquivo de até 5 MB.</li>
+                      <li>Arquivo de até 15 MB.</li>
                     </ul>
                   </div>
                   <div id="erro-imagem" class="erros-imagem" role="alert" hidden></div>

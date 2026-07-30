@@ -189,6 +189,14 @@ const menuContaUsuario =
   document.querySelector<HTMLElement>("#menu-conta");
 const botaoSairConta =
   document.querySelector<HTMLButtonElement>("#botao-sair-conta");
+const botaoAlterarFoto =
+  document.querySelector<HTMLButtonElement>("#botao-alterar-foto");
+const botaoRemoverFoto =
+  document.querySelector<HTMLButtonElement>("#botao-remover-foto");
+const campoFotoPerfil =
+  document.querySelector<HTMLInputElement>("#foto-perfil");
+const feedbackFotoPerfil =
+  document.querySelector<HTMLElement>("#feedback-foto-perfil");
 const dialogoAutenticacao =
   document.querySelector<HTMLDialogElement>("#dialogo-autenticacao");
 const botaoFecharAutenticacao =
@@ -308,9 +316,9 @@ const MENSAGEM_API_GRATUITA_INICIANDO = "A API gratuita está iniciando";
 const ATRASO_AVISO_API_GRATUITA_MS = 1_500;
 const MENSAGEM_IMAGEM_OBRIGATORIA = "Escolha uma imagem para o anúncio.";
 const MENSAGEM_IMAGEM_INVALIDA = "Envie uma imagem PNG, JPG ou JPEG.";
-const TAMANHO_MAXIMO_IMAGEM_BYTES = 5 * 1024 * 1024;
+const TAMANHO_MAXIMO_IMAGEM_BYTES = 15 * 1024 * 1024;
 const MENSAGEM_TAMANHO_IMAGEM_INVALIDO =
-  "Envie uma imagem de até 5 MB.";
+  "Envie uma imagem de até 15 MB.";
 const IMAGEM_PADRAO_ANUNCIO =
   "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80";
   
@@ -380,6 +388,7 @@ let temporizadorBannerConectividade: number | undefined;
 let reconexaoEmAndamento = false;
 let catalogoUsaDadosSalvos = false;
 let autenticacaoEmAndamento = false;
+let atualizacaoFotoEmAndamento = false;
 let elementoFocadoAntesDaAutenticacao: HTMLElement | null = null;
 let cacheOfertasApi: Oferta[] = [];
 let ofertaAtiva: Oferta | null = null;
@@ -562,6 +571,21 @@ function ehUuid(valor: unknown): valor is string {
   );
 }
 
+function normalizarFotoPerfil(valor: unknown): string | null {
+  if (valor === null || valor === undefined) {
+    return null;
+  }
+
+  if (
+    typeof valor === "string" &&
+    /^data:image\/(?:png|jpeg);base64,/u.test(valor)
+  ) {
+    return valor;
+  }
+
+  throw new TypeError("A API retornou uma foto de perfil inválida.");
+}
+
 function normalizarCamposDoErro(
   campos: unknown,
 ): ErroApi["campos"] {
@@ -631,6 +655,7 @@ function normalizarSessaoDaApi(dados: unknown): Sessao {
       id: usuario.id,
       nome: usuario.nome,
       email: usuario.email,
+      fotoPerfilUrl: normalizarFotoPerfil(usuario.fotoPerfilUrl),
     },
   };
 }
@@ -658,6 +683,7 @@ function normalizarUsuarioAutenticadoDaApi(
     id: usuario.id,
     nome: usuario.nome,
     email: usuario.email,
+    fotoPerfilUrl: normalizarFotoPerfil(usuario.fotoPerfilUrl),
   };
 }
 
@@ -1374,6 +1400,7 @@ function lerSessaoSalva(): Sessao | null {
         id: sessao.usuario.id,
         nome: sessao.usuario.nome,
         email: sessao.usuario.email,
+        fotoPerfilUrl: null,
       },
     };
   } catch (erro) {
@@ -1384,7 +1411,20 @@ function lerSessaoSalva(): Sessao | null {
 
 function salvarSessao(sessao: Sessao): void {
   try {
-    window.sessionStorage.setItem(CHAVE_SESSAO, JSON.stringify(sessao));
+    const sessaoSemFoto: Sessao = {
+      token: sessao.token,
+      usuario: {
+        id: sessao.usuario.id,
+        nome: sessao.usuario.nome,
+        email: sessao.usuario.email,
+        fotoPerfilUrl: null,
+      },
+    };
+
+    window.sessionStorage.setItem(
+      CHAVE_SESSAO,
+      JSON.stringify(sessaoSemFoto),
+    );
   } catch (erro) {
     console.warn("Não foi possível salvar a sessão nesta aba.", erro);
   }
@@ -1873,6 +1913,12 @@ function atualizarContaNoHeader(): void {
     botaoContaUsuario.append(icone, rotulo, indicador);
     botaoContaUsuario.setAttribute("aria-label", "Entrar na conta");
     botaoContaUsuario.removeAttribute("aria-haspopup");
+    if (botaoAlterarFoto) {
+      botaoAlterarFoto.textContent = "Adicionar foto";
+    }
+    if (botaoRemoverFoto) {
+      botaoRemoverFoto.hidden = true;
+    }
     menuContaUsuario.hidden = true;
     return;
   }
@@ -1882,7 +1928,14 @@ function atualizarContaNoHeader(): void {
   const seta = document.createElement("span");
 
   avatar.className = "avatar-usuario";
-  avatar.textContent = obterIniciaisDoUsuario(usuarioAtual.nome);
+  if (usuarioAtual.fotoPerfilUrl) {
+    const imagem = document.createElement("img");
+    imagem.src = usuarioAtual.fotoPerfilUrl;
+    imagem.alt = "";
+    avatar.append(imagem);
+  } else {
+    avatar.textContent = obterIniciaisDoUsuario(usuarioAtual.nome);
+  }
   avatar.setAttribute("aria-hidden", "true");
   saudacao.className = "saudacao-usuario";
   saudacao.textContent = `Olá, ${usuarioAtual.nome}`;
@@ -1893,7 +1946,135 @@ function atualizarContaNoHeader(): void {
   botaoContaUsuario.append(avatar, saudacao, seta);
   botaoContaUsuario.setAttribute("aria-label", `Abrir opções da conta de ${usuarioAtual.nome}`);
   botaoContaUsuario.setAttribute("aria-haspopup", "menu");
+  if (botaoAlterarFoto) {
+    botaoAlterarFoto.textContent = usuarioAtual.fotoPerfilUrl
+      ? "Trocar foto"
+      : "Adicionar foto";
+  }
+  if (botaoRemoverFoto) {
+    botaoRemoverFoto.hidden = !usuarioAtual.fotoPerfilUrl;
+  }
   menuContaUsuario.hidden = true;
+}
+
+function definirFeedbackFotoPerfil(
+  mensagem: string,
+  tipo: "neutro" | "erro" | "sucesso" = "neutro",
+): void {
+  if (!feedbackFotoPerfil) {
+    return;
+  }
+
+  feedbackFotoPerfil.textContent = mensagem;
+  feedbackFotoPerfil.dataset.tipo = tipo;
+  feedbackFotoPerfil.setAttribute(
+    "role",
+    tipo === "erro" ? "alert" : "status",
+  );
+}
+
+function definirBloqueioFotoPerfil(bloqueado: boolean): void {
+  atualizacaoFotoEmAndamento = bloqueado;
+
+  if (botaoAlterarFoto) {
+    botaoAlterarFoto.disabled = bloqueado;
+  }
+
+  if (botaoRemoverFoto) {
+    botaoRemoverFoto.disabled = bloqueado;
+  }
+}
+
+async function salvarFotoPerfil(fotoPerfilUrl: string | null): Promise<void> {
+  const sessaoDaRequisicao = sessaoAtual;
+
+  if (!sessaoDaRequisicao || atualizacaoFotoEmAndamento) {
+    return;
+  }
+
+  definirBloqueioFotoPerfil(true);
+  definirFeedbackFotoPerfil(
+    fotoPerfilUrl ? "Salvando sua foto..." : "Removendo sua foto...",
+  );
+
+  try {
+    const { dados: usuarioAtualizado } = await requisitarApiAutenticada(
+      "/api/auth/me/foto",
+      normalizarUsuarioAutenticadoDaApi,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ fotoPerfilUrl }),
+      },
+      sessaoDaRequisicao,
+    );
+
+    if (sessaoAtual?.token !== sessaoDaRequisicao.token) {
+      return;
+    }
+
+    sessaoAtual = {
+      token: sessaoDaRequisicao.token,
+      usuario: usuarioAtualizado,
+    };
+    usuarioAtual = usuarioAtualizado;
+    salvarSessao(sessaoAtual);
+    atualizarContaNoHeader();
+    definirFeedbackFotoPerfil(
+      fotoPerfilUrl ? "Foto atualizada." : "Foto removida.",
+      "sucesso",
+    );
+    if (menuContaUsuario && botaoContaUsuario) {
+      menuContaUsuario.hidden = false;
+      botaoContaUsuario.setAttribute("aria-expanded", "true");
+    }
+  } catch (erro) {
+    const mensagem =
+      ehErroRequisicaoApi(erro)
+        ? erro.message
+        : "Não foi possível atualizar a foto. Tente novamente.";
+    definirFeedbackFotoPerfil(mensagem, "erro");
+  } finally {
+    definirBloqueioFotoPerfil(false);
+    if (campoFotoPerfil) {
+      campoFotoPerfil.value = "";
+    }
+  }
+}
+
+async function enviarFotoPerfilSelecionada(): Promise<void> {
+  const arquivo = campoFotoPerfil?.files?.[0];
+
+  if (!arquivo) {
+    return;
+  }
+
+  const erros = await obterErrosImagem(arquivo);
+
+  if (erros.length > 0) {
+    const mensagem = erros.join(" ");
+    campoFotoPerfil.setCustomValidity(mensagem);
+    campoFotoPerfil.setAttribute("aria-invalid", "true");
+    definirFeedbackFotoPerfil(mensagem, "erro");
+    campoFotoPerfil.value = "";
+    return;
+  }
+
+  campoFotoPerfil.setCustomValidity("");
+  campoFotoPerfil.removeAttribute("aria-invalid");
+
+  try {
+    const fotoPerfilUrl = await converterArquivoParaDataUrl(arquivo);
+    await salvarFotoPerfil(fotoPerfilUrl);
+  } catch (erro) {
+    console.error("Não foi possível preparar a foto de perfil.", erro);
+    definirFeedbackFotoPerfil(
+      "Não foi possível ler essa imagem. Escolha outro arquivo.",
+      "erro",
+    );
+  }
 }
 
 function ehModoAutenticacao(valor: string | undefined): valor is ModoAutenticacao {
@@ -2333,6 +2514,24 @@ function inicializarContaUsuario(): void {
     botaoContaUsuario.setAttribute("aria-expanded", String(!menuEstaAberto));
   });
 
+  botaoAlterarFoto?.addEventListener("click", () => {
+    if (atualizacaoFotoEmAndamento) {
+      return;
+    }
+
+    definirFeedbackFotoPerfil("");
+    campoFotoPerfil?.click();
+  });
+  campoFotoPerfil?.addEventListener("change", () => {
+    void enviarFotoPerfilSelecionada();
+  });
+  botaoRemoverFoto?.addEventListener("click", () => {
+    if (!usuarioAtual?.fotoPerfilUrl || atualizacaoFotoEmAndamento) {
+      return;
+    }
+
+    void salvarFotoPerfil(null);
+  });
   botaoSairConta?.addEventListener("click", sairDaConta);
   botaoFecharAutenticacao?.addEventListener(
     "click",

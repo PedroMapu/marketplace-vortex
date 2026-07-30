@@ -5,6 +5,8 @@ const bcrypt = require("bcryptjs");
 const {
   criarUsuario,
   buscarUsuarioPorEmail,
+  buscarPerfilUsuarioPorId,
+  atualizarFotoPerfilUsuario,
   listarAnuncios,
   criarAnuncio,
   atualizarAnuncioPorId,
@@ -26,6 +28,7 @@ const {
 const {
   schemaCadastro,
   schemaLogin,
+  schemaFotoPerfil,
   schemaAnuncio,
   schemaFiltrosAnuncios,
   schemaParametroAnuncio,
@@ -45,7 +48,7 @@ app.use("/api/auth", (request, response, next) => {
   response.set("Cache-Control", "no-store");
   return next();
 });
-app.use(express.json({ limit: "8mb" }));
+app.use(express.json({ limit: "22mb" }));
 
 app.get("/api/status", async (request, response) => {
   try {
@@ -139,9 +142,44 @@ app.post("/api/auth/login", async (request, response) => {
   });
 });
 
-app.get("/api/auth/me", autenticarBearer, (request, response) => {
+app.get("/api/auth/me", autenticarBearer, async (request, response) => {
+  const usuario =
+    (await buscarPerfilUsuarioPorId(request.usuario.id)) ?? request.usuario;
+
   return response.status(200).json({
-    usuario: usuarioPublico(request.usuario),
+    usuario: usuarioPublico(usuario),
+  });
+});
+
+app.patch("/api/auth/me/foto", autenticarBearer, async (request, response) => {
+  const validacao = validarComSchema(schemaFotoPerfil, request.body);
+
+  if (!validacao.sucesso) {
+    return responderErro(
+      response,
+      400,
+      "Foto de perfil inválida.",
+      "VALIDACAO",
+      validacao.campos,
+    );
+  }
+
+  const usuario = await atualizarFotoPerfilUsuario(
+    request.usuario.id,
+    validacao.dados.fotoPerfilUrl,
+  );
+
+  if (!usuario) {
+    return responderErro(
+      response,
+      404,
+      "Usuário não encontrado.",
+      "USUARIO_NAO_ENCONTRADO",
+    );
+  }
+
+  return response.status(200).json({
+    usuario: usuarioPublico(usuario),
   });
 });
 
@@ -546,7 +584,7 @@ app.use((erro, request, response, next) => {
     return responderErro(
       response,
       413,
-      "O corpo da requisição excede o limite de 8 MB.",
+      "O corpo da requisição excede o limite permitido para imagens de até 15 MB.",
       "CORPO_MUITO_GRANDE",
     );
   }

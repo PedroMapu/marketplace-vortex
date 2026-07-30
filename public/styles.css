@@ -471,7 +471,14 @@ header nav a:focus-visible {
   height: 2rem;
   justify-content: center;
   line-height: 1;
+  overflow: hidden;
   width: 2rem;
+}
+
+.avatar-usuario img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
 }
 
 .saudacao-usuario {
@@ -501,7 +508,7 @@ header nav a:focus-visible {
   border: 1px solid rgba(15, 23, 42, 0.12);
   border-radius: 0.5rem;
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.16);
-  min-width: 10.5rem;
+  min-width: 13rem;
   padding: 0.4rem;
   position: absolute;
   right: 0;
@@ -512,7 +519,7 @@ header nav a:focus-visible {
 .menu-conta button {
   background: transparent;
   border-radius: 0.35rem;
-  color: #ff0000;
+  color: var(--preto-elevado);
   font-size: 0.88rem;
   justify-content: flex-start;
   min-height: 2.35rem;
@@ -522,8 +529,54 @@ header nav a:focus-visible {
 
 .menu-conta button:hover,
 .menu-conta button:focus-visible {
-  background: #fff2f2;
+  background: #edf4ff;
+  color: var(--azul);
   transform: none;
+}
+
+.menu-conta .menu-conta-sair,
+.menu-conta .menu-conta-remover-foto {
+  color: #b42318;
+}
+
+.menu-conta .menu-conta-sair {
+  border-top: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 0 0 0.35rem 0.35rem;
+  margin-top: 0.25rem;
+}
+
+.menu-conta .menu-conta-sair:hover,
+.menu-conta .menu-conta-sair:focus-visible,
+.menu-conta .menu-conta-remover-foto:hover,
+.menu-conta .menu-conta-remover-foto:focus-visible {
+  background: #fff2f2;
+  color: #b42318;
+  transform: none;
+}
+
+.menu-conta button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.feedback-foto-perfil {
+  color: var(--cinza-300);
+  font-size: 0.74rem;
+  line-height: 1.35;
+  margin: 0;
+  padding: 0 0.7rem;
+}
+
+.feedback-foto-perfil:empty {
+  display: none;
+}
+
+.feedback-foto-perfil[data-tipo="erro"] {
+  color: #b42318;
+}
+
+.feedback-foto-perfil[data-tipo="sucesso"] {
+  color: #245b36;
 }
 
 main > section {
@@ -3719,7 +3772,7 @@ footer section {
 }
 
 footer h2 {
-  color: var(--preto);
+  color: rgb(0, 235, 235);
   font-size: clamp(2rem, 4vw, 3rem);
   margin-bottom: 1.25rem;
   font-weight: 800;
@@ -5435,6 +5488,32 @@ header nav a::after {
   background: var(--vortex-ameixa);
   border-color: rgba(255, 255, 255, 0.12);
   box-shadow: 0 1.2rem 2.6rem rgba(19, 10, 36, 0.35);
+}
+
+.menu-conta button {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.menu-conta button:hover,
+.menu-conta button:focus-visible {
+  background: rgba(18, 206, 228, 0.11);
+  color: var(--vortex-ciano);
+}
+
+.menu-conta .menu-conta-sair {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+.feedback-foto-perfil {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.feedback-foto-perfil[data-tipo="sucesso"] {
+  color: #8ce9a8;
+}
+
+.feedback-foto-perfil[data-tipo="erro"] {
+  color: #ffaaa3;
 }
 
 main > section {
