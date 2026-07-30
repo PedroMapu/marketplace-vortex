@@ -2099,3 +2099,64 @@ anúncios próprios, criação e exclusão pelo proprietário.
 O deploy, a integração Vercel–Render, o fluxo real da API e os links finais
 estão concluídos. Os itens acima permanecem sem aprovação até que haja
 evidência manual de navegador; este registro não presume esses resultados.
+
+# Alterações Pós-Deploy
+
+Esta seção registra as melhorias realizadas depois da primeira publicação do
+Marketplace Vortex. Cada nova rodada de manutenção deverá receber uma entrada
+datada, com o que foi alterado, a motivação, os arquivos afetados e as
+validações executadas.
+
+## 30/07/2026 — nova identidade visual Vortex
+
+### Objetivo
+
+Aproximar o frontend da linguagem visual do site Vortex da UNIFOR, preservando
+as funcionalidades, a responsividade e os recursos de acessibilidade já
+existentes.
+
+### Alterações realizadas
+
+- A identidade do frontend foi reformulada com fundo ameixa escuro, superfícies
+  elevadas, roxo elétrico, ciano, magenta e verde neon.
+- As seções que ainda possuíam fundo branco receberam variações escuras
+  adaptadas, com textos, bordas, cartões e controles ajustados para manter o
+  contraste.
+- A seção `#como-funciona` ganhou fundo ameixa diferenciado, grade discreta,
+  cartões escuros e destaques em ciano.
+- O símbolo textual de reciclagem do cabeçalho foi substituído pela nova marca
+  gráfica Vortex, acompanhada dos textos `VORTEX` e `MARKETPLACE`.
+- A tipografia principal passou a usar Rubik e a cor do tema do navegador foi
+  alinhada ao novo fundo.
+- Os quatro contadores de impacto receberam cores fosforescentes próprias. O
+  valor `248` ficou verde elétrico e o desfoque do brilho foi reduzido para
+  melhorar a leitura.
+- O botão “Anunciar um item” recebeu neon roxo e reflexo; o botão “Explorar
+  catálogo” passou a usar verde elétrico, também com neon e reflexo.
+- Foi criado um cursor personalizado com interior preto, contorno roxo elétrico
+  e glow roxo. O hotspot foi alinhado à ponta da seta e o cursor é aplicado
+  somente a dispositivos com ponteiro preciso.
+- Os emojis do rodapé foram substituídos pelos novos SVGs de Facebook,
+  LinkedIn, Twitter e Instagram. Os links mantêm seus nomes acessíveis e os
+  ícones são exibidos sobre fundo transparente.
+- O comando `npm run dev:api` passou a carregar o arquivo `.env`
+  automaticamente, permitindo fornecer `JWT_SECRET` localmente sem versionar o
+  segredo.
+
+### Arquivos e recursos principais
+
+- `index.html`
+- `public/styles.css`
+- `package.json`
+- `public/icons/vortex-mark.png`
+- `public/icons/facebook-icon.svg`
+- `public/icons/linkedin-icon.svg`
+- `public/icons/twitter-icon.svg`
+- `public/icons/instagram-icon.svg`
+- `public/cursors/cursor-neon.png`
+
+### Validação
+
+- `npm run build`: aprovado.
+- Build PWA e geração do Service Worker: aprovados.
+- `git diff --check`: aprovado, sem erros de whitespace.
