@@ -167,6 +167,11 @@ const botaoMenuPrincipal =
 const navegacaoPrincipal =
   document.querySelector<HTMLElement>("#navegacao-principal");
 const mediaMenuCompacto = window.matchMedia("(max-width: 68rem)");
+const mediaFiltrosMoveis = window.matchMedia("(max-width: 48rem)");
+const botaoFiltrosMoveis =
+  document.querySelector<HTMLButtonElement>("#botao-filtros-mobile");
+const painelFiltrosCatalogo =
+  document.querySelector<HTMLElement>("#filtros-catalogo");
 const formularioBuscaVitrine =
   document.querySelector<HTMLFormElement>("#formulario-busca-vitrine");
 const campoBuscaVitrine =
@@ -3919,6 +3924,39 @@ function inicializarNavegacaoResponsiva(): void {
   definirMenuPrincipalAberto(false);
 }
 
+function definirFiltrosMoveisAbertos(aberto: boolean): void {
+  if (!botaoFiltrosMoveis || !painelFiltrosCatalogo) {
+    return;
+  }
+
+  const filtrosAbertos = !mediaFiltrosMoveis.matches || aberto;
+
+  painelFiltrosCatalogo.hidden = !filtrosAbertos;
+  botaoFiltrosMoveis.setAttribute(
+    "aria-expanded",
+    String(mediaFiltrosMoveis.matches && aberto),
+  );
+}
+
+function inicializarFiltrosResponsivos(): void {
+  if (!botaoFiltrosMoveis || !painelFiltrosCatalogo) {
+    return;
+  }
+
+  botaoFiltrosMoveis.addEventListener("click", () => {
+    const filtrosEstaoAbertos =
+      botaoFiltrosMoveis.getAttribute("aria-expanded") === "true";
+
+    definirFiltrosMoveisAbertos(!filtrosEstaoAbertos);
+  });
+
+  mediaFiltrosMoveis.addEventListener("change", () => {
+    definirFiltrosMoveisAbertos(false);
+  });
+
+  definirFiltrosMoveisAbertos(false);
+}
+
 function atualizarEstadoDoHeader(): void {
   if (!headerPrincipal) {
     return;
@@ -4010,6 +4048,7 @@ inicializarExclusaoDeAnuncios();
 inicializarVisualizacaoDeImagens();
 inicializarControlesDaVitrine();
 inicializarNavegacaoResponsiva();
+inicializarFiltrosResponsivos();
 inicializarHeaderFixo();
 renderizarColecoesDoUsuario();
 void carregarAnunciosDaApi();

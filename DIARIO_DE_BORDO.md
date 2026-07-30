@@ -2160,3 +2160,103 @@ existentes.
 - `npm run build`: aprovado.
 - Build PWA e geração do Service Worker: aprovados.
 - `git diff --check`: aprovado, sem erros de whitespace.
+
+## 30/07/2026 — correção completa da responsividade móvel
+
+### Objetivo
+
+Corrigir a experiência do Marketplace Vortex em celulares, onde componentes
+ficavam amontoados, filtros ocupavam uma faixa horizontal difícil de usar e
+elementos decorativos aumentavam a largura do documento. A alteração deveria
+preservar a identidade neon e o layout desktop já aprovados.
+
+### Diagnóstico
+
+A página foi auditada no navegador em larguras de 320, 375, 768 e 1440 px. Em
+320 e 375 px, o `scrollWidth` do documento era maior que a viewport. A causa
+principal era o elemento decorativo de 25 rem em
+`#colecoes-destaque::before`, que extrapolava a seção sem recorte.
+
+Também foi identificado que a regra antiga de até 26 rem transformava os cinco
+grupos de filtros em um carrossel horizontal com colunas de 17 rem. Em telas
+pequenas, o segundo painel aparecia parcialmente ao lado do primeiro, criava
+uma composição visual apertada e dificultava a leitura. Regras do tema Vortex
+adicionadas depois dos breakpoints antigos ainda sobrescreviam parte dos
+ajustes móveis, especialmente no hero e nas métricas.
+
+### Alterações realizadas
+
+- Foi adicionada uma camada final de responsividade do tema Vortex para
+  consolidar a cascata e evitar conflitos com os breakpoints anteriores.
+- `html` e `body` passaram a recortar overflow horizontal em telas de até
+  48 rem.
+- A seção de coleções passou a ocultar o excesso de sua decoração, eliminando
+  o alargamento artificial do documento.
+- O cabeçalho móvel recebeu espaçamentos menores, controles de conta e menu
+  com alvos de toque de 44 px e um estado expandido coerente com o roxo do
+  tema.
+- Em telas extremamente estreitas, o nome textual da marca é ocultado e a
+  marca gráfica permanece visível para liberar espaço aos controles.
+- O hero móvel foi alinhado à esquerda, recebeu título menor e mais compacto,
+  descrição com largura controlada, botões em coluna e ilustração
+  proporcional. Em 320 px, a altura do título caiu de aproximadamente 283 px
+  para 157 px.
+- As métricas passam para uma coluna abaixo de 32 rem, evitando números e
+  rótulos comprimidos.
+- Foi criado o botão acessível “Filtros do catálogo”, com `aria-expanded` e
+  `aria-controls`, para recolher os filtros por padrão em telas de até 48 rem.
+- O TypeScript agora sincroniza a abertura dos filtros com o breakpoint,
+  mantém o painel visível no desktop e redefine corretamente o estado quando
+  a largura da janela muda.
+- Quando abertos no celular, os filtros são exibidos em uma única coluna,
+  dentro de uma superfície contínua, com divisores entre categoria, tags,
+  preço, condição e modalidade. O antigo carrossel horizontal foi removido.
+- A busca, ordenação, alternância de visualização e ações da vitrine foram
+  reorganizadas para ocupar a largura disponível sem sobreposição.
+- Os botões “Anunciar” e “Criar Coleção” passam para uma coluna nas telas
+  menores.
+- As abas do catálogo continuam navegáveis horizontalmente por gesto, mas a
+  barra de rolagem visual foi ocultada e foi adicionado encaixe de rolagem.
+- Cards, formulários de anúncio, formulário de coleção, campos, botões e
+  rodapé foram limitados à largura da viewport.
+- O diálogo de autenticação foi novamente verificado e permaneceu totalmente
+  contido na tela móvel.
+- O layout desktop foi preservado: navegação completa, hero em duas colunas e
+  vitrine com sidebar de 320 px e conteúdo principal.
+
+### Arquivos alterados
+
+- `index.html`: botão móvel dos filtros e identificação do painel por
+  `filtros-catalogo`.
+- `src/app.ts`: referências dos novos elementos, media query de 48 rem,
+  sincronização do estado e inicialização do controle responsivo.
+- `public/styles.css`: consolidação dos breakpoints, correção do overflow e
+  adaptação dos componentes móveis.
+
+### Validação visual e funcional
+
+- Em 320 px, `scrollWidth`, `body.scrollWidth` e largura útil ficaram em
+  305 px, sem overflow horizontal.
+- Em 375 px, a largura útil e os dois valores de `scrollWidth` ficaram em
+  360 px, também sem overflow horizontal.
+- Em 768 px, a vitrine exibiu o botão de filtros recolhido, busca e ações
+  organizadas e catálogo em uma coluna.
+- Em 1440 px, o botão móvel permaneceu oculto, os filtros ficaram visíveis e a
+  vitrine manteve as colunas de 320 px e 972,8 px.
+- O menu móvel foi aberto e fechado no navegador; o painel ficou contido entre
+  12 px e 348 px na viewport de 375 px.
+- Os filtros foram abertos e fechados; o painel passou a usar uma única coluna
+  de 294,4 px, sem overflow interno ou no documento.
+- Os formulários de anúncio e coleção foram abertos no celular. Ambos usaram
+  coluna única, e nenhum campo ultrapassou a viewport.
+- O diálogo de autenticação foi aberto em 375 × 812 px e permaneceu contido em
+  359 × 717 px.
+- Os controles principais do cabeçalho mantiveram 44 × 44 px em 320 e
+  375 px.
+
+### Verificações técnicas
+
+- `npm run typecheck`: aprovado.
+- `npm run build`: aprovado.
+- Build PWA: aprovado, com seis entradas de precache e Service Worker gerado.
+- `git diff --check`: aprovado, sem erros de whitespace.

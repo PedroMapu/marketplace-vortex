@@ -259,8 +259,26 @@
         </div>
 
         <div class="vitrine-layout">
+          <button
+            id="botao-filtros-mobile"
+            class="botao-filtros-mobile"
+            type="button"
+            aria-expanded="false"
+            aria-controls="filtros-catalogo"
+          >
+            <span>
+              <strong>Filtros do catálogo</strong>
+              <small>Categoria, preço, condição e modalidade</small>
+            </span>
+            <span class="botao-filtros-indicador" aria-hidden="true">＋</span>
+          </button>
+
           <!-- Sidebar Lateral de Filtros -->
-          <aside class="sidebar-filtros" aria-label="Filtros laterais de busca">
+          <aside
+            id="filtros-catalogo"
+            class="sidebar-filtros"
+            aria-label="Filtros laterais de busca"
+          >
             <div class="filtro-grupo">
               <h3>Categorias</h3>
               <ul class="filtro-lista-links">
