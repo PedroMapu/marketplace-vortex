@@ -2702,6 +2702,16 @@ function sincronizarModalidadeComValor(): void {
   modalidadeDoacao.addEventListener("change", () => {
     if (modalidadeDoacao.checked) {
       valorItem.value = formatadorMoeda.format(0);
+      valorItem.disabled = true;
+    }
+  });
+
+  modalidadeVenda.addEventListener("change", () => {
+    if (modalidadeVenda.checked) {
+      valorItem.disabled = false;
+      if (obterValorNumerico(valorItem.value) === 0) {
+        valorItem.value = "";
+      }
     }
   });
 
@@ -4967,6 +4977,7 @@ function sincronizarModalidadeDaEdicao(): void {
 
   const ehDoacao = campoEditarModalidadeDoacao.checked;
   campoEditarValor.readOnly = ehDoacao;
+  campoEditarValor.disabled = ehDoacao;
   campoEditarValor.min = ehDoacao ? "0" : "0.01";
 
   if (ehDoacao) {

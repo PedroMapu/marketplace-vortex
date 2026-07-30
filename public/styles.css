@@ -3772,7 +3772,7 @@ footer section {
 }
 
 footer h2 {
-  color: rgb(0, 235, 235);
+  color: var(--azul);
   font-size: clamp(2rem, 4vw, 3rem);
   margin-bottom: 1.25rem;
   font-weight: 800;
