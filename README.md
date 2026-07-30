@@ -1,9 +1,9 @@
 # Marketplace de Economia Circular
 
-Aplicação full stack para cadastro, autenticação, listagem, filtro e exclusão de
-anúncios de produtos destinados à reutilização, venda ou doação. O frontend é
-uma PWA em TypeScript e o backend expõe uma API REST com autenticação JWT e
-persistência PostgreSQL.
+Aplicação full stack para cadastro institucional, autenticação, publicação,
+edição, filtros combinados, ofertas e conversas sobre anúncios destinados à
+reutilização, venda ou doação. O frontend é uma PWA em TypeScript e o backend
+expõe uma API REST com autenticação JWT e persistência PostgreSQL.
 
 ## Links públicos
 
@@ -27,9 +27,13 @@ persistência PostgreSQL.
   `VITE_API_URL`; a API aceita a origem exata da Vercel por meio de
   `FRONTEND_ORIGINS`.
 
-Dados autenticados, tokens, anúncios próprios e mutações não entram no cache do
-Service Worker. Depois de criar ou excluir um anúncio, o frontend invalida todas
-as variantes do catálogo público.
+Dados autenticados, tokens, anúncios próprios, ofertas, mensagens e mutações não
+entram no cache do Service Worker. Depois de criar, editar ou excluir um anúncio,
+o frontend invalida todas as variantes do catálogo público.
+
+Novas contas aceitam exclusivamente e-mails do domínio `@edu.unifor.br`. O
+cadastro também exige a confirmação da senha no frontend antes de enviar os
+dados à API.
 
 ## Requisitos e instalação local
 
@@ -99,7 +103,13 @@ No Render, o serviço executa `npm ci` no build e
 | `GET /api/anuncios` | público | Lista o catálogo; aceita filtros públicos por categoria e usuário. |
 | `GET /api/anuncios/me` | Bearer JWT | Lista somente os anúncios do usuário autenticado. |
 | `POST /api/anuncios` | Bearer JWT | Cria anúncio com autoria obtida do token. |
+| `PATCH /api/anuncios/:id` | Bearer JWT | Edita somente se o usuário for o proprietário. |
 | `DELETE /api/anuncios/:id` | Bearer JWT | Exclui somente se o usuário for o proprietário. |
+| `POST /api/anuncios/:id/cliques-detalhes` | público | Registra um clique em “Ver detalhes”. |
+| `GET /api/ofertas` | Bearer JWT | Lista as conversas do usuário autenticado. |
+| `POST /api/anuncios/:id/ofertas` | Bearer JWT | Envia uma oferta e inicia a conversa com o anunciante. |
+| `GET /api/ofertas/:id/mensagens` | Bearer JWT | Lista mensagens apenas para os participantes da oferta. |
+| `POST /api/ofertas/:id/mensagens` | Bearer JWT | Envia uma mensagem apenas como participante da oferta. |
 
 Erros usam um envelope JSON com `erro`, `codigo` e, quando aplicável,
 `campos`. A API cobre respostas 400, 401, 403, 404, 409, 413 e 500 sem expor
@@ -144,16 +154,12 @@ validada e o fluxo real da API aprovou cadastro, login, criação, listagem,
 filtro, anúncios próprios, bloqueio 403 para o segundo usuário e exclusão pelo
 proprietário.
 
-Na revisão final, o frontend também foi validado no Chrome em viewports de
-`390x844` e `320x568`: hero, menu móvel, ações principais e catálogo
-permaneceram utilizáveis, sem avisos ou erros no Console. `npm run typecheck`,
-`npm run build` e `npm test` encerraram com sucesso; a execução atual da suíte
-teve 90 aprovações e um teste de integração PostgreSQL pulado porque
-`TEST_DATABASE_URL` não estava configurada neste terminal.
+Na revisão final, os fluxos visuais de cadastro institucional com confirmação de
+senha, autenticação, filtros combinados, detalhes, Meus Anúncios, edição com
+controle de propriedade, coleções, ofertas, chat e notificações foram validados
+no Chrome. O layout móvel, incluindo o editor de anúncio, permaneceu dentro da
+largura da viewport. `npm run typecheck`, `npm run build` e a suíte com banco
+PostgreSQL isolado encerraram com sucesso, totalizando 100 testes aprovados.
 
-Permanecem pendentes a comprovação da instalação PWA e a inspeção de
-Application/Cache Storage, além da visualização offline executada pela
-interface publicada. A validação específica em janela anônima também ainda não
-foi registrada como aprovada. A integração automática GitHub–Vercel ainda
-precisa receber acesso ao repositório; até lá, novos deploys devem ser feitos
-pela CLI.
+A integração automática GitHub–Vercel ainda precisa receber acesso ao
+repositório; até lá, novos deploys do frontend devem ser feitos pela CLI.

@@ -53,10 +53,17 @@ const schemaEmail = z
   })
   .transform((email) => email.toLowerCase());
 
+const schemaEmailInstitucional = schemaEmail.refine(
+  (email) => email.endsWith("@edu.unifor.br"),
+  {
+    error: "Use seu e-mail institucional @edu.unifor.br.",
+  },
+);
+
 const schemaCadastro = z
   .strictObject({
     nome: textoObrigatorio("o nome", 80),
-    email: schemaEmail,
+    email: schemaEmailInstitucional,
     senha: schemaSenha,
   });
 
@@ -255,6 +262,32 @@ const schemaParametroAnuncio = z.strictObject({
     }),
 });
 
+const schemaParametroOferta = schemaParametroAnuncio;
+
+const schemaOferta = z.strictObject({
+  valor: z
+    .number({
+      error: "Informe um valor numérico.",
+    })
+    .finite({
+      error: "Informe um valor numérico.",
+    })
+    .min(0, {
+      error: "O valor deve ser maior ou igual a zero.",
+    })
+    .max(1_000_000, {
+      error: "O valor deve ser de no máximo R$ 1.000.000.",
+    })
+    .refine(temAteDuasCasasDecimais, {
+      error: "O valor deve ter no máximo duas casas decimais.",
+    }),
+  mensagem: textoObrigatorio("a mensagem", 2_000),
+});
+
+const schemaMensagemOferta = z.strictObject({
+  conteudo: textoObrigatorio("o conteúdo da mensagem", 2_000),
+});
+
 module.exports = {
   CATEGORIAS,
   CONDICOES,
@@ -267,6 +300,9 @@ module.exports = {
   schemaAnuncio,
   schemaFiltrosAnuncios,
   schemaParametroAnuncio,
+  schemaParametroOferta,
+  schemaOferta,
+  schemaMensagemOferta,
   senhaValida,
   validarDataUrlImagem,
   temAteDuasCasasDecimais,

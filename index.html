@@ -56,7 +56,7 @@
           <li><a href="#eficiencia">Estatísticas</a></li>
           <li><a href="#vitrine">Explorar</a></li>
           <li><a href="#vitrine">Anunciar</a></li>
-          <li><a href="#meus-anuncios">Meus anúncios</a></li>
+          <li><a href="#aba-meus-anuncios" data-abrir-meus-anuncios>Meus anúncios</a></li>
         </ul>
       </nav>
 
@@ -103,7 +103,7 @@
       <!-- 1. Hero inicial -->
       <section id="inicio" aria-labelledby="titulo-principal">
         
-        <h1 id="titulo-principal">Dê uma nova volta para o que ainda tem valor.</h1>
+        <h1 id="titulo-principal">Dê uma nova volta para o que ainda tem valor</h1>
         <p>
           Encontre, venda ou doe itens dentro da comunidade UNIFOR e faça parte de
           uma economia mais circular.
@@ -292,21 +292,24 @@
             </div>
 
             <div class="filtro-grupo">
-              <h3>Tags de Filtro</h3>
-              <div class="filtro-tags">
-                <span class="tag">Cálculo I</span>
-                <span class="tag active">Tecnologia</span>
-                <span class="tag active">Doação</span>
-                <span class="tag">Campus Q</span>
-                <span class="tag">Biblioteca</span>
-              </div>
-            </div>
-
-            <div class="filtro-grupo">
               <h3>Faixa de Valor</h3>
-              <form class="filtro-preco-form" onsubmit="event.preventDefault();">
-                <input type="number" placeholder="De R$" aria-label="Valor mínimo" />
-                <input type="number" placeholder="Até R$" aria-label="Valor máximo" />
+              <form id="formulario-filtro-preco" class="filtro-preco-form">
+                <input
+                  id="filtro-valor-minimo"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="De R$"
+                  aria-label="Valor mínimo"
+                />
+                <input
+                  id="filtro-valor-maximo"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Até R$"
+                  aria-label="Valor máximo"
+                />
                 <button type="submit" aria-label="Aplicar filtro de preço">&rarr;</button>
               </form>
             </div>
@@ -323,7 +326,7 @@
                   <label for="check-novo" data-condicao-filtro="novo">Novo <span class="filtro-contagem">0</span></label>
                 </li>
                 <li>
-                  <input type="checkbox" id="check-seminovo" checked />
+                  <input type="checkbox" id="check-seminovo" />
                   <label for="check-seminovo" data-condicao-filtro="seminovo">Seminovo <span class="filtro-contagem">0</span></label>
                 </li>
                 <li>
@@ -404,6 +407,21 @@
                   aria-controls="painel-nova-colecao"
                 >
                   Criar Coleção
+                </button>
+                <button
+                  id="botao-abrir-conversas"
+                  class="vitrine-cta vitrine-cta-secondary"
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-controls="dialogo-ofertas"
+                >
+                  Conversas
+                  <span
+                    id="contador-conversas"
+                    class="contador-conversas"
+                    aria-hidden="true"
+                    hidden
+                  ></span>
                 </button>
               </div>
             </div>
@@ -609,11 +627,52 @@
                 <button class="aba" type="button" data-aba-catalogo="recentes" aria-pressed="false">Itens recentes</button>
                 <button class="aba" type="button" data-aba-catalogo="venda" aria-pressed="false">À venda</button>
                 <button class="aba" type="button" data-aba-catalogo="doacao" aria-pressed="false">Doações</button>
+                <button
+                  id="aba-meus-anuncios"
+                  class="aba aba-meus-anuncios"
+                  type="button"
+                  aria-expanded="false"
+                  aria-controls="painel-meus-anuncios"
+                >
+                  Meus Anúncios
+                </button>
               </div>
               <span id="resultados-contagem" class="resultados-contagem" aria-live="polite">
                 Nenhum anúncio carregado
               </span>
             </div>
+
+            <section
+              id="painel-meus-anuncios"
+              class="painel-meus-anuncios"
+              aria-labelledby="titulo-meus-anuncios"
+              hidden
+            >
+              <div class="painel-meus-anuncios-cabecalho">
+                <div>
+                  <p>Seu alcance no marketplace</p>
+                  <h3 id="titulo-meus-anuncios">Meus anúncios</h3>
+                </div>
+                <button
+                  id="botao-fechar-meus-anuncios"
+                  class="botao-fechar-meus-anuncios"
+                  type="button"
+                  aria-label="Fechar meus anúncios"
+                >
+                  ×
+                </button>
+              </div>
+              <p id="resumo-meus-anuncios" class="resumo-meus-anuncios" aria-live="polite">
+                Entre para acompanhar o interesse nos seus itens.
+              </p>
+              <div
+                id="lista-meus-anuncios"
+                class="grid-meus-anuncios"
+                aria-label="Anúncios publicados por você"
+                aria-live="polite"
+                aria-atomic="false"
+              ></div>
+            </section>
 
             <!-- Grade de Anúncios -->
             <div
@@ -710,7 +769,7 @@
       <section id="colaboradores-destaque" aria-labelledby="titulo-colaboradores">
         <div class="secao-header-centro">
           
-          <h2 id="titulo-colaboradores">Colaboradores em Destaque</h2>
+          <h2 id="titulo-colaboradores">Doadores em Destaque</h2>
           <p>Alunos e professores que mais movimentam e doam itens no campus.</p>
         </div>
 
@@ -771,20 +830,6 @@
         </div>
       </section>
 
-      <!-- 8. Gerenciador "Meus anúncios" -->
-      <section id="meus-anuncios" aria-labelledby="titulo-meus-anuncios">
-
-        <h2 id="titulo-meus-anuncios">Meus anúncios</h2>
-        <p>Acompanhe e gerencie os itens que você publicou.</p>
-
-        <div
-          id="lista-meus-anuncios"
-          class="grid-meus-anuncios"
-          aria-label="Anúncios publicados por você"
-          aria-live="polite"
-          aria-atomic="false"
-        ></div>
-      </section>
     </main>
 
     <footer>
@@ -821,7 +866,7 @@
         <nav aria-label="Navegação do rodapé - Coluna 2">
           <h3>Suporte</h3>
           <ul>
-            <li><a href="#meus-anuncios">Meus anúncios</a></li>
+            <li><a href="#aba-meus-anuncios" data-abrir-meus-anuncios>Meus anúncios</a></li>
             <li><a href="#faq">Perguntas frequentes</a></li>
             <li><a href="#contato">Contato</a></li>
           </ul>
@@ -834,7 +879,7 @@
           <span>🌐 Português - BR</span>
         </div>
       </div>
-      <p class="footer-copy">&copy; 2026 Marketplace Vortex. Todos os direitos reservados.</p>
+      <p class="footer-copy">&copy; 2026 Marketplace Vortex. Todos os direitos reservados(Feito por PEDRO MAPURUNGA).</p>
     </footer>
 
     <dialog
@@ -976,9 +1021,15 @@
                 type="email"
                 inputmode="email"
                 autocomplete="email"
+                placeholder="seu.nome@edu.unifor.br"
+                pattern="^[^@\s]+@edu\.unifor\.br$"
+                aria-describedby="dica-cadastro-email erro-cadastro-email"
                 maxlength="254"
                 required
               />
+              <span id="dica-cadastro-email" class="dica-campo-autenticacao">
+                O cadastro é exclusivo para endereços @edu.unifor.br.
+              </span>
               <span
                 id="erro-cadastro-email"
                 class="erro-campo-autenticacao"
@@ -1008,6 +1059,31 @@
               ></span>
             </div>
 
+            <div class="campo-autenticacao">
+              <label for="cadastro-confirmacao-senha">Confirmar senha</label>
+              <input
+                id="cadastro-confirmacao-senha"
+                name="confirmacaoSenha"
+                type="password"
+                autocomplete="new-password"
+                aria-describedby="dica-cadastro-confirmacao-senha erro-cadastro-confirmacao-senha"
+                minlength="8"
+                maxlength="72"
+                required
+              />
+              <span
+                id="dica-cadastro-confirmacao-senha"
+                class="dica-campo-autenticacao"
+              >
+                Digite novamente a mesma senha.
+              </span>
+              <span
+                id="erro-cadastro-confirmacao-senha"
+                class="erro-campo-autenticacao"
+                data-erro-campo="confirmacaoSenha"
+              ></span>
+            </div>
+
             <button class="autenticacao-submit" type="submit">
               Criar minha conta
             </button>
@@ -1020,6 +1096,226 @@
             aria-live="polite"
           ></p>
         </div>
+      </div>
+    </dialog>
+
+    <dialog
+      id="dialogo-editar-anuncio"
+      class="dialogo-editar-anuncio"
+      aria-labelledby="titulo-editar-anuncio"
+      aria-describedby="descricao-editar-anuncio feedback-editar-anuncio"
+    >
+      <form id="formulario-editar-anuncio" class="formulario-editar-anuncio">
+        <header class="editar-anuncio-cabecalho">
+          <div>
+            <span>Atualize o ciclo do item</span>
+            <h2 id="titulo-editar-anuncio">Editar anúncio</h2>
+            <p id="descricao-editar-anuncio">
+              Altere as informações necessárias e salve para atualizar o catálogo.
+            </p>
+          </div>
+          <button
+            id="botao-fechar-edicao"
+            class="botao-fechar-edicao"
+            type="button"
+            aria-label="Fechar edição do anúncio"
+          >
+            &times;
+          </button>
+        </header>
+
+        <div class="editar-anuncio-grade">
+          <div>
+            <label for="editar-nome">Nome do item</label>
+            <input id="editar-nome" name="nome" type="text" maxlength="80" required />
+          </div>
+          <div>
+            <label for="editar-categoria">Categoria</label>
+            <select id="editar-categoria" name="categoria" required>
+              <option value="livros">Livros e papelaria</option>
+              <option value="eletronicos">Eletrônicos</option>
+              <option value="casa">Casa e decoração</option>
+              <option value="moda">Moda e acessórios</option>
+              <option value="outros">Outros</option>
+            </select>
+          </div>
+          <div>
+            <label for="editar-condicao">Condição</label>
+            <select id="editar-condicao" name="condicao" required>
+              <option value="novo">Novo</option>
+              <option value="seminovo">Seminovo</option>
+              <option value="usado">Usado</option>
+            </select>
+          </div>
+          <fieldset>
+            <legend>Modalidade</legend>
+            <input id="editar-modalidade-venda" name="modalidade" type="radio" value="venda" required />
+            <label for="editar-modalidade-venda">Venda</label>
+            <input id="editar-modalidade-doacao" name="modalidade" type="radio" value="doacao" />
+            <label for="editar-modalidade-doacao">Doação</label>
+          </fieldset>
+          <div>
+            <label for="editar-valor">Valor</label>
+            <input
+              id="editar-valor"
+              name="valor"
+              type="number"
+              min="0"
+              max="1000000"
+              step="0.01"
+              required
+            />
+          </div>
+          <div>
+            <label for="editar-localizacao">Localização para retirada</label>
+            <input
+              id="editar-localizacao"
+              name="localizacao"
+              type="text"
+              maxlength="120"
+              required
+            />
+          </div>
+          <div class="editar-imagem-campo">
+            <label for="editar-imagem">Substituir imagem</label>
+            <div class="editar-imagem-atual">
+              <img id="editar-imagem-preview" alt="" />
+              <p>A imagem atual será mantida se você não escolher outra.</p>
+            </div>
+            <input
+              id="editar-imagem"
+              name="imagem"
+              type="file"
+              accept=".png,.jpg,.jpeg,image/png,image/jpeg"
+            />
+          </div>
+          <div class="editar-descricao-campo">
+            <label for="editar-descricao">Descrição</label>
+            <textarea
+              id="editar-descricao"
+              name="descricao"
+              rows="5"
+              maxlength="1000"
+              required
+            ></textarea>
+          </div>
+        </div>
+
+        <p id="feedback-editar-anuncio" class="feedback-editar-anuncio" role="status" aria-live="polite"></p>
+        <footer class="editar-anuncio-acoes">
+          <button id="botao-cancelar-edicao" type="button">Cancelar</button>
+          <button id="botao-salvar-edicao" type="submit">Salvar alterações</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog
+      id="dialogo-ofertas"
+      class="dialogo-ofertas"
+      aria-labelledby="titulo-dialogo-ofertas"
+      aria-describedby="feedback-ofertas"
+    >
+      <div class="ofertas-layout">
+        <aside class="conversas-sidebar" aria-labelledby="titulo-dialogo-ofertas">
+          <div>
+            <p>Negocie com segurança</p>
+            <h2 id="titulo-dialogo-ofertas">Ofertas e conversas</h2>
+          </div>
+          <div
+            id="lista-conversas"
+            class="lista-conversas"
+            role="list"
+            aria-label="Suas conversas"
+            aria-live="polite"
+          >
+            <p>Entre na sua conta para ver as conversas.</p>
+          </div>
+        </aside>
+
+        <section
+          id="chat-painel"
+          class="chat-painel"
+          aria-labelledby="titulo-chat-oferta"
+        >
+          <header>
+            <div>
+              <p id="contexto-chat-oferta">Selecione uma conversa</p>
+              <h3 id="titulo-chat-oferta">Chat da oferta</h3>
+            </div>
+            <button
+              id="botao-fechar-ofertas"
+              type="button"
+              aria-label="Fechar ofertas e conversas"
+            >
+              ×
+            </button>
+          </header>
+
+          <p
+            id="feedback-ofertas"
+            role="status"
+            aria-live="polite"
+          ></p>
+
+          <div
+            id="lista-mensagens"
+            class="lista-mensagens"
+            role="log"
+            aria-label="Histórico da conversa"
+            aria-live="polite"
+            aria-relevant="additions text"
+          >
+            <p>Escolha um anúncio para fazer uma oferta ou abra uma conversa.</p>
+          </div>
+
+          <form
+            id="formulario-oferta"
+            class="formulario-oferta"
+            aria-labelledby="titulo-formulario-oferta"
+            hidden
+          >
+            <h4 id="titulo-formulario-oferta">Fazer oferta</h4>
+            <label for="valor-oferta">Valor da oferta</label>
+            <input
+              id="valor-oferta"
+              name="valor"
+              type="number"
+              min="0"
+              max="1000000"
+              step="0.01"
+              inputmode="decimal"
+              required
+            />
+            <label for="mensagem-oferta">Mensagem ao anunciante</label>
+            <textarea
+              id="mensagem-oferta"
+              name="mensagem"
+              rows="4"
+              maxlength="1000"
+              placeholder="Apresente sua oferta e combine os próximos passos."
+              required
+            ></textarea>
+            <button type="submit">Enviar oferta</button>
+          </form>
+
+          <form
+            id="formulario-mensagem"
+            class="formulario-mensagem"
+            aria-label="Enviar mensagem"
+            hidden
+          >
+            <label for="conteudo-mensagem">Mensagem</label>
+            <textarea
+              id="conteudo-mensagem"
+              name="conteudo"
+              rows="3"
+              maxlength="2000"
+              placeholder="Escreva uma mensagem..."
+              required
+            ></textarea>
+            <button type="submit">Enviar mensagem</button>
+          </form>
+        </section>
       </div>
     </dialog>
 
@@ -1084,6 +1380,15 @@
         <p>Pressione Esc ou clique fora da imagem para fechar.</p>
       </div>
     </dialog>
+
+    <div
+      id="notificacao-conversa"
+      class="notificacao-conversa"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      hidden
+    ></div>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

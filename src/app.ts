@@ -17,7 +17,11 @@ import {
   type ItemColecao,
   type MapaCategorias,
   type Modalidade,
+  type MensagemOferta,
+  type NovaMensagemOferta,
+  type NovaOferta,
   type NovoAnuncio,
+  type Oferta,
   type OrdenacaoCatalogo,
   type RespostaExclusaoAnuncio,
   type Sessao,
@@ -127,6 +131,52 @@ const listaAnuncios =
   document.querySelector<HTMLElement>("#lista-anuncios");
 const listaMeusAnuncios =
   document.querySelector<HTMLElement>("#lista-meus-anuncios");
+const painelMeusAnuncios =
+  document.querySelector<HTMLElement>("#painel-meus-anuncios");
+const botaoAbrirMeusAnuncios =
+  document.querySelector<HTMLButtonElement>("#aba-meus-anuncios");
+const botaoFecharMeusAnuncios = document.querySelector<HTMLButtonElement>(
+  "#botao-fechar-meus-anuncios",
+);
+const resumoMeusAnuncios =
+  document.querySelector<HTMLElement>("#resumo-meus-anuncios");
+const linksAbrirMeusAnuncios =
+  document.querySelectorAll<HTMLAnchorElement>("[data-abrir-meus-anuncios]");
+const dialogoEditarAnuncio =
+  document.querySelector<HTMLDialogElement>("#dialogo-editar-anuncio");
+const formularioEditarAnuncio = document.querySelector<HTMLFormElement>(
+  "#formulario-editar-anuncio",
+);
+const campoEditarNome =
+  document.querySelector<HTMLInputElement>("#editar-nome");
+const campoEditarCategoria =
+  document.querySelector<HTMLSelectElement>("#editar-categoria");
+const campoEditarCondicao =
+  document.querySelector<HTMLSelectElement>("#editar-condicao");
+const campoEditarModalidadeVenda = document.querySelector<HTMLInputElement>(
+  "#editar-modalidade-venda",
+);
+const campoEditarModalidadeDoacao = document.querySelector<HTMLInputElement>(
+  "#editar-modalidade-doacao",
+);
+const campoEditarValor =
+  document.querySelector<HTMLInputElement>("#editar-valor");
+const campoEditarLocalizacao =
+  document.querySelector<HTMLInputElement>("#editar-localizacao");
+const campoEditarImagem =
+  document.querySelector<HTMLInputElement>("#editar-imagem");
+const imagemPreviewEdicao =
+  document.querySelector<HTMLImageElement>("#editar-imagem-preview");
+const campoEditarDescricao =
+  document.querySelector<HTMLTextAreaElement>("#editar-descricao");
+const feedbackEditarAnuncio =
+  document.querySelector<HTMLElement>("#feedback-editar-anuncio");
+const botaoFecharEdicao =
+  document.querySelector<HTMLButtonElement>("#botao-fechar-edicao");
+const botaoCancelarEdicao =
+  document.querySelector<HTMLButtonElement>("#botao-cancelar-edicao");
+const botaoSalvarEdicao =
+  document.querySelector<HTMLButtonElement>("#botao-salvar-edicao");
 const resultadosContagem =
   document.querySelector<HTMLElement>("#resultados-contagem");
 const feedbackAnuncio =
@@ -178,6 +228,12 @@ const campoBuscaVitrine =
   document.querySelector<HTMLInputElement>("#busca-vitrine");
 const ordenacaoVitrine =
   document.querySelector<HTMLSelectElement>("#ordenacao-vitrine");
+const formularioFiltroPreco =
+  document.querySelector<HTMLFormElement>("#formulario-filtro-preco");
+const campoValorMinimo =
+  document.querySelector<HTMLInputElement>("#filtro-valor-minimo");
+const campoValorMaximo =
+  document.querySelector<HTMLInputElement>("#filtro-valor-maximo");
 const abasCatalogo =
   document.querySelectorAll<HTMLElement>("[data-aba-catalogo]");
 const botoesLayout =
@@ -185,9 +241,9 @@ const botoesLayout =
 const filtrosCategoria =
   document.querySelectorAll<HTMLElement>("[data-categoria-filtro]");
 const filtrosCondicao =
-  document.querySelectorAll<HTMLElement>("[data-condicao-filtro]");
+  document.querySelectorAll<HTMLLabelElement>("[data-condicao-filtro]");
 const filtrosModalidade =
-  document.querySelectorAll<HTMLElement>("[data-modalidade-filtro]");
+  document.querySelectorAll<HTMLLabelElement>("[data-modalidade-filtro]");
 const modalImagem =
   document.querySelector<DialogImagem>("#modal-imagem");
 const imagemAmpliada =
@@ -196,6 +252,38 @@ const tituloModalImagem =
   document.querySelector<HTMLElement>("#modal-imagem-titulo");
 const botaoFecharModalImagem =
   document.querySelector<HTMLButtonElement>("#fechar-modal-imagem");
+const botaoAbrirConversas =
+  document.querySelector<HTMLButtonElement>("#botao-abrir-conversas");
+const contadorConversas =
+  document.querySelector<HTMLElement>("#contador-conversas");
+const dialogoOfertas =
+  document.querySelector<HTMLDialogElement>("#dialogo-ofertas");
+const botaoFecharOfertas =
+  document.querySelector<HTMLButtonElement>("#botao-fechar-ofertas");
+const listaConversas =
+  document.querySelector<HTMLElement>("#lista-conversas");
+const chatPainel =
+  document.querySelector<HTMLElement>("#chat-painel");
+const tituloChatOferta =
+  document.querySelector<HTMLElement>("#titulo-chat-oferta");
+const contextoChatOferta =
+  document.querySelector<HTMLElement>("#contexto-chat-oferta");
+const listaMensagens =
+  document.querySelector<HTMLElement>("#lista-mensagens");
+const formularioOferta =
+  document.querySelector<HTMLFormElement>("#formulario-oferta");
+const campoValorOferta =
+  document.querySelector<HTMLInputElement>("#valor-oferta");
+const campoMensagemOferta =
+  document.querySelector<HTMLTextAreaElement>("#mensagem-oferta");
+const formularioMensagem =
+  document.querySelector<HTMLFormElement>("#formulario-mensagem");
+const campoConteudoMensagem =
+  document.querySelector<HTMLTextAreaElement>("#conteudo-mensagem");
+const feedbackOfertas =
+  document.querySelector<HTMLElement>("#feedback-ofertas");
+const notificacaoConversa =
+  document.querySelector<HTMLElement>("#notificacao-conversa");
 const bannerConectividade =
   document.querySelector<HTMLElement>("#banner-conectividade");
 const tituloBannerConectividade = document.querySelector<HTMLElement>(
@@ -210,6 +298,9 @@ const CHAVE_COLECOES = "marketplace-vortex:colecoes";
 const CHAVE_SESSAO = "marketplace-vortex:sessao";
 const PREFIXO_DECISAO_IMPORTACAO =
   "marketplace-vortex:importacao-colecoes:v1";
+const PREFIXO_MENSAGENS_VISTAS =
+  "marketplace-vortex:mensagens-vistas:v1";
+const INTERVALO_POLLING_CONVERSAS_MS = 15_000;
 const URL_BASE_API = (import.meta.env.VITE_API_URL ?? "")
   .trim()
   .replace(/\/+$/, "");
@@ -267,6 +358,10 @@ let termoBuscaVitrine = "";
 let abaCatalogoAtiva: AbaCatalogo = "todos";
 let categoriaFiltroAtiva: CategoriaFiltro = "todas";
 let ordenacaoAtiva: OrdenacaoCatalogo = "recentes";
+let valorMinimoFiltro: number | null = null;
+let valorMaximoFiltro: number | null = null;
+const condicoesFiltroAtivas = new Set<Condicao>();
+let modalidadeFiltroAtiva: Modalidade | "todas" = "todas";
 // Snapshots de leitura preenchidos exclusivamente pelas respostas da API.
 // Toda alteração persistente deve ser seguida por um novo carregamento do servidor.
 let cacheCatalogoApi: Anuncio[] = [];
@@ -276,6 +371,9 @@ let sequenciaRequisicaoCatalogo = 0;
 let sequenciaRequisicaoUsuario = 0;
 const idsEmExclusao = new Set<string>();
 let publicacaoEmAndamento = false;
+let edicaoEmAndamento = false;
+let anuncioEmEdicao: Anuncio | null = null;
+let elementoFocadoAntesDaEdicao: HTMLElement | null = null;
 let sequenciaItemColecao = 0;
 let temporizadorFeedbackColecao: number | undefined;
 let temporizadorBannerConectividade: number | undefined;
@@ -283,6 +381,22 @@ let reconexaoEmAndamento = false;
 let catalogoUsaDadosSalvos = false;
 let autenticacaoEmAndamento = false;
 let elementoFocadoAntesDaAutenticacao: HTMLElement | null = null;
+let cacheOfertasApi: Oferta[] = [];
+let ofertaAtiva: Oferta | null = null;
+let anuncioParaOferta: Anuncio | null = null;
+let elementoFocadoAntesDasOfertas: HTMLElement | null = null;
+let ofertasEmCarregamento = false;
+let envioOfertaEmAndamento = false;
+let envioMensagemEmAndamento = false;
+let sequenciaRequisicaoMensagens = 0;
+let temporizadorPollingConversas: number | undefined;
+let temporizadorNotificacaoConversa: number | undefined;
+let verificacaoMensagensEmAndamento = false;
+let usuarioNotificacoesCarregado: string | null = null;
+let idsMensagensVistas = new Map<number, number>();
+const idsUltimasMensagensInspecionadas = new Map<number, number>();
+const atualizacoesOfertasInspecionadas = new Map<number, string>();
+const naoLidasPorOferta = new Map<number, number>();
 
 const formatadorMoeda = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -290,6 +404,10 @@ const formatadorMoeda = new Intl.NumberFormat("pt-BR", {
 });
 const ordenadorAlfabetico = new Intl.Collator("pt-BR", {
   sensitivity: "base",
+});
+const formatadorDataHora = new Intl.DateTimeFormat("pt-BR", {
+  dateStyle: "short",
+  timeStyle: "short",
 });
 
 function exibirBannerConectividade(
@@ -575,6 +693,7 @@ function normalizarAnuncioDaApi(anuncio: unknown): Anuncio {
   const dados = anuncio;
   const id = Number(dados.id);
   const valor = Number(dados.valor);
+  const cliquesDetalhes = Number(dados.cliquesDetalhes ?? 0);
 
   if (!Number.isInteger(id) || id <= 0) {
     throw new TypeError("A API retornou um anúncio com ID inválido.");
@@ -582,6 +701,12 @@ function normalizarAnuncioDaApi(anuncio: unknown): Anuncio {
 
   if (!Number.isFinite(valor) || valor < 0) {
     throw new TypeError("A API retornou um anúncio com valor inválido.");
+  }
+
+  if (!Number.isInteger(cliquesDetalhes) || cliquesDetalhes < 0) {
+    throw new TypeError(
+      "A API retornou um anúncio com contagem de cliques inválida.",
+    );
   }
 
   if (!ehCategoria(dados.categoria)) {
@@ -615,6 +740,7 @@ function normalizarAnuncioDaApi(anuncio: unknown): Anuncio {
     usuarioId: obterTextoDoAnuncio(dados, "usuarioId"),
     usuarioNome: obterTextoDoAnuncio(dados, "usuarioNome"),
     criadoEm: obterTextoDoAnuncio(dados, "criadoEm"),
+    cliquesDetalhes,
   };
 }
 
@@ -673,6 +799,193 @@ function normalizarRespostaDeExclusao(
     mensagem: resposta.mensagem,
     id,
   };
+}
+
+function normalizarRespostaDeCliqueDetalhes(
+  resposta: unknown,
+): Pick<Anuncio, "id" | "cliquesDetalhes"> {
+  if (!ehRegistro(resposta)) {
+    throw new TypeError(
+      "A API retornou uma confirmação de interesse inválida.",
+    );
+  }
+
+  const id = Number(resposta.id);
+  const cliquesDetalhes = Number(resposta.cliquesDetalhes);
+
+  if (
+    !Number.isInteger(id) ||
+    id <= 0 ||
+    !Number.isInteger(cliquesDetalhes) ||
+    cliquesDetalhes < 0
+  ) {
+    throw new TypeError(
+      "A API retornou uma confirmação de interesse inválida.",
+    );
+  }
+
+  return { id, cliquesDetalhes };
+}
+
+function obterStringObrigatoria(
+  dados: Record<string, unknown>,
+  campo: string,
+  contexto: string,
+): string {
+  const valor = dados[campo];
+
+  if (typeof valor !== "string" || !valor.trim()) {
+    throw new TypeError(`A API retornou ${contexto} com ${campo} inválido.`);
+  }
+
+  return valor;
+}
+
+function normalizarOfertaDaApi(resposta: unknown): Oferta {
+  const oferta =
+    ehRegistro(resposta) && ehRegistro(resposta.oferta)
+      ? resposta.oferta
+      : resposta;
+
+  if (!ehRegistro(oferta)) {
+    throw new TypeError("A API retornou uma oferta inválida.");
+  }
+
+  const id = Number(oferta.id);
+  const anuncioId = Number(oferta.anuncioId);
+  const valor = Number(oferta.valor);
+
+  if (
+    !Number.isInteger(id) ||
+    id <= 0 ||
+    !Number.isInteger(anuncioId) ||
+    anuncioId <= 0 ||
+    !Number.isFinite(valor) ||
+    valor < 0
+  ) {
+    throw new TypeError("A API retornou uma oferta inválida.");
+  }
+
+  const anuncioImagemUrl =
+    typeof oferta.anuncioImagemUrl === "string" &&
+    oferta.anuncioImagemUrl.trim()
+      ? oferta.anuncioImagemUrl
+      : undefined;
+  const atualizadaEm =
+    typeof oferta.atualizadaEm === "string" && oferta.atualizadaEm.trim()
+      ? oferta.atualizadaEm
+      : undefined;
+
+  return {
+    id,
+    anuncioId,
+    anuncioNome: obterStringObrigatoria(
+      oferta,
+      "anuncioNome",
+      "uma oferta",
+    ),
+    ...(anuncioImagemUrl ? { anuncioImagemUrl } : {}),
+    valor,
+    mensagem: obterStringObrigatoria(oferta, "mensagem", "uma oferta"),
+    compradorId: obterStringObrigatoria(
+      oferta,
+      "compradorId",
+      "uma oferta",
+    ),
+    compradorNome: obterStringObrigatoria(
+      oferta,
+      "compradorNome",
+      "uma oferta",
+    ),
+    anuncianteId: obterStringObrigatoria(
+      oferta,
+      "anuncianteId",
+      "uma oferta",
+    ),
+    anuncianteNome: obterStringObrigatoria(
+      oferta,
+      "anuncianteNome",
+      "uma oferta",
+    ),
+    criadaEm: obterStringObrigatoria(oferta, "criadaEm", "uma oferta"),
+    ...(atualizadaEm ? { atualizadaEm } : {}),
+  };
+}
+
+function normalizarListaDeOfertas(resposta: unknown): Oferta[] {
+  const ofertas =
+    ehRegistro(resposta) && Array.isArray(resposta.ofertas)
+      ? resposta.ofertas
+      : resposta;
+
+  if (!Array.isArray(ofertas)) {
+    throw new TypeError("A API retornou uma lista de ofertas inválida.");
+  }
+
+  return ofertas.map(normalizarOfertaDaApi);
+}
+
+function normalizarMensagemDaApi(resposta: unknown): MensagemOferta {
+  const mensagem =
+    ehRegistro(resposta) && ehRegistro(resposta.mensagem)
+      ? resposta.mensagem
+      : resposta;
+
+  if (!ehRegistro(mensagem)) {
+    throw new TypeError("A API retornou uma mensagem inválida.");
+  }
+
+  const id = Number(mensagem.id);
+  const ofertaId = Number(mensagem.ofertaId);
+
+  if (
+    !Number.isInteger(id) ||
+    id <= 0 ||
+    !Number.isInteger(ofertaId) ||
+    ofertaId <= 0
+  ) {
+    throw new TypeError("A API retornou uma mensagem inválida.");
+  }
+
+  return {
+    id,
+    ofertaId,
+    autorId: obterStringObrigatoria(
+      mensagem,
+      "autorId",
+      "uma mensagem",
+    ),
+    autorNome: obterStringObrigatoria(
+      mensagem,
+      "autorNome",
+      "uma mensagem",
+    ),
+    conteudo: obterStringObrigatoria(
+      mensagem,
+      "conteudo",
+      "uma mensagem",
+    ),
+    criadaEm: obterStringObrigatoria(
+      mensagem,
+      "criadaEm",
+      "uma mensagem",
+    ),
+  };
+}
+
+function normalizarListaDeMensagens(
+  resposta: unknown,
+): MensagemOferta[] {
+  const mensagens =
+    ehRegistro(resposta) && Array.isArray(resposta.mensagens)
+      ? resposta.mensagens
+      : resposta;
+
+  if (!Array.isArray(mensagens)) {
+    throw new TypeError("A API retornou um histórico inválido.");
+  }
+
+  return mensagens.map(normalizarMensagemDaApi);
 }
 
 function criarSkeletonDoCatalogo(): HTMLDivElement {
@@ -1101,8 +1414,14 @@ function invalidarSessaoPorResposta401(tokenRejeitado: string): void {
   removerSessaoSalva();
   sequenciaRequisicaoUsuario += 1;
   cacheAnunciosUsuarioApi = [];
+  cacheOfertasApi = [];
+  ofertaAtiva = null;
+  anuncioParaOferta = null;
+  fecharDialogoDeOfertas();
+  resetarNotificacoesDaSessao();
   fecharMenuConta();
   atualizarContaNoHeader();
+  renderizarAnuncios();
   renderizarMeusAnuncios();
   renderizarColecoesDoUsuario();
   abrirDialogoAutenticacao();
@@ -1773,11 +2092,52 @@ async function enviarFormularioAutenticacao(
 ): Promise<void> {
   const modo = formulario.dataset.formularioAutenticacao;
 
+  if (autenticacaoEmAndamento || !ehModoAutenticacao(modo)) {
+    return;
+  }
+
+  const campoEmail = formulario.elements.namedItem("email");
+  const campoSenha = formulario.elements.namedItem("senha");
+  const campoConfirmacaoSenha =
+    formulario.elements.namedItem("confirmacaoSenha");
+
+  if (campoEmail instanceof HTMLInputElement) {
+    campoEmail.setCustomValidity("");
+    const emailNormalizado = campoEmail.value.trim().toLowerCase();
+
+    if (
+      modo === "cadastro" &&
+      !/^[^@\s]+@edu\.unifor\.br$/u.test(emailNormalizado)
+    ) {
+      campoEmail.setCustomValidity(
+        "Use seu e-mail institucional @edu.unifor.br.",
+      );
+    }
+  }
+
   if (
-    autenticacaoEmAndamento ||
-    !ehModoAutenticacao(modo) ||
-    !formulario.reportValidity()
+    modo === "cadastro" &&
+    campoSenha instanceof HTMLInputElement &&
+    campoConfirmacaoSenha instanceof HTMLInputElement
   ) {
+    campoConfirmacaoSenha.setCustomValidity("");
+
+    if (campoConfirmacaoSenha.value !== campoSenha.value) {
+      const mensagem = "As senhas precisam ser iguais.";
+      campoConfirmacaoSenha.setCustomValidity(mensagem);
+      mostrarErroDeCampoAutenticacao(
+        formulario,
+        "confirmacaoSenha",
+        mensagem,
+      );
+      definirFeedbackAutenticacao(
+        "As senhas não coincidem. Confira a confirmação da senha.",
+        "erro",
+      );
+    }
+  }
+
+  if (!formulario.reportValidity()) {
     return;
   }
 
@@ -1827,7 +2187,10 @@ async function enviarFormularioAutenticacao(
     sessaoAtual = resultado.dados;
     usuarioAtual = resultado.dados.usuario;
     salvarSessao(resultado.dados);
+    resetarNotificacoesDaSessao();
+    agendarPollingDeConversas({ imediato: true });
     atualizarContaNoHeader();
+    renderizarAnuncios();
     renderizarColecoesDoUsuario();
     void carregarMeusAnunciosDaApi();
     fecharDialogoAutenticacao({ aposSucesso: true });
@@ -1891,8 +2254,14 @@ function sairDaConta(): void {
   usuarioAtual = null;
   sequenciaRequisicaoUsuario += 1;
   cacheAnunciosUsuarioApi = [];
+  cacheOfertasApi = [];
+  ofertaAtiva = null;
+  anuncioParaOferta = null;
+  fecharDialogoDeOfertas();
+  resetarNotificacoesDaSessao();
   fecharMenuConta();
   atualizarContaNoHeader();
+  renderizarAnuncios();
   renderizarMeusAnuncios();
   renderizarColecoesDoUsuario();
   mostrarFeedback("Você saiu da sua conta.");
@@ -1925,7 +2294,10 @@ async function validarSessaoSalva(): Promise<void> {
     };
     usuarioAtual = usuarioValidado;
     salvarSessao(sessaoAtual);
+    carregarMensagensVistasDoUsuario();
+    agendarPollingDeConversas({ imediato: true });
     atualizarContaNoHeader();
+    renderizarAnuncios();
     renderizarColecoesDoUsuario();
     agendarOfertaImportacaoLegada(usuarioValidado);
   } catch (erro) {
@@ -2006,7 +2378,22 @@ function inicializarContaUsuario(): void {
   });
 
   formulariosAutenticacao.forEach((formulario) => {
-    formulario.addEventListener("input", () => {
+    formulario.addEventListener("input", (evento) => {
+      if (evento.target instanceof HTMLInputElement) {
+        evento.target.setCustomValidity("");
+
+        if (
+          formulario.dataset.formularioAutenticacao === "cadastro" &&
+          ["senha", "confirmacaoSenha"].includes(evento.target.name)
+        ) {
+          const campoConfirmacao =
+            formulario.elements.namedItem("confirmacaoSenha");
+
+          if (campoConfirmacao instanceof HTMLInputElement) {
+            campoConfirmacao.setCustomValidity("");
+          }
+        }
+      }
       limparErrosAutenticacao(formulario);
       definirFeedbackAutenticacao("");
     });
@@ -2645,6 +3032,11 @@ function criarCardDaVitrine(anuncio: Anuncio): HTMLElement {
       : formatadorMoeda.format(anuncio.valor),
   );
   const detalhes = criarElemento("a", "btn-detalhes", "Ver detalhes");
+  const botaoOferta = criarElemento(
+    "button",
+    "btn-fazer-oferta",
+    "Fazer oferta",
+  );
 
   card.dataset.id = String(anuncio.id);
   card.dataset.categoria = anuncio.categoria;
@@ -2658,9 +3050,1039 @@ function criarCardDaVitrine(anuncio: Anuncio): HTMLElement {
   media.append(autor);
 
   detalhes.href = "#vitrine";
+  detalhes.dataset.id = String(anuncio.id);
+  detalhes.setAttribute(
+    "aria-label",
+    `Ver detalhes de ${anuncio.nome}`,
+  );
+  botaoOferta.type = "button";
+  botaoOferta.dataset.id = String(anuncio.id);
+  botaoOferta.setAttribute(
+    "aria-label",
+    `Fazer oferta por ${anuncio.nome}`,
+  );
+  botaoOferta.setAttribute("aria-haspopup", "dialog");
+  botaoOferta.setAttribute("aria-controls", "dialogo-ofertas");
   card.append(media, categoriaTexto, titulo, informacoes, preco, detalhes);
 
+  if (usuarioAtual?.id !== anuncio.usuarioId) {
+    card.append(botaoOferta);
+  }
+
   return card;
+}
+
+async function registrarCliqueEmDetalhes(
+  id: string | undefined,
+): Promise<void> {
+  const idNormalizado = Number(id);
+
+  if (!Number.isInteger(idNormalizado) || idNormalizado <= 0) {
+    return;
+  }
+
+  try {
+    const { dados } = await requisitarApi(
+      `/api/anuncios/${encodeURIComponent(idNormalizado)}/cliques-detalhes`,
+      normalizarRespostaDeCliqueDetalhes,
+      { method: "POST" },
+    );
+    const atualizarContagem = (anuncio: Anuncio): Anuncio =>
+      anuncio.id === dados.id
+        ? { ...anuncio, cliquesDetalhes: dados.cliquesDetalhes }
+        : anuncio;
+
+    cacheCatalogoApi = cacheCatalogoApi.map(atualizarContagem);
+    cacheContagemApi = cacheContagemApi.map(atualizarContagem);
+    cacheAnunciosUsuarioApi =
+      cacheAnunciosUsuarioApi.map(atualizarContagem);
+
+    if (!painelMeusAnuncios?.hidden) {
+      renderizarMeusAnuncios();
+    }
+  } catch (erro) {
+    console.warn(
+      "Não foi possível registrar o interesse neste anúncio.",
+      erro,
+    );
+  }
+}
+
+function definirFeedbackOfertas(
+  mensagem: string,
+  estado: "erro" | "sucesso" | "" = "",
+): void {
+  if (!feedbackOfertas) {
+    return;
+  }
+
+  feedbackOfertas.textContent = mensagem;
+
+  if (estado) {
+    feedbackOfertas.dataset.estado = estado;
+  } else {
+    feedbackOfertas.removeAttribute("data-estado");
+  }
+}
+
+function obterMensagemErroOfertas(erro: unknown): string {
+  if (!ehErroRequisicaoApi(erro)) {
+    return "Não foi possível conectar ao serviço. Verifique sua conexão e tente novamente.";
+  }
+
+  if (erro.offline) {
+    return "Você está offline. Conecte-se à internet para usar as conversas.";
+  }
+
+  if (erro.status === 401) {
+    return "Sua sessão expirou. Entre novamente para continuar.";
+  }
+
+  if (erro.status === 403) {
+    return "Você não tem permissão para acessar esta conversa.";
+  }
+
+  if (erro.status === 404) {
+    return "Esta oferta ou anúncio não está mais disponível.";
+  }
+
+  return erro.message;
+}
+
+function formatarDataHoraSegura(valor: string): string {
+  const data = new Date(valor);
+  return Number.isNaN(data.getTime())
+    ? valor
+    : formatadorDataHora.format(data);
+}
+
+function obterParticipanteDaConversa(oferta: Oferta): string {
+  return oferta.compradorId === usuarioAtual?.id
+    ? oferta.anuncianteNome
+    : oferta.compradorNome;
+}
+
+function carregarMensagensVistasDoUsuario(): void {
+  const usuarioId = usuarioAtual?.id ?? null;
+
+  if (usuarioNotificacoesCarregado === usuarioId) {
+    return;
+  }
+
+  usuarioNotificacoesCarregado = usuarioId;
+  idsMensagensVistas = new Map();
+  idsUltimasMensagensInspecionadas.clear();
+  atualizacoesOfertasInspecionadas.clear();
+  naoLidasPorOferta.clear();
+
+  if (!usuarioId) {
+    return;
+  }
+
+  try {
+    const conteudo = window.localStorage.getItem(
+      `${PREFIXO_MENSAGENS_VISTAS}:${usuarioId}`,
+    );
+    const dados: unknown = conteudo ? JSON.parse(conteudo) : null;
+
+    if (!ehRegistro(dados)) {
+      return;
+    }
+
+    Object.entries(dados).forEach(([ofertaId, mensagemId]) => {
+      const idOferta = Number(ofertaId);
+      const idMensagem = Number(mensagemId);
+
+      if (
+        Number.isInteger(idOferta) &&
+        idOferta > 0 &&
+        Number.isInteger(idMensagem) &&
+        idMensagem > 0
+      ) {
+        idsMensagensVistas.set(idOferta, idMensagem);
+      }
+    });
+  } catch (erro) {
+    console.warn(
+      "Não foi possível recuperar o estado de leitura das conversas.",
+      erro,
+    );
+  }
+}
+
+function salvarMensagensVistasDoUsuario(): void {
+  const usuarioId = usuarioAtual?.id;
+
+  if (!usuarioId) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      `${PREFIXO_MENSAGENS_VISTAS}:${usuarioId}`,
+      JSON.stringify(Object.fromEntries(idsMensagensVistas)),
+    );
+  } catch (erro) {
+    console.warn(
+      "Não foi possível salvar o estado de leitura das conversas.",
+      erro,
+    );
+  }
+}
+
+function atualizarContadorDeConversas(): void {
+  if (!contadorConversas || !botaoAbrirConversas) {
+    return;
+  }
+
+  const total = [...naoLidasPorOferta.values()].reduce(
+    (soma, quantidade) => soma + quantidade,
+    0,
+  );
+
+  contadorConversas.hidden = total === 0;
+  contadorConversas.textContent = total > 99 ? "99+" : String(total);
+  botaoAbrirConversas.setAttribute(
+    "aria-label",
+    total === 0
+      ? "Conversas"
+      : `Conversas, ${total} ${total === 1 ? "nova mensagem" : "novas mensagens"}`,
+  );
+}
+
+function mostrarNotificacaoDeConversa(
+  oferta: Oferta,
+  mensagem: MensagemOferta,
+): void {
+  if (!notificacaoConversa) {
+    return;
+  }
+
+  window.clearTimeout(temporizadorNotificacaoConversa);
+  notificacaoConversa.textContent =
+    `Nova mensagem de ${mensagem.autorNome} sobre ${oferta.anuncioNome}.`;
+  notificacaoConversa.dataset.estado = "nova-mensagem";
+  notificacaoConversa.hidden = false;
+  temporizadorNotificacaoConversa = window.setTimeout(() => {
+    notificacaoConversa.hidden = true;
+    notificacaoConversa.removeAttribute("data-estado");
+  }, 6_000);
+}
+
+function marcarOfertaComoLida(
+  ofertaId: number,
+  ultimoIdMensagem: number,
+): void {
+  const idVistoAtual = idsMensagensVistas.get(ofertaId) ?? 0;
+
+  if (ultimoIdMensagem > idVistoAtual) {
+    idsMensagensVistas.set(ofertaId, ultimoIdMensagem);
+    salvarMensagensVistasDoUsuario();
+  }
+
+  naoLidasPorOferta.delete(ofertaId);
+  atualizarContadorDeConversas();
+  renderizarListaDeConversas();
+}
+
+function renderizarListaDeConversas(): void {
+  if (!listaConversas) {
+    return;
+  }
+
+  listaConversas.replaceChildren();
+
+  if (ofertasEmCarregamento) {
+    listaConversas.append(
+      criarElemento("p", "", "Carregando conversas..."),
+    );
+    listaConversas.setAttribute("aria-busy", "true");
+    return;
+  }
+
+  listaConversas.removeAttribute("aria-busy");
+
+  if (cacheOfertasApi.length === 0) {
+    listaConversas.append(
+      criarElemento(
+        "p",
+        "",
+        "Você ainda não tem ofertas. Escolha um anúncio para começar.",
+      ),
+    );
+    return;
+  }
+
+  const fragmento = document.createDocumentFragment();
+
+  cacheOfertasApi.forEach((oferta) => {
+    const quantidadeNaoLida = naoLidasPorOferta.get(oferta.id) ?? 0;
+    const botao = criarElemento(
+      "button",
+      quantidadeNaoLida > 0
+        ? "conversa-item conversa-item-tem-nao-lidas"
+        : "conversa-item",
+    );
+    const titulo = criarElemento("strong", "", oferta.anuncioNome);
+    const resumo = criarElemento(
+      "span",
+      "",
+      `${obterParticipanteDaConversa(oferta)} · ${formatadorMoeda.format(oferta.valor)}`,
+    );
+    const data = criarElemento(
+      "time",
+      "",
+      formatarDataHoraSegura(oferta.atualizadaEm ?? oferta.criadaEm),
+    );
+
+    botao.type = "button";
+    botao.dataset.ofertaId = String(oferta.id);
+    botao.setAttribute("role", "listitem");
+    botao.setAttribute(
+      "aria-label",
+      `Abrir conversa sobre ${oferta.anuncioNome} com ${obterParticipanteDaConversa(oferta)}`,
+    );
+    botao.setAttribute(
+      "aria-current",
+      String(ofertaAtiva?.id === oferta.id),
+    );
+    data.dateTime = oferta.atualizadaEm ?? oferta.criadaEm;
+    botao.append(titulo, resumo, data);
+
+    if (quantidadeNaoLida > 0) {
+      botao.append(
+        criarElemento(
+          "span",
+          "indicador-nao-lida",
+          `${quantidadeNaoLida} ${quantidadeNaoLida === 1 ? "nova" : "novas"}`,
+        ),
+      );
+    }
+
+    fragmento.append(botao);
+  });
+
+  listaConversas.append(fragmento);
+}
+
+function renderizarInicioDeOferta(anuncio: Anuncio): void {
+  ofertaAtiva = null;
+
+  if (tituloChatOferta) {
+    tituloChatOferta.textContent = anuncio.nome;
+  }
+
+  if (contextoChatOferta) {
+    contextoChatOferta.textContent = `Oferta para ${anuncio.usuarioNome}`;
+  }
+
+  if (listaMensagens) {
+    listaMensagens.removeAttribute("aria-busy");
+    listaMensagens.replaceChildren(
+      criarElemento(
+        "p",
+        "",
+        "Informe o valor e envie uma mensagem para iniciar a conversa com o anunciante.",
+      ),
+    );
+  }
+
+  if (formularioOferta) {
+    formularioOferta.hidden = false;
+  }
+
+  if (formularioMensagem) {
+    formularioMensagem.hidden = true;
+  }
+
+  if (campoValorOferta) {
+    campoValorOferta.value = anuncio.valor.toFixed(2);
+  }
+
+  if (campoMensagemOferta) {
+    campoMensagemOferta.value = "";
+  }
+
+  renderizarListaDeConversas();
+  window.requestAnimationFrame(() => campoValorOferta?.focus());
+}
+
+function renderizarChatSemSelecao(): void {
+  ofertaAtiva = null;
+
+  if (tituloChatOferta) {
+    tituloChatOferta.textContent = "Chat da oferta";
+  }
+
+  if (contextoChatOferta) {
+    contextoChatOferta.textContent = "Selecione uma conversa";
+  }
+
+  if (listaMensagens) {
+    listaMensagens.removeAttribute("aria-busy");
+    listaMensagens.replaceChildren(
+      criarElemento(
+        "p",
+        "",
+        cacheOfertasApi.length > 0
+          ? "Escolha uma conversa na lista para abrir o histórico."
+          : "Quando você fizer ou receber uma oferta, a conversa aparecerá aqui.",
+      ),
+    );
+  }
+
+  if (formularioOferta) {
+    formularioOferta.hidden = true;
+  }
+
+  if (formularioMensagem) {
+    formularioMensagem.hidden = true;
+  }
+
+  renderizarListaDeConversas();
+}
+
+function criarMensagemVisual(
+  autorId: string,
+  autorNome: string,
+  conteudo: string,
+  criadaEm: string,
+): HTMLElement {
+  const item = criarElemento(
+    "article",
+    autorId === usuarioAtual?.id
+      ? "mensagem mensagem-propria"
+      : "mensagem",
+  );
+  const cabecalho = criarElemento("div", "mensagem-cabecalho");
+  const autor = criarElemento("strong", "", autorNome);
+  const data = criarElemento(
+    "time",
+    "",
+    formatarDataHoraSegura(criadaEm),
+  );
+  const texto = criarElemento("p", "", conteudo);
+
+  data.dateTime = criadaEm;
+  cabecalho.append(autor, data);
+  item.append(cabecalho, texto);
+  return item;
+}
+
+function renderizarMensagensDaOferta(
+  oferta: Oferta,
+  mensagens: readonly MensagemOferta[],
+): void {
+  if (!listaMensagens) {
+    return;
+  }
+
+  listaMensagens.removeAttribute("aria-busy");
+  listaMensagens.replaceChildren();
+
+  if (mensagens.length === 0) {
+    listaMensagens.append(
+      criarMensagemVisual(
+        oferta.compradorId,
+        oferta.compradorNome,
+        oferta.mensagem,
+        oferta.criadaEm,
+      ),
+    );
+  } else {
+    mensagens.forEach((mensagem) => {
+      listaMensagens.append(
+        criarMensagemVisual(
+          mensagem.autorId,
+          mensagem.autorNome,
+          mensagem.conteudo,
+          mensagem.criadaEm,
+        ),
+      );
+    });
+  }
+
+  listaMensagens.lastElementChild?.scrollIntoView({
+    block: "nearest",
+  });
+
+  const ultimoIdMensagem = mensagens.reduce(
+    (maiorId, mensagem) => Math.max(maiorId, mensagem.id),
+    0,
+  );
+
+  if (ultimoIdMensagem > 0) {
+    idsUltimasMensagensInspecionadas.set(
+      oferta.id,
+      ultimoIdMensagem,
+    );
+    marcarOfertaComoLida(oferta.id, ultimoIdMensagem);
+  }
+}
+
+async function carregarMensagensDaOferta(oferta: Oferta): Promise<void> {
+  if (!sessaoAtual || !listaMensagens) {
+    return;
+  }
+
+  const sequencia = ++sequenciaRequisicaoMensagens;
+  ofertaAtiva = oferta;
+  anuncioParaOferta = null;
+
+  if (tituloChatOferta) {
+    tituloChatOferta.textContent = oferta.anuncioNome;
+  }
+
+  if (contextoChatOferta) {
+    contextoChatOferta.textContent =
+      `Oferta de ${formatadorMoeda.format(oferta.valor)} · conversa com ${obterParticipanteDaConversa(oferta)}`;
+  }
+
+  if (formularioOferta) {
+    formularioOferta.hidden = true;
+  }
+
+  if (formularioMensagem) {
+    formularioMensagem.hidden = false;
+  }
+
+  listaMensagens.setAttribute("aria-busy", "true");
+  listaMensagens.replaceChildren(
+    criarElemento("p", "", "Carregando mensagens..."),
+  );
+  renderizarListaDeConversas();
+  definirFeedbackOfertas("");
+
+  try {
+    const { dados } = await requisitarApiAutenticada(
+      `/api/ofertas/${encodeURIComponent(oferta.id)}/mensagens`,
+      normalizarListaDeMensagens,
+    );
+
+    if (
+      sequencia !== sequenciaRequisicaoMensagens ||
+      ofertaAtiva?.id !== oferta.id
+    ) {
+      return;
+    }
+
+    renderizarMensagensDaOferta(oferta, dados);
+    window.requestAnimationFrame(() => campoConteudoMensagem?.focus());
+  } catch (erro) {
+    if (sequencia !== sequenciaRequisicaoMensagens) {
+      return;
+    }
+
+    listaMensagens.removeAttribute("aria-busy");
+    listaMensagens.replaceChildren(
+      criarElemento("p", "", obterMensagemErroOfertas(erro)),
+    );
+    definirFeedbackOfertas(obterMensagemErroOfertas(erro), "erro");
+  }
+}
+
+function selecionarOferta(id: string | undefined): void {
+  const idNormalizado = Number(id);
+  const oferta = cacheOfertasApi.find(
+    (item) => item.id === idNormalizado,
+  );
+
+  if (!oferta) {
+    return;
+  }
+
+  void carregarMensagensDaOferta(oferta);
+}
+
+async function carregarConversas(
+  {
+    selecionarOfertaId,
+    selecionarPrimeira = true,
+  }: {
+    selecionarOfertaId?: number;
+    selecionarPrimeira?: boolean;
+  } = {},
+): Promise<void> {
+  if (!sessaoAtual) {
+    return;
+  }
+
+  ofertasEmCarregamento = true;
+  renderizarListaDeConversas();
+
+  try {
+    const { dados } = await requisitarApiAutenticada(
+      "/api/ofertas",
+      normalizarListaDeOfertas,
+    );
+    cacheOfertasApi = dados;
+    ofertasEmCarregamento = false;
+    renderizarListaDeConversas();
+
+    const ofertaParaSelecionar =
+      (selecionarOfertaId
+        ? cacheOfertasApi.find(
+            (oferta) => oferta.id === selecionarOfertaId,
+          )
+        : undefined) ??
+      (ofertaAtiva
+        ? cacheOfertasApi.find(
+            (oferta) => oferta.id === ofertaAtiva?.id,
+          )
+        : undefined) ??
+      (selecionarPrimeira ? cacheOfertasApi[0] : undefined);
+
+    if (ofertaParaSelecionar) {
+      await carregarMensagensDaOferta(ofertaParaSelecionar);
+    } else if (!anuncioParaOferta) {
+      renderizarChatSemSelecao();
+    }
+  } catch (erro) {
+    ofertasEmCarregamento = false;
+    cacheOfertasApi = [];
+    renderizarListaDeConversas();
+    definirFeedbackOfertas(obterMensagemErroOfertas(erro), "erro");
+
+    if (!anuncioParaOferta) {
+      renderizarChatSemSelecao();
+    }
+  }
+}
+
+function abrirDialogoDeOfertas(
+  anuncio: Anuncio | null,
+  elementoAcionador: HTMLElement,
+): void {
+  if (!sessaoAtual || !usuarioAtual) {
+    abrirDialogoAutenticacao();
+    definirFeedbackAutenticacao(
+      "Entre na sua conta para fazer ofertas e conversar.",
+    );
+    return;
+  }
+
+  if (anuncio?.usuarioId === usuarioAtual.id) {
+    mostrarFeedback("Você não pode fazer uma oferta no seu próprio anúncio.");
+    return;
+  }
+
+  if (!dialogoOfertas) {
+    return;
+  }
+
+  elementoFocadoAntesDasOfertas = elementoAcionador;
+  anuncioParaOferta = anuncio;
+  ofertaAtiva = null;
+  definirFeedbackOfertas("");
+
+  if (!dialogoOfertas.open) {
+    dialogoOfertas.showModal();
+    document.body.classList.add("modal-aberto");
+  }
+
+  if (anuncio) {
+    renderizarInicioDeOferta(anuncio);
+    void carregarConversas({ selecionarPrimeira: false });
+  } else {
+    renderizarChatSemSelecao();
+    void carregarConversas();
+  }
+}
+
+function fecharDialogoDeOfertas(): void {
+  if (dialogoOfertas?.open) {
+    dialogoOfertas.close();
+  }
+}
+
+function definirFormularioBloqueado(
+  formulario: HTMLFormElement,
+  bloqueado: boolean,
+): void {
+  formulario.setAttribute("aria-busy", String(bloqueado));
+  formulario
+    .querySelectorAll<
+      HTMLInputElement | HTMLTextAreaElement | HTMLButtonElement
+    >("input, textarea, button")
+    .forEach((campo) => {
+      campo.disabled = bloqueado;
+    });
+}
+
+async function enviarOferta(): Promise<void> {
+  if (
+    !formularioOferta ||
+    !anuncioParaOferta ||
+    !sessaoAtual ||
+    envioOfertaEmAndamento ||
+    !formularioOferta.reportValidity()
+  ) {
+    return;
+  }
+
+  const anuncio = anuncioParaOferta;
+  const valor = Number(campoValorOferta?.value);
+  const mensagem = campoMensagemOferta?.value.trim() ?? "";
+
+  if (!Number.isFinite(valor) || valor < 0 || !mensagem) {
+    definirFeedbackOfertas(
+      "Informe um valor válido e uma mensagem para enviar a oferta.",
+      "erro",
+    );
+    return;
+  }
+
+  const corpo: NovaOferta = { valor, mensagem };
+  envioOfertaEmAndamento = true;
+  definirFormularioBloqueado(formularioOferta, true);
+  definirFeedbackOfertas("Enviando oferta...");
+
+  try {
+    const { dados } = await requisitarApiAutenticada(
+      `/api/anuncios/${encodeURIComponent(anuncio.id)}/ofertas`,
+      normalizarOfertaDaApi,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(corpo),
+      },
+    );
+
+    anuncioParaOferta = null;
+    formularioOferta.reset();
+    definirFeedbackOfertas("Oferta enviada. A conversa está aberta.", "sucesso");
+    await carregarConversas({
+      selecionarOfertaId: dados.id,
+      selecionarPrimeira: false,
+    });
+
+    if (!ofertaAtiva || ofertaAtiva.id !== dados.id) {
+      cacheOfertasApi = [
+        dados,
+        ...cacheOfertasApi.filter((oferta) => oferta.id !== dados.id),
+      ];
+      renderizarListaDeConversas();
+      await carregarMensagensDaOferta(dados);
+    }
+  } catch (erro) {
+    definirFeedbackOfertas(obterMensagemErroOfertas(erro), "erro");
+  } finally {
+    envioOfertaEmAndamento = false;
+    definirFormularioBloqueado(formularioOferta, false);
+  }
+}
+
+async function enviarMensagemDaOferta(): Promise<void> {
+  if (
+    !formularioMensagem ||
+    !ofertaAtiva ||
+    !sessaoAtual ||
+    envioMensagemEmAndamento ||
+    !formularioMensagem.reportValidity()
+  ) {
+    return;
+  }
+
+  const oferta = ofertaAtiva;
+  const conteudo = campoConteudoMensagem?.value.trim() ?? "";
+
+  if (!conteudo) {
+    definirFeedbackOfertas("Escreva uma mensagem antes de enviar.", "erro");
+    return;
+  }
+
+  const corpo: NovaMensagemOferta = { conteudo };
+  envioMensagemEmAndamento = true;
+  definirFormularioBloqueado(formularioMensagem, true);
+  definirFeedbackOfertas("Enviando mensagem...");
+
+  try {
+    await requisitarApiAutenticada(
+      `/api/ofertas/${encodeURIComponent(oferta.id)}/mensagens`,
+      normalizarMensagemDaApi,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(corpo),
+      },
+    );
+
+    formularioMensagem.reset();
+    definirFeedbackOfertas("Mensagem enviada.", "sucesso");
+    await carregarMensagensDaOferta(oferta);
+  } catch (erro) {
+    definirFeedbackOfertas(obterMensagemErroOfertas(erro), "erro");
+  } finally {
+    envioMensagemEmAndamento = false;
+    definirFormularioBloqueado(formularioMensagem, false);
+    campoConteudoMensagem?.focus();
+  }
+}
+
+async function verificarNovasMensagens(): Promise<void> {
+  const sessaoDaVerificacao = sessaoAtual;
+
+  if (
+    !sessaoDaVerificacao ||
+    document.hidden ||
+    verificacaoMensagensEmAndamento
+  ) {
+    return;
+  }
+
+  verificacaoMensagensEmAndamento = true;
+  carregarMensagensVistasDoUsuario();
+
+  try {
+    const { dados: ofertas } = await requisitarApiAutenticada(
+      "/api/ofertas",
+      normalizarListaDeOfertas,
+      {},
+      sessaoDaVerificacao,
+    );
+
+    if (
+      sessaoAtual?.token !== sessaoDaVerificacao.token ||
+      document.hidden
+    ) {
+      return;
+    }
+
+    cacheOfertasApi = ofertas;
+    const idsOfertasAtuais = new Set(ofertas.map((oferta) => oferta.id));
+
+    for (const ofertaId of [...naoLidasPorOferta.keys()]) {
+      if (!idsOfertasAtuais.has(ofertaId)) {
+        naoLidasPorOferta.delete(ofertaId);
+      }
+    }
+
+    const ofertasAlteradas = ofertas.filter((oferta) => {
+      const atualizacao = oferta.atualizadaEm ?? oferta.criadaEm;
+      return (
+        atualizacoesOfertasInspecionadas.get(oferta.id) !== atualizacao
+      );
+    });
+
+    const historicos = await Promise.all(
+      ofertasAlteradas.map(async (oferta) => {
+        try {
+          const { dados: mensagens } = await requisitarApiAutenticada(
+            `/api/ofertas/${encodeURIComponent(oferta.id)}/mensagens`,
+            normalizarListaDeMensagens,
+            {},
+            sessaoDaVerificacao,
+          );
+          return { oferta, mensagens };
+        } catch (erro) {
+          console.warn(
+            `Não foi possível verificar novas mensagens da oferta ${oferta.id}.`,
+            erro,
+          );
+          return null;
+        }
+      }),
+    );
+
+    if (sessaoAtual?.token !== sessaoDaVerificacao.token) {
+      return;
+    }
+
+    historicos.forEach((resultado) => {
+      if (!resultado) {
+        return;
+      }
+
+      const { oferta, mensagens } = resultado;
+      const mensagensOrdenadas = [...mensagens].sort(
+        (a, b) => a.id - b.id,
+      );
+      const ultimaMensagem =
+        mensagensOrdenadas[mensagensOrdenadas.length - 1];
+      const ultimoIdInspecionado =
+        idsUltimasMensagensInspecionadas.get(oferta.id);
+      const ultimoIdVisto = idsMensagensVistas.get(oferta.id) ?? 0;
+      const quantidadeNaoLida = mensagensOrdenadas.filter(
+        (mensagem) =>
+          mensagem.id > ultimoIdVisto &&
+          mensagem.autorId !== usuarioAtual?.id,
+      ).length;
+
+      atualizacoesOfertasInspecionadas.set(
+        oferta.id,
+        oferta.atualizadaEm ?? oferta.criadaEm,
+      );
+
+      if (quantidadeNaoLida > 0) {
+        naoLidasPorOferta.set(oferta.id, quantidadeNaoLida);
+      } else {
+        naoLidasPorOferta.delete(oferta.id);
+      }
+
+      if (ultimaMensagem) {
+        idsUltimasMensagensInspecionadas.set(
+          oferta.id,
+          ultimaMensagem.id,
+        );
+
+        if (
+          ultimoIdInspecionado !== undefined &&
+          ultimaMensagem.id > ultimoIdInspecionado &&
+          ultimaMensagem.autorId !== usuarioAtual?.id
+        ) {
+          mostrarNotificacaoDeConversa(oferta, ultimaMensagem);
+        }
+      }
+
+      if (
+        dialogoOfertas?.open &&
+        ofertaAtiva?.id === oferta.id
+      ) {
+        ofertaAtiva = oferta;
+        renderizarMensagensDaOferta(oferta, mensagensOrdenadas);
+      }
+    });
+
+    renderizarListaDeConversas();
+    atualizarContadorDeConversas();
+  } catch (erro) {
+    if (
+      !(ehErroRequisicaoApi(erro) && erro.status === 401) &&
+      navigator.onLine
+    ) {
+      console.warn("Não foi possível atualizar as conversas.", erro);
+    }
+  } finally {
+    verificacaoMensagensEmAndamento = false;
+  }
+}
+
+function pararPollingDeConversas(): void {
+  window.clearTimeout(temporizadorPollingConversas);
+  temporizadorPollingConversas = undefined;
+}
+
+function agendarPollingDeConversas(
+  { imediato = false }: { imediato?: boolean } = {},
+): void {
+  pararPollingDeConversas();
+
+  if (!sessaoAtual || document.hidden) {
+    return;
+  }
+
+  temporizadorPollingConversas = window.setTimeout(
+    () => {
+      void verificarNovasMensagens().finally(() => {
+        agendarPollingDeConversas();
+      });
+    },
+    imediato ? 0 : INTERVALO_POLLING_CONVERSAS_MS,
+  );
+}
+
+function resetarNotificacoesDaSessao(): void {
+  pararPollingDeConversas();
+  usuarioNotificacoesCarregado = null;
+  carregarMensagensVistasDoUsuario();
+  atualizarContadorDeConversas();
+  window.clearTimeout(temporizadorNotificacaoConversa);
+
+  if (notificacaoConversa) {
+    notificacaoConversa.hidden = true;
+    notificacaoConversa.removeAttribute("data-estado");
+  }
+}
+
+function inicializarNotificacoesDeConversas(): void {
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      pararPollingDeConversas();
+      return;
+    }
+
+    agendarPollingDeConversas({ imediato: true });
+  });
+
+  carregarMensagensVistasDoUsuario();
+  atualizarContadorDeConversas();
+  agendarPollingDeConversas({ imediato: true });
+}
+
+function inicializarOfertasEConversas(): void {
+  if (!dialogoOfertas) {
+    return;
+  }
+
+  botaoAbrirConversas?.addEventListener("click", () => {
+    abrirDialogoDeOfertas(null, botaoAbrirConversas);
+  });
+
+  listaAnuncios?.addEventListener("click", (evento) => {
+    const botao =
+      evento.target instanceof Element
+        ? evento.target.closest<HTMLButtonElement>(".btn-fazer-oferta")
+        : null;
+
+    if (!botao || !listaAnuncios.contains(botao)) {
+      return;
+    }
+
+    const anuncio = cacheCatalogoApi.find(
+      (item) => String(item.id) === botao.dataset.id,
+    );
+
+    if (anuncio) {
+      abrirDialogoDeOfertas(anuncio, botao);
+    }
+  });
+
+  listaConversas?.addEventListener("click", (evento) => {
+    const botao =
+      evento.target instanceof Element
+        ? evento.target.closest<HTMLButtonElement>("[data-oferta-id]")
+        : null;
+
+    if (!botao || !listaConversas.contains(botao)) {
+      return;
+    }
+
+    selecionarOferta(botao.dataset.ofertaId);
+  });
+
+  formularioOferta?.addEventListener("submit", (evento) => {
+    evento.preventDefault();
+    void enviarOferta();
+  });
+
+  formularioMensagem?.addEventListener("submit", (evento) => {
+    evento.preventDefault();
+    void enviarMensagemDaOferta();
+  });
+
+  botaoFecharOfertas?.addEventListener("click", fecharDialogoDeOfertas);
+  dialogoOfertas.addEventListener("click", (evento) => {
+    if (evento.target === dialogoOfertas) {
+      fecharDialogoDeOfertas();
+    }
+  });
+  dialogoOfertas.addEventListener("cancel", () => {
+    sequenciaRequisicaoMensagens += 1;
+  });
+  dialogoOfertas.addEventListener("close", () => {
+    sequenciaRequisicaoMensagens += 1;
+
+    if (!document.querySelector("dialog[open]")) {
+      document.body.classList.remove("modal-aberto");
+    }
+
+    const elementoParaRestaurar = elementoFocadoAntesDasOfertas;
+    elementoFocadoAntesDasOfertas = null;
+
+    if (elementoParaRestaurar?.isConnected) {
+      elementoParaRestaurar.focus({ preventScroll: true });
+    }
+  });
 }
 
 function criarCardDoUsuario(anuncio: Anuncio): HTMLElement {
@@ -2682,16 +4104,41 @@ function criarCardDoUsuario(anuncio: Anuncio): HTMLElement {
     "",
     `Preço: ${preco} · ${anuncio.localizacao}`,
   );
+  const metrica = criarElemento("div", "meu-anuncio-metrica");
+  const pulso = criarElemento("span", "metrica-pulso", "↗");
+  const valorMetrica = criarElemento(
+    "strong",
+    "",
+    String(anuncio.cliquesDetalhes),
+  );
+  const rotuloMetrica = criarElemento(
+    "span",
+    "",
+    anuncio.cliquesDetalhes === 1
+      ? "clique em Ver detalhes"
+      : "cliques em Ver detalhes",
+  );
   const acoes = criarElemento("div", "meu-anuncio-acoes");
+  const botaoEditar = criarElemento("button", "btn-editar");
+  const iconeEditar = criarElemento("span", "btn-editar-icone", "✎");
+  const rotuloEditar = criarElemento("span", "", "Editar");
   const botaoExcluir = criarElemento("button", "btn-excluir", "Excluir");
 
   card.dataset.id = String(anuncio.id);
+  botaoEditar.type = "button";
+  botaoEditar.dataset.id = String(anuncio.id);
+  botaoEditar.setAttribute("aria-label", `Editar ${anuncio.nome}`);
+  botaoEditar.title = `Editar ${anuncio.nome}`;
+  iconeEditar.setAttribute("aria-hidden", "true");
   botaoExcluir.type = "button";
   botaoExcluir.dataset.id = String(anuncio.id);
   botaoExcluir.setAttribute("aria-label", `Excluir ${anuncio.nome}`);
 
-  detalhes.append(status, titulo, informacoes);
-  acoes.append(botaoExcluir);
+  pulso.setAttribute("aria-hidden", "true");
+  metrica.append(pulso, valorMetrica, rotuloMetrica);
+  detalhes.append(status, titulo, informacoes, metrica);
+  botaoEditar.append(iconeEditar, rotuloEditar);
+  acoes.append(botaoEditar, botaoExcluir);
   card.append(media, detalhes, acoes);
 
   return card;
@@ -2724,6 +4171,34 @@ function obterAnunciosVisiveis(): Anuncio[] {
       ({ anuncio }) => anuncio.modalidade === abaCatalogoAtiva,
     );
   }
+
+  itens = itens.filter(({ anuncio }) => {
+    if (
+      valorMinimoFiltro !== null &&
+      anuncio.valor < valorMinimoFiltro
+    ) {
+      return false;
+    }
+
+    if (
+      valorMaximoFiltro !== null &&
+      anuncio.valor > valorMaximoFiltro
+    ) {
+      return false;
+    }
+
+    if (
+      condicoesFiltroAtivas.size > 0 &&
+      !condicoesFiltroAtivas.has(anuncio.condicao)
+    ) {
+      return false;
+    }
+
+    return (
+      modalidadeFiltroAtiva === "todas" ||
+      anuncio.modalidade === modalidadeFiltroAtiva
+    );
+  });
 
   if (termoNormalizado) {
     itens = itens.filter(({ anuncio }) => {
@@ -2883,6 +4358,31 @@ function renderizarAnuncios(): void {
   atualizarContadoresDosFiltros();
 }
 
+function obterControleDoFiltro(
+  rotulo: HTMLLabelElement,
+): HTMLInputElement | null {
+  return rotulo.control instanceof HTMLInputElement
+    ? rotulo.control
+    : null;
+}
+
+function refletirFiltrosDeCondicao(): void {
+  filtrosCondicao.forEach((rotulo) => {
+    const controle = obterControleDoFiltro(rotulo);
+    const condicao = rotulo.dataset.condicaoFiltro;
+
+    if (!controle) {
+      return;
+    }
+
+    if (condicao === "todas") {
+      controle.checked = condicoesFiltroAtivas.size === 0;
+    } else if (ehCondicao(condicao)) {
+      controle.checked = condicoesFiltroAtivas.has(condicao);
+    }
+  });
+}
+
 function inicializarControlesDaVitrine(): void {
   formularioBuscaVitrine?.addEventListener("submit", (evento) => {
     evento.preventDefault();
@@ -2898,6 +4398,87 @@ function inicializarControlesDaVitrine(): void {
       ordenacaoAtiva = ordenacaoVitrine.value;
       renderizarAnuncios();
     }
+  });
+
+  formularioFiltroPreco?.addEventListener("submit", (evento) => {
+    evento.preventDefault();
+
+    if (!campoValorMinimo || !campoValorMaximo) {
+      return;
+    }
+
+    campoValorMaximo.setCustomValidity("");
+
+    if (!formularioFiltroPreco.checkValidity()) {
+      formularioFiltroPreco.reportValidity();
+      return;
+    }
+
+    const proximoValorMinimo =
+      campoValorMinimo.value === "" ? null : campoValorMinimo.valueAsNumber;
+    const proximoValorMaximo =
+      campoValorMaximo.value === "" ? null : campoValorMaximo.valueAsNumber;
+
+    if (
+      proximoValorMinimo !== null &&
+      proximoValorMaximo !== null &&
+      proximoValorMinimo > proximoValorMaximo
+    ) {
+      campoValorMaximo.setCustomValidity(
+        "O valor máximo deve ser maior ou igual ao valor mínimo.",
+      );
+      campoValorMaximo.reportValidity();
+      return;
+    }
+
+    valorMinimoFiltro = proximoValorMinimo;
+    valorMaximoFiltro = proximoValorMaximo;
+    renderizarAnuncios();
+  });
+
+  [campoValorMinimo, campoValorMaximo].forEach((campo) => {
+    campo?.addEventListener("input", () => {
+      campoValorMaximo?.setCustomValidity("");
+    });
+  });
+
+  filtrosCondicao.forEach((rotulo) => {
+    const controle = obterControleDoFiltro(rotulo);
+
+    controle?.addEventListener("change", () => {
+      const condicao = rotulo.dataset.condicaoFiltro;
+
+      if (condicao === "todas") {
+        if (controle.checked) {
+          condicoesFiltroAtivas.clear();
+        }
+      } else if (ehCondicao(condicao)) {
+        if (controle.checked) {
+          condicoesFiltroAtivas.add(condicao);
+        } else {
+          condicoesFiltroAtivas.delete(condicao);
+        }
+      }
+
+      refletirFiltrosDeCondicao();
+      renderizarAnuncios();
+    });
+  });
+
+  filtrosModalidade.forEach((rotulo) => {
+    const controle = obterControleDoFiltro(rotulo);
+
+    controle?.addEventListener("change", () => {
+      const modalidade = rotulo.dataset.modalidadeFiltro;
+
+      if (
+        controle.checked &&
+        (modalidade === "todas" || ehModalidade(modalidade))
+      ) {
+        modalidadeFiltroAtiva = modalidade;
+        renderizarAnuncios();
+      }
+    });
   });
 
   filtrosCategoria.forEach((filtro) => {
@@ -2934,6 +4515,7 @@ function inicializarControlesDaVitrine(): void {
         return;
       }
 
+      definirPainelMeusAnunciosAberto(false, { moverFoco: false });
       abaCatalogoAtiva = proximaAba;
 
       abasCatalogo.forEach((item) => {
@@ -2971,6 +4553,10 @@ function renderizarMeusAnuncios(): void {
   listaMeusAnuncios.replaceChildren();
 
   if (!usuarioAtual) {
+    if (resumoMeusAnuncios) {
+      resumoMeusAnuncios.textContent =
+        "Entre para acompanhar o interesse nos seus itens.";
+    }
     listaMeusAnuncios.append(
       criarEstadoVazio("Entre para acompanhar os seus anúncios."),
     );
@@ -2978,10 +4564,25 @@ function renderizarMeusAnuncios(): void {
   }
 
   if (cacheAnunciosUsuarioApi.length === 0) {
+    if (resumoMeusAnuncios) {
+      resumoMeusAnuncios.textContent =
+        "Seus próximos anúncios aparecerão aqui com a contagem de interesse.";
+    }
     listaMeusAnuncios.append(
       criarEstadoVazio("Você ainda não publicou nenhum anúncio."),
     );
     return;
+  }
+
+  if (resumoMeusAnuncios) {
+    const totalAnuncios = cacheAnunciosUsuarioApi.length;
+    const totalCliques = cacheAnunciosUsuarioApi.reduce(
+      (total, anuncio) => total + anuncio.cliquesDetalhes,
+      0,
+    );
+    resumoMeusAnuncios.textContent =
+      `${totalAnuncios} ${totalAnuncios === 1 ? "anúncio publicado" : "anúncios publicados"} · ` +
+      `${totalCliques} ${totalCliques === 1 ? "clique recebido" : "cliques recebidos"}`;
   }
 
   const fragmento = document.createDocumentFragment();
@@ -3137,6 +4738,249 @@ async function criarAnuncio(): Promise<boolean> {
     botaoPublicarAnuncio.removeAttribute("aria-busy");
     botaoPublicarAnuncio.textContent =
       botaoPublicarAnuncio.dataset.textoOriginal ?? "";
+  }
+}
+
+function definirFeedbackEdicao(
+  mensagem: string,
+  tipo: "neutro" | "erro" = "neutro",
+): void {
+  if (!feedbackEditarAnuncio) {
+    return;
+  }
+
+  feedbackEditarAnuncio.textContent = mensagem;
+  feedbackEditarAnuncio.dataset.tipo = tipo;
+  feedbackEditarAnuncio.setAttribute(
+    "role",
+    tipo === "erro" ? "alert" : "status",
+  );
+}
+
+function sincronizarModalidadeDaEdicao(): void {
+  if (
+    !campoEditarValor ||
+    !campoEditarModalidadeVenda ||
+    !campoEditarModalidadeDoacao
+  ) {
+    return;
+  }
+
+  const ehDoacao = campoEditarModalidadeDoacao.checked;
+  campoEditarValor.readOnly = ehDoacao;
+  campoEditarValor.min = ehDoacao ? "0" : "0.01";
+
+  if (ehDoacao) {
+    campoEditarValor.value = "0";
+  } else if (campoEditarValor.value === "0") {
+    campoEditarValor.value = "";
+  }
+}
+
+function abrirDialogoDeEdicao(
+  anuncio: Anuncio,
+  acionador: HTMLElement,
+): void {
+  if (
+    !dialogoEditarAnuncio ||
+    !formularioEditarAnuncio ||
+    !campoEditarNome ||
+    !campoEditarCategoria ||
+    !campoEditarCondicao ||
+    !campoEditarModalidadeVenda ||
+    !campoEditarModalidadeDoacao ||
+    !campoEditarValor ||
+    !campoEditarLocalizacao ||
+    !campoEditarImagem ||
+    !imagemPreviewEdicao ||
+    !campoEditarDescricao
+  ) {
+    return;
+  }
+
+  if (!usuarioAtual || anuncio.usuarioId !== usuarioAtual.id) {
+    mostrarFeedback("Você só pode editar os seus próprios anúncios.");
+    return;
+  }
+
+  anuncioEmEdicao = anuncio;
+  elementoFocadoAntesDaEdicao = acionador;
+  formularioEditarAnuncio.reset();
+  campoEditarNome.value = anuncio.nome;
+  campoEditarCategoria.value = anuncio.categoria;
+  campoEditarCondicao.value = anuncio.condicao;
+  campoEditarModalidadeVenda.checked = anuncio.modalidade === "venda";
+  campoEditarModalidadeDoacao.checked = anuncio.modalidade === "doacao";
+  campoEditarValor.value = String(anuncio.valor);
+  campoEditarLocalizacao.value = anuncio.localizacao;
+  campoEditarImagem.value = "";
+  campoEditarImagem.setCustomValidity("");
+  imagemPreviewEdicao.src = anuncio.imagemUrl;
+  imagemPreviewEdicao.alt = `Imagem atual de ${anuncio.nome}`;
+  campoEditarDescricao.value = anuncio.descricao;
+  definirFeedbackEdicao("");
+  sincronizarModalidadeDaEdicao();
+  dialogoEditarAnuncio.showModal();
+  document.body.classList.add("modal-aberto");
+  window.requestAnimationFrame(() => campoEditarNome.focus());
+}
+
+function fecharDialogoDeEdicao(
+  { aposSucesso = false }: { aposSucesso?: boolean } = {},
+): void {
+  if (edicaoEmAndamento && !aposSucesso) {
+    return;
+  }
+
+  if (dialogoEditarAnuncio?.open) {
+    dialogoEditarAnuncio.close();
+  }
+}
+
+async function salvarEdicaoDoAnuncio(): Promise<boolean> {
+  if (
+    edicaoEmAndamento ||
+    !anuncioEmEdicao ||
+    !formularioEditarAnuncio ||
+    !campoEditarNome ||
+    !campoEditarCategoria ||
+    !campoEditarCondicao ||
+    !campoEditarValor ||
+    !campoEditarLocalizacao ||
+    !campoEditarImagem ||
+    !campoEditarDescricao ||
+    !botaoSalvarEdicao
+  ) {
+    return false;
+  }
+
+  if (
+    !sessaoAtual ||
+    !usuarioAtual ||
+    anuncioEmEdicao.usuarioId !== usuarioAtual.id
+  ) {
+    definirFeedbackEdicao(
+      "Entre na conta proprietária para editar este anúncio.",
+      "erro",
+    );
+    return false;
+  }
+
+  sincronizarModalidadeDaEdicao();
+
+  if (!formularioEditarAnuncio.reportValidity()) {
+    return false;
+  }
+
+  const arquivoImagem = campoEditarImagem.files?.[0];
+  const errosImagemEdicao = await obterErrosImagem(arquivoImagem);
+
+  if (errosImagemEdicao.length > 0) {
+    const mensagem = errosImagemEdicao[0];
+    campoEditarImagem.setCustomValidity(mensagem);
+    definirFeedbackEdicao(mensagem, "erro");
+    campoEditarImagem.reportValidity();
+    campoEditarImagem.focus();
+    return false;
+  }
+
+  const categoria = campoEditarCategoria.value;
+  const condicao = campoEditarCondicao.value;
+  const modalidadeRecebida =
+    formularioEditarAnuncio.querySelector<HTMLInputElement>(
+      'input[name="modalidade"]:checked',
+    )?.value;
+
+  if (
+    !ehCategoria(categoria) ||
+    !ehCondicao(condicao) ||
+    !ehModalidade(modalidadeRecebida)
+  ) {
+    definirFeedbackEdicao(
+      "Revise a categoria, a condição e a modalidade.",
+      "erro",
+    );
+    return false;
+  }
+
+  const valor =
+    modalidadeRecebida === "doacao" ? 0 : campoEditarValor.valueAsNumber;
+
+  if (!Number.isFinite(valor) || valor < 0) {
+    definirFeedbackEdicao("Informe um valor válido.", "erro");
+    campoEditarValor.focus();
+    return false;
+  }
+
+  const anuncioOriginal = anuncioEmEdicao;
+  edicaoEmAndamento = true;
+  botaoSalvarEdicao.disabled = true;
+  botaoSalvarEdicao.setAttribute("aria-busy", "true");
+  botaoSalvarEdicao.textContent = "Salvando...";
+  definirFeedbackEdicao("Atualizando o anúncio...");
+
+  try {
+    const imagemUrl = arquivoImagem
+      ? await converterArquivoParaDataUrl(arquivoImagem)
+      : anuncioOriginal.imagemUrl;
+    const dadosAtualizados: NovoAnuncio = {
+      nome: campoEditarNome.value.trim(),
+      categoria,
+      condicao,
+      modalidade: modalidadeRecebida,
+      valor,
+      localizacao: campoEditarLocalizacao.value.trim(),
+      descricao: campoEditarDescricao.value.trim(),
+      imagemUrl,
+    };
+    const { dados: anuncioAtualizado } = await requisitarApiAutenticada(
+      `/api/anuncios/${encodeURIComponent(String(anuncioOriginal.id))}`,
+      normalizarAnuncioDaApi,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(dadosAtualizados),
+      },
+    );
+
+    await invalidarCacheCatalogoPublico();
+    await Promise.all([
+      carregarAnunciosDaApi({ mostrarCarregamento: false }),
+      carregarMeusAnunciosDaApi({ mostrarCarregamento: false }),
+    ]);
+    fecharDialogoDeEdicao({ aposSucesso: true });
+    mostrarFeedback(
+      `Anúncio “${anuncioAtualizado.nome}” atualizado com sucesso.`,
+    );
+    return true;
+  } catch (erro) {
+    console.error("Não foi possível atualizar o anúncio.", erro);
+
+    if (ehErroRequisicaoApi(erro)) {
+      const primeiroErroDeCampo = Object.values(
+        erro.dados.campos ?? {},
+      ).find((mensagem) => typeof mensagem === "string");
+      definirFeedbackEdicao(
+        primeiroErroDeCampo ||
+          erro.dados.erro ||
+          "Não foi possível atualizar o anúncio.",
+        "erro",
+      );
+    } else {
+      definirFeedbackEdicao(
+        "Não foi possível acessar o servidor. Verifique sua conexão e tente novamente.",
+        "erro",
+      );
+    }
+
+    return false;
+  } finally {
+    edicaoEmAndamento = false;
+    botaoSalvarEdicao.disabled = false;
+    botaoSalvarEdicao.removeAttribute("aria-busy");
+    botaoSalvarEdicao.textContent = "Salvar alterações";
   }
 }
 
@@ -3717,6 +5561,44 @@ function definirPainelColecaoAberto(
   }
 }
 
+function definirPainelMeusAnunciosAberto(
+  aberto: boolean,
+  { moverFoco = true }: { moverFoco?: boolean } = {},
+): void {
+  if (!painelMeusAnuncios || !botaoAbrirMeusAnuncios) {
+    return;
+  }
+
+  painelMeusAnuncios.hidden = !aberto;
+  botaoAbrirMeusAnuncios.setAttribute("aria-expanded", String(aberto));
+  botaoAbrirMeusAnuncios.classList.toggle("is-open", aberto);
+
+  if (aberto) {
+    renderizarMeusAnuncios();
+    void carregarMeusAnunciosDaApi();
+  }
+
+  if (!moverFoco) {
+    return;
+  }
+
+  if (aberto) {
+    const reduzirMovimento = window.matchMedia?.(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    painelMeusAnuncios.scrollIntoView({
+      behavior: reduzirMovimento ? "auto" : "smooth",
+      block: "start",
+    });
+    painelMeusAnuncios
+      .querySelector<HTMLElement>("button, [href]")
+      ?.focus({ preventScroll: true });
+  } else {
+    botaoAbrirMeusAnuncios.focus();
+  }
+}
+
 function inicializarFormularioDaColecao(): void {
   if (
     !formularioNovaColecao ||
@@ -3796,6 +5678,7 @@ function inicializarPainelNovoAnuncio(): void {
   botaoAbrirAnuncio.addEventListener("click", () => {
     if (painelNovoAnuncio.hidden) {
       definirPainelColecaoAberto(false, { moverFoco: false });
+      definirPainelMeusAnunciosAberto(false, { moverFoco: false });
     }
     definirPainelAnuncioAberto(Boolean(painelNovoAnuncio.hidden));
   });
@@ -3809,6 +5692,7 @@ function inicializarPainelNovoAnuncio(): void {
 
     if (deveAbrir) {
       definirPainelAnuncioAberto(false, { moverFoco: false });
+      definirPainelMeusAnunciosAberto(false, { moverFoco: false });
     }
 
     definirPainelColecaoAberto(Boolean(deveAbrir));
@@ -3818,11 +5702,37 @@ function inicializarPainelNovoAnuncio(): void {
     definirPainelColecaoAberto(false);
   });
 
+  botaoAbrirMeusAnuncios?.addEventListener("click", () => {
+    const deveAbrir = painelMeusAnuncios?.hidden;
+
+    if (deveAbrir) {
+      definirPainelAnuncioAberto(false, { moverFoco: false });
+      definirPainelColecaoAberto(false, { moverFoco: false });
+    }
+
+    definirPainelMeusAnunciosAberto(Boolean(deveAbrir));
+  });
+
+  botaoFecharMeusAnuncios?.addEventListener("click", () => {
+    definirPainelMeusAnunciosAberto(false);
+  });
+
+  linksAbrirMeusAnuncios.forEach((link) => {
+    link.addEventListener("click", (evento) => {
+      evento.preventDefault();
+      definirPainelAnuncioAberto(false, { moverFoco: false });
+      definirPainelColecaoAberto(false, { moverFoco: false });
+      definirPainelMeusAnunciosAberto(true);
+    });
+  });
+
   document.addEventListener("keydown", (evento) => {
     if (evento.key === "Escape" && !painelNovoAnuncio.hidden) {
       definirPainelAnuncioAberto(false);
     } else if (evento.key === "Escape" && !painelNovaColecao?.hidden) {
       definirPainelColecaoAberto(false);
+    } else if (evento.key === "Escape" && !painelMeusAnuncios?.hidden) {
+      definirPainelMeusAnunciosAberto(false);
     }
   });
 
@@ -3834,6 +5744,24 @@ function inicializarExclusaoDeAnuncios(): void {
   }
 
   listaMeusAnuncios.addEventListener("click", (evento) => {
+    const botaoEditar =
+      evento.target instanceof Element
+        ? evento.target.closest<HTMLButtonElement>(".btn-editar")
+        : null;
+
+    if (botaoEditar && listaMeusAnuncios.contains(botaoEditar)) {
+      const anuncio = cacheAnunciosUsuarioApi.find(
+        (item) => String(item.id) === botaoEditar.dataset.id,
+      );
+
+      if (anuncio) {
+        abrirDialogoDeEdicao(anuncio, botaoEditar);
+      } else {
+        mostrarFeedback("O anúncio não foi encontrado.");
+      }
+      return;
+    }
+
     const botaoExcluir =
       evento.target instanceof Element
         ? evento.target.closest<HTMLButtonElement>(".btn-excluir")
@@ -3844,6 +5772,103 @@ function inicializarExclusaoDeAnuncios(): void {
     }
 
     void excluirAnuncio(botaoExcluir.dataset.id, botaoExcluir);
+  });
+}
+
+function inicializarEdicaoDeAnuncios(): void {
+  formularioEditarAnuncio?.addEventListener("submit", (evento) => {
+    evento.preventDefault();
+    void salvarEdicaoDoAnuncio();
+  });
+
+  botaoFecharEdicao?.addEventListener("click", () => {
+    fecharDialogoDeEdicao();
+  });
+  botaoCancelarEdicao?.addEventListener("click", () => {
+    fecharDialogoDeEdicao();
+  });
+
+  campoEditarModalidadeVenda?.addEventListener(
+    "change",
+    sincronizarModalidadeDaEdicao,
+  );
+  campoEditarModalidadeDoacao?.addEventListener(
+    "change",
+    sincronizarModalidadeDaEdicao,
+  );
+
+  campoEditarImagem?.addEventListener("change", () => {
+    campoEditarImagem.setCustomValidity("");
+    definirFeedbackEdicao("");
+    const arquivo = campoEditarImagem.files?.[0];
+
+    if (!arquivo || !imagemPreviewEdicao) {
+      if (anuncioEmEdicao && imagemPreviewEdicao) {
+        imagemPreviewEdicao.src = anuncioEmEdicao.imagemUrl;
+      }
+      return;
+    }
+
+    void obterErrosImagem(arquivo).then((erros) => {
+      if (erros.length > 0) {
+        const mensagem = erros[0];
+        campoEditarImagem.setCustomValidity(mensagem);
+        definirFeedbackEdicao(mensagem, "erro");
+        return;
+      }
+
+      void converterArquivoParaDataUrl(arquivo).then((imagemUrl) => {
+        if (campoEditarImagem.files?.[0] === arquivo) {
+          imagemPreviewEdicao.src = imagemUrl;
+        }
+      });
+    });
+  });
+
+  dialogoEditarAnuncio?.addEventListener("click", (evento) => {
+    if (evento.target === dialogoEditarAnuncio) {
+      fecharDialogoDeEdicao();
+    }
+  });
+  dialogoEditarAnuncio?.addEventListener("cancel", (evento) => {
+    if (edicaoEmAndamento) {
+      evento.preventDefault();
+    }
+  });
+  dialogoEditarAnuncio?.addEventListener("close", () => {
+    anuncioEmEdicao = null;
+
+    if (!document.querySelector("dialog[open]")) {
+      document.body.classList.remove("modal-aberto");
+    }
+
+    const elementoParaRestaurar = elementoFocadoAntesDaEdicao;
+    elementoFocadoAntesDaEdicao = null;
+
+    if (elementoParaRestaurar?.isConnected) {
+      elementoParaRestaurar.focus({ preventScroll: true });
+    } else {
+      botaoAbrirMeusAnuncios?.focus({ preventScroll: true });
+    }
+  });
+}
+
+function inicializarContagemDeCliquesEmDetalhes(): void {
+  if (!listaAnuncios) {
+    return;
+  }
+
+  listaAnuncios.addEventListener("click", (evento) => {
+    const linkDetalhes =
+      evento.target instanceof Element
+        ? evento.target.closest<HTMLAnchorElement>(".btn-detalhes")
+        : null;
+
+    if (!linkDetalhes || !listaAnuncios.contains(linkDetalhes)) {
+      return;
+    }
+
+    void registrarCliqueEmDetalhes(linkDetalhes.dataset.id);
   });
 }
 
@@ -4045,6 +6070,10 @@ inicializarPainelNovoAnuncio();
 inicializarFormularioDeAnuncio();
 inicializarFormularioDaColecao();
 inicializarExclusaoDeAnuncios();
+inicializarEdicaoDeAnuncios();
+inicializarContagemDeCliquesEmDetalhes();
+inicializarOfertasEConversas();
+inicializarNotificacoesDeConversas();
 inicializarVisualizacaoDeImagens();
 inicializarControlesDaVitrine();
 inicializarNavegacaoResponsiva();

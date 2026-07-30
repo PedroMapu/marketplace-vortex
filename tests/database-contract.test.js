@@ -21,6 +21,7 @@ test("mapeia a linha do PostgreSQL para o DTO esperado pelo frontend", () => {
     usuario_id: "d7ff9c07-4409-4cf3-9458-6a7bd8d94104",
     usuario_nome: "Pedro",
     criado_em: criadoEm,
+    cliques_detalhes: "17",
   });
 
   assert.deepEqual(anuncio, {
@@ -36,10 +37,12 @@ test("mapeia a linha do PostgreSQL para o DTO esperado pelo frontend", () => {
     usuarioId: "d7ff9c07-4409-4cf3-9458-6a7bd8d94104",
     usuarioNome: "Pedro",
     criadoEm: "2026-07-31T14:30:45.123Z",
+    cliquesDetalhes: 17,
   });
 
   assert.equal(typeof anuncio.id, "number");
   assert.equal(typeof anuncio.valor, "number");
+  assert.equal(typeof anuncio.cliquesDetalhes, "number");
 });
 
 test("normaliza timestamps textuais sem expor nomes snake_case", () => {
@@ -76,6 +79,7 @@ test("normaliza timestamps textuais sem expor nomes snake_case", () => {
       "usuarioId",
       "usuarioNome",
       "criadoEm",
+      "cliquesDetalhes",
     ],
   );
   assert.equal("imagem_url" in anuncio, false);

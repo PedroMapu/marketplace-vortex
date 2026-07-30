@@ -57,6 +57,18 @@ function carregarApiComBancoEmMemoria() {
     async buscarAnuncioPorId(id) {
       return anuncios.find((anuncio) => anuncio.id === id);
     },
+    async atualizarAnuncioPorId(id, usuarioId, dados) {
+      const anuncio = anuncios.find(
+        (item) => item.id === id && item.usuarioId === usuarioId,
+      );
+
+      if (!anuncio) {
+        return undefined;
+      }
+
+      Object.assign(anuncio, dados);
+      return anuncio;
+    },
     async excluirAnuncioPorId(id, usuarioId) {
       const indice = anuncios.findIndex(
         (anuncio) => anuncio.id === id && anuncio.usuarioId === usuarioId,
@@ -164,8 +176,8 @@ test("dois usuários mantêm autoria, listagem própria e exclusão isoladas", a
       method: "POST",
       body: { nome, email, senha: "senha-segura" },
     });
-  const ana = await cadastrar("Ana", "ana.fluxo@example.com");
-  const bruno = await cadastrar("Bruno", "bruno.fluxo@example.com");
+  const ana = await cadastrar("Ana", "ana.fluxo@edu.unifor.br");
+  const bruno = await cadastrar("Bruno", "bruno.fluxo@edu.unifor.br");
 
   assert.equal(ana.status, 201);
   assert.equal(bruno.status, 201);
@@ -200,6 +212,48 @@ test("dois usuários mantêm autoria, listagem própria e exclusão isoladas", a
     [criacao.body.id],
   );
   assert.deepEqual(anunciosDoBruno.body, []);
+
+  const edicaoAlheia = await requisitar(
+    baseUrl,
+    `/api/anuncios/${criacao.body.id}`,
+    {
+      method: "PATCH",
+      token: bruno.body.token,
+      body: {
+        nome: "Alteração indevida",
+        categoria: "casa",
+        condicao: "novo",
+        modalidade: "doacao",
+        valor: 0,
+        localizacao: "Outro local",
+        descricao: "Não deve ser aplicada.",
+        imagemUrl: "data:image/png;base64,iVBORw0KGgo=",
+      },
+    },
+  );
+  assert.equal(edicaoAlheia.status, 403);
+
+  const edicaoProprietaria = await requisitar(
+    baseUrl,
+    `/api/anuncios/${criacao.body.id}`,
+    {
+      method: "PATCH",
+      token: ana.body.token,
+      body: {
+        nome: "Mesa lateral atualizada",
+        categoria: "casa",
+        condicao: "seminovo",
+        modalidade: "venda",
+        valor: 110,
+        localizacao: "Bloco Q",
+        descricao: "Madeira maciça, revisada.",
+        imagemUrl: "data:image/png;base64,iVBORw0KGgo=",
+      },
+    },
+  );
+  assert.equal(edicaoProprietaria.status, 200);
+  assert.equal(edicaoProprietaria.body.nome, "Mesa lateral atualizada");
+  assert.equal(edicaoProprietaria.body.usuarioId, ana.body.usuario.id);
 
   const exclusaoAlheia = await requisitar(
     baseUrl,

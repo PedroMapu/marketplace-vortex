@@ -7,8 +7,15 @@ const {
   buscarUsuarioPorEmail,
   listarAnuncios,
   criarAnuncio,
+  atualizarAnuncioPorId,
   buscarAnuncioPorId,
   excluirAnuncioPorId,
+  registrarCliqueDetalhes,
+  criarOferta,
+  listarOfertasDoUsuario,
+  buscarOfertaPorId,
+  listarMensagensDaOferta,
+  criarMensagemOferta,
   verificarConexao,
 } = require("./database");
 const { criarToken, usuarioPublico } = require("./auth");
@@ -22,6 +29,9 @@ const {
   schemaAnuncio,
   schemaFiltrosAnuncios,
   schemaParametroAnuncio,
+  schemaParametroOferta,
+  schemaOferta,
+  schemaMensagemOferta,
 } = require("./validacao");
 const { responderErro, validarComSchema } = require("./erros-api");
 
@@ -195,6 +205,281 @@ app.post("/api/anuncios", autenticarBearer, async (request, response) => {
   );
   return response.status(201).json(anuncio);
 });
+
+app.patch(
+  "/api/anuncios/:id",
+  autenticarBearer,
+  async (request, response) => {
+    const validacaoParametro = validarComSchema(
+      schemaParametroAnuncio,
+      request.params,
+    );
+
+    if (!validacaoParametro.sucesso) {
+      return responderErro(
+        response,
+        400,
+        "Parâmetro de anúncio inválido.",
+        "VALIDACAO",
+        validacaoParametro.campos,
+      );
+    }
+
+    const validacao = validarComSchema(schemaAnuncio, request.body);
+
+    if (!validacao.sucesso) {
+      return responderErro(
+        response,
+        400,
+        "Dados do anúncio inválidos.",
+        "VALIDACAO",
+        validacao.campos,
+      );
+    }
+
+    const { id } = validacaoParametro.dados;
+    const anuncio = await buscarAnuncioPorId(id);
+
+    if (!anuncio) {
+      return responderErro(
+        response,
+        404,
+        "Anúncio não encontrado.",
+        "ANUNCIO_NAO_ENCONTRADO",
+      );
+    }
+
+    if (anuncio.usuarioId !== request.usuario.id) {
+      return responderErro(
+        response,
+        403,
+        "Você só pode editar os seus próprios anúncios.",
+        "ANUNCIO_ALHEIO",
+      );
+    }
+
+    const anuncioAtualizado = await atualizarAnuncioPorId(
+      id,
+      request.usuario.id,
+      validacao.dados,
+    );
+
+    if (!anuncioAtualizado) {
+      return responderErro(
+        response,
+        404,
+        "Anúncio não encontrado.",
+        "ANUNCIO_NAO_ENCONTRADO",
+      );
+    }
+
+    return response.status(200).json(anuncioAtualizado);
+  },
+);
+
+app.post("/api/anuncios/:id/cliques-detalhes", async (request, response) => {
+  const validacao = validarComSchema(schemaParametroAnuncio, request.params);
+
+  if (!validacao.sucesso) {
+    return responderErro(
+      response,
+      400,
+      "Parâmetro de anúncio inválido.",
+      "VALIDACAO",
+      validacao.campos,
+    );
+  }
+
+  const resultado = await registrarCliqueDetalhes(validacao.dados.id);
+
+  if (!resultado) {
+    return responderErro(
+      response,
+      404,
+      "Anúncio não encontrado.",
+      "ANUNCIO_NAO_ENCONTRADO",
+    );
+  }
+
+  return response.status(200).json(resultado);
+});
+
+app.post(
+  "/api/anuncios/:id/ofertas",
+  autenticarBearer,
+  async (request, response) => {
+    const validacaoParametro = validarComSchema(
+      schemaParametroAnuncio,
+      request.params,
+    );
+
+    if (!validacaoParametro.sucesso) {
+      return responderErro(
+        response,
+        400,
+        "Parâmetro de anúncio inválido.",
+        "VALIDACAO",
+        validacaoParametro.campos,
+      );
+    }
+
+    const validacao = validarComSchema(schemaOferta, request.body);
+
+    if (!validacao.sucesso) {
+      return responderErro(
+        response,
+        400,
+        "Dados da oferta inválidos.",
+        "VALIDACAO",
+        validacao.campos,
+      );
+    }
+
+    const anuncio = await buscarAnuncioPorId(validacaoParametro.dados.id);
+
+    if (!anuncio) {
+      return responderErro(
+        response,
+        404,
+        "Anúncio não encontrado.",
+        "ANUNCIO_NAO_ENCONTRADO",
+      );
+    }
+
+    if (anuncio.usuarioId === request.usuario.id) {
+      return responderErro(
+        response,
+        403,
+        "Você não pode fazer uma oferta no seu próprio anúncio.",
+        "OFERTA_PROPRIO_ANUNCIO",
+      );
+    }
+
+    const oferta = await criarOferta({
+      anuncioId: anuncio.id,
+      compradorId: request.usuario.id,
+      valor: validacao.dados.valor,
+      mensagem: validacao.dados.mensagem,
+    });
+
+    if (!oferta) {
+      return responderErro(
+        response,
+        404,
+        "Anúncio não encontrado.",
+        "ANUNCIO_NAO_ENCONTRADO",
+      );
+    }
+
+    return response.status(201).json(oferta);
+  },
+);
+
+app.get("/api/ofertas", autenticarBearer, async (request, response) => {
+  const ofertas = await listarOfertasDoUsuario(request.usuario.id);
+  return response.status(200).json(ofertas);
+});
+
+async function obterOfertaAutorizada(request, response) {
+  const validacao = validarComSchema(schemaParametroOferta, request.params);
+
+  if (!validacao.sucesso) {
+    responderErro(
+      response,
+      400,
+      "Parâmetro de oferta inválido.",
+      "VALIDACAO",
+      validacao.campos,
+    );
+    return undefined;
+  }
+
+  const oferta = await buscarOfertaPorId(validacao.dados.id);
+
+  if (!oferta) {
+    responderErro(
+      response,
+      404,
+      "Oferta não encontrada.",
+      "OFERTA_NAO_ENCONTRADA",
+    );
+    return undefined;
+  }
+
+  if (
+    oferta.compradorId !== request.usuario.id &&
+    oferta.anuncianteId !== request.usuario.id
+  ) {
+    responderErro(
+      response,
+      403,
+      "Você não participa desta conversa.",
+      "OFERTA_SEM_ACESSO",
+    );
+    return undefined;
+  }
+
+  return oferta;
+}
+
+app.get(
+  "/api/ofertas/:id/mensagens",
+  autenticarBearer,
+  async (request, response) => {
+    const oferta = await obterOfertaAutorizada(request, response);
+
+    if (!oferta) {
+      return;
+    }
+
+    const mensagens = await listarMensagensDaOferta(
+      oferta.id,
+      request.usuario.id,
+    );
+    return response.status(200).json(mensagens);
+  },
+);
+
+app.post(
+  "/api/ofertas/:id/mensagens",
+  autenticarBearer,
+  async (request, response) => {
+    const oferta = await obterOfertaAutorizada(request, response);
+
+    if (!oferta) {
+      return;
+    }
+
+    const validacao = validarComSchema(schemaMensagemOferta, request.body);
+
+    if (!validacao.sucesso) {
+      return responderErro(
+        response,
+        400,
+        "Dados da mensagem inválidos.",
+        "VALIDACAO",
+        validacao.campos,
+      );
+    }
+
+    const mensagem = await criarMensagemOferta({
+      ofertaId: oferta.id,
+      autorId: request.usuario.id,
+      conteudo: validacao.dados.conteudo,
+    });
+
+    if (!mensagem) {
+      return responderErro(
+        response,
+        403,
+        "Você não participa desta conversa.",
+        "OFERTA_SEM_ACESSO",
+      );
+    }
+
+    return response.status(201).json(mensagem);
+  },
+);
 
 app.delete("/api/anuncios/:id", autenticarBearer, async (request, response) => {
   const validacao = validarComSchema(schemaParametroAnuncio, request.params);

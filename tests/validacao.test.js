@@ -31,34 +31,67 @@ function anuncioValido(sobrescritas = {}) {
 test("cadastro normaliza texto/e-mail e aplica limites em caracteres e bytes", () => {
   const valido = schemaCadastro.parse({
     nome: "  Ana  ",
-    email: "  ANA@EXAMPLE.COM  ",
+    email: "  ANA@EDU.UNIFOR.BR  ",
     senha: "á".repeat(36),
   });
 
   assert.deepEqual(valido, {
     nome: "Ana",
-    email: "ana@example.com",
+    email: "ana@edu.unifor.br",
     senha: "á".repeat(36),
   });
 
   for (const entrada of [
     {
       nome: "a".repeat(81),
-      email: "ana@example.com",
+      email: "ana@edu.unifor.br",
       senha: "12345678",
     },
     {
       nome: "Ana",
-      email: `${"a".repeat(243)}@example.com`,
+      email: `${"a".repeat(241)}@edu.unifor.br`,
       senha: "12345678",
     },
     {
       nome: "Ana",
-      email: "ana@example.com",
+      email: "ana@edu.unifor.br",
       senha: `a${"á".repeat(36)}`,
     },
   ]) {
     assert.equal(schemaCadastro.safeParse(entrada).success, false);
+  }
+});
+
+test("cadastro aceita somente o domínio institucional edu.unifor.br", () => {
+  assert.equal(
+    schemaCadastro.safeParse({
+      nome: "Ana",
+      email: "ana@edu.unifor.br",
+      senha: "12345678",
+    }).success,
+    true,
+  );
+
+  for (const email of [
+    "ana@gmail.com",
+    "ana@unifor.br",
+    "ana@edu.unifor.br.exemplo.com",
+  ]) {
+    const resultado = schemaCadastro.safeParse({
+      nome: "Ana",
+      email,
+      senha: "12345678",
+    });
+
+    assert.equal(resultado.success, false);
+    assert.equal(
+      resultado.error?.issues.some(
+        (issue) =>
+          issue.path[0] === "email" &&
+          issue.message === "Use seu e-mail institucional @edu.unifor.br.",
+      ),
+      true,
+    );
   }
 });
 

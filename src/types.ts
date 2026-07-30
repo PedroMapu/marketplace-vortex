@@ -112,6 +112,40 @@ export interface Anuncio {
   usuarioId: string;
   usuarioNome: string;
   criadoEm: string;
+  cliquesDetalhes: number;
+}
+
+export interface Oferta {
+  id: number;
+  anuncioId: number;
+  anuncioNome: string;
+  anuncioImagemUrl?: string;
+  valor: number;
+  mensagem: string;
+  compradorId: string;
+  compradorNome: string;
+  anuncianteId: string;
+  anuncianteNome: string;
+  criadaEm: string;
+  atualizadaEm?: string;
+}
+
+export interface MensagemOferta {
+  id: number;
+  ofertaId: number;
+  autorId: string;
+  autorNome: string;
+  conteudo: string;
+  criadaEm: string;
+}
+
+export interface NovaOferta {
+  valor: number;
+  mensagem: string;
+}
+
+export interface NovaMensagemOferta {
+  conteudo: string;
 }
 
 /**
@@ -120,7 +154,7 @@ export interface Anuncio {
  */
 export type NovoAnuncio = Omit<
   Anuncio,
-  "id" | "criadoEm" | "usuarioId" | "usuarioNome"
+  "id" | "criadoEm" | "usuarioId" | "usuarioNome" | "cliquesDetalhes"
 >;
 
 export interface FiltrosAnuncios {

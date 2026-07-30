@@ -24,11 +24,48 @@ const SELECAO_ANUNCIO = `
     a.imagem_url,
     a.usuario_id,
     u.nome AS usuario_nome,
-    a.criado_em
+    a.criado_em,
+    a.cliques_detalhes
   FROM anuncios AS a
   INNER JOIN usuarios AS u
     ON u.id = a.usuario_id
 `;
+
+const SELECAO_OFERTA = `
+  SELECT
+    o.id,
+    o.anuncio_id,
+    a.nome AS anuncio_nome,
+    a.imagem_url AS anuncio_imagem_url,
+    o.valor,
+    o.mensagem,
+    o.comprador_id,
+    comprador.nome AS comprador_nome,
+    o.anunciante_id,
+    anunciante.nome AS anunciante_nome,
+    o.criado_em,
+    COALESCE(
+      (
+        SELECT MAX(m.criado_em)
+        FROM mensagens_oferta AS m
+        WHERE m.oferta_id = o.id
+      ),
+      o.criado_em
+    ) AS atualizado_em
+  FROM ofertas AS o
+  INNER JOIN anuncios AS a
+    ON a.id = o.anuncio_id
+  INNER JOIN usuarios AS comprador
+    ON comprador.id = o.comprador_id
+  INNER JOIN usuarios AS anunciante
+    ON anunciante.id = o.anunciante_id
+`;
+
+function normalizarTimestamp(valor) {
+  return valor instanceof Date
+    ? valor.toISOString()
+    : new Date(valor).toISOString();
+}
 
 function mapearAnuncio(row) {
   return {
@@ -43,10 +80,36 @@ function mapearAnuncio(row) {
     imagemUrl: row.imagem_url,
     usuarioId: row.usuario_id,
     usuarioNome: row.usuario_nome,
-    criadoEm:
-      row.criado_em instanceof Date
-        ? row.criado_em.toISOString()
-        : new Date(row.criado_em).toISOString(),
+    criadoEm: normalizarTimestamp(row.criado_em),
+    cliquesDetalhes: Number(row.cliques_detalhes ?? 0),
+  };
+}
+
+function mapearOferta(row) {
+  return {
+    id: Number(row.id),
+    anuncioId: Number(row.anuncio_id),
+    anuncioNome: row.anuncio_nome,
+    anuncioImagemUrl: row.anuncio_imagem_url,
+    valor: Number(row.valor),
+    mensagem: row.mensagem,
+    compradorId: row.comprador_id,
+    compradorNome: row.comprador_nome,
+    anuncianteId: row.anunciante_id,
+    anuncianteNome: row.anunciante_nome,
+    criadaEm: normalizarTimestamp(row.criado_em),
+    atualizadaEm: normalizarTimestamp(row.atualizado_em ?? row.criado_em),
+  };
+}
+
+function mapearMensagemOferta(row) {
+  return {
+    id: Number(row.id),
+    ofertaId: Number(row.oferta_id),
+    autorId: row.autor_id,
+    autorNome: row.autor_nome,
+    conteudo: row.conteudo,
+    criadaEm: normalizarTimestamp(row.criado_em),
   };
 }
 
@@ -254,7 +317,8 @@ async function criarAnuncio(dados) {
         a.imagem_url,
         a.usuario_id,
         u.nome AS usuario_nome,
-        a.criado_em
+        a.criado_em,
+        a.cliques_detalhes
       FROM anuncio_inserido AS a
       INNER JOIN usuarios AS u
         ON u.id = a.usuario_id
@@ -273,6 +337,60 @@ async function criarAnuncio(dados) {
   );
 
   return mapearAnuncio(resultado.rows[0]);
+}
+
+async function atualizarAnuncioPorId(id, usuarioId, dados) {
+  const resultado = await pool.query(
+    `
+      WITH anuncio_atualizado AS (
+        UPDATE anuncios
+        SET
+          nome = $3,
+          categoria = $4,
+          condicao = $5,
+          modalidade = $6,
+          valor = $7,
+          localizacao = $8,
+          descricao = $9,
+          imagem_url = $10
+        WHERE id = $1
+          AND usuario_id = $2
+        RETURNING *
+      )
+      SELECT
+        a.id,
+        a.nome,
+        a.categoria,
+        a.condicao,
+        a.modalidade,
+        a.valor,
+        a.localizacao,
+        a.descricao,
+        a.imagem_url,
+        a.usuario_id,
+        u.nome AS usuario_nome,
+        a.criado_em,
+        a.cliques_detalhes
+      FROM anuncio_atualizado AS a
+      INNER JOIN usuarios AS u
+        ON u.id = a.usuario_id
+    `,
+    [
+      id,
+      usuarioId,
+      dados.nome,
+      dados.categoria,
+      dados.condicao,
+      dados.modalidade,
+      dados.valor,
+      dados.localizacao,
+      dados.descricao,
+      dados.imagemUrl ?? "",
+    ],
+  );
+  const anuncio = resultado.rows[0];
+
+  return anuncio ? mapearAnuncio(anuncio) : undefined;
 }
 
 async function buscarAnuncioPorId(id) {
@@ -301,6 +419,170 @@ async function excluirAnuncioPorId(id, usuarioId) {
   return resultado.rowCount > 0;
 }
 
+async function registrarCliqueDetalhes(id) {
+  const resultado = await pool.query(
+    `
+      UPDATE anuncios
+      SET cliques_detalhes = cliques_detalhes + 1
+      WHERE id = $1
+      RETURNING cliques_detalhes
+    `,
+    [id],
+  );
+
+  const anuncio = resultado.rows[0];
+
+  return anuncio
+    ? {
+        id,
+        cliquesDetalhes: Number(anuncio.cliques_detalhes),
+      }
+    : undefined;
+}
+
+async function buscarOfertaComExecutor(executor, id) {
+  const resultado = await executor.query(
+    `
+      ${SELECAO_OFERTA}
+      WHERE o.id = $1
+    `,
+    [id],
+  );
+  const oferta = resultado.rows[0];
+
+  return oferta ? mapearOferta(oferta) : undefined;
+}
+
+async function criarOferta(dados) {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+    const resultado = await client.query(
+      `
+        INSERT INTO ofertas (
+          anuncio_id,
+          comprador_id,
+          anunciante_id,
+          valor,
+          mensagem
+        )
+        SELECT
+          a.id,
+          $2,
+          a.usuario_id,
+          $3,
+          $4
+        FROM anuncios AS a
+        WHERE a.id = $1
+          AND a.usuario_id <> $2
+        RETURNING id
+      `,
+      [
+        dados.anuncioId,
+        dados.compradorId,
+        dados.valor,
+        dados.mensagem,
+      ],
+    );
+    const oferta = resultado.rows[0];
+
+    if (!oferta) {
+      await client.query("ROLLBACK");
+      return undefined;
+    }
+
+    await client.query(
+      `
+        INSERT INTO mensagens_oferta (oferta_id, autor_id, conteudo)
+        VALUES ($1, $2, $3)
+      `,
+      [oferta.id, dados.compradorId, dados.mensagem],
+    );
+    const ofertaCriada = await buscarOfertaComExecutor(client, oferta.id);
+    await client.query("COMMIT");
+
+    return ofertaCriada;
+  } catch (erro) {
+    await client.query("ROLLBACK");
+    throw erro;
+  } finally {
+    client.release();
+  }
+}
+
+async function listarOfertasDoUsuario(usuarioId) {
+  const resultado = await pool.query(
+    `
+      ${SELECAO_OFERTA}
+      WHERE o.comprador_id = $1
+        OR o.anunciante_id = $1
+      ORDER BY atualizado_em DESC, o.id DESC
+    `,
+    [usuarioId],
+  );
+
+  return resultado.rows.map(mapearOferta);
+}
+
+async function buscarOfertaPorId(id) {
+  return buscarOfertaComExecutor(pool, id);
+}
+
+async function listarMensagensDaOferta(ofertaId, usuarioId) {
+  const resultado = await pool.query(
+    `
+      SELECT
+        m.id,
+        m.oferta_id,
+        m.autor_id,
+        autor.nome AS autor_nome,
+        m.conteudo,
+        m.criado_em
+      FROM mensagens_oferta AS m
+      INNER JOIN ofertas AS o
+        ON o.id = m.oferta_id
+      INNER JOIN usuarios AS autor
+        ON autor.id = m.autor_id
+      WHERE m.oferta_id = $1
+        AND (o.comprador_id = $2 OR o.anunciante_id = $2)
+      ORDER BY m.criado_em ASC, m.id ASC
+    `,
+    [ofertaId, usuarioId],
+  );
+
+  return resultado.rows.map(mapearMensagemOferta);
+}
+
+async function criarMensagemOferta(dados) {
+  const resultado = await pool.query(
+    `
+      WITH mensagem_inserida AS (
+        INSERT INTO mensagens_oferta (oferta_id, autor_id, conteudo)
+        SELECT o.id, $2, $3
+        FROM ofertas AS o
+        WHERE o.id = $1
+          AND (o.comprador_id = $2 OR o.anunciante_id = $2)
+        RETURNING *
+      )
+      SELECT
+        m.id,
+        m.oferta_id,
+        m.autor_id,
+        autor.nome AS autor_nome,
+        m.conteudo,
+        m.criado_em
+      FROM mensagem_inserida AS m
+      INNER JOIN usuarios AS autor
+        ON autor.id = m.autor_id
+    `,
+    [dados.ofertaId, dados.autorId, dados.conteudo],
+  );
+  const mensagem = resultado.rows[0];
+
+  return mensagem ? mapearMensagemOferta(mensagem) : undefined;
+}
+
 async function verificarConexao() {
   await pool.query("SELECT 1");
   return true;
@@ -318,11 +600,20 @@ module.exports = {
   redefinirSenhaComToken,
   listarAnuncios,
   criarAnuncio,
+  atualizarAnuncioPorId,
   buscarAnuncioPorId,
   excluirAnuncioPorId,
+  registrarCliqueDetalhes,
+  criarOferta,
+  listarOfertasDoUsuario,
+  buscarOfertaPorId,
+  listarMensagensDaOferta,
+  criarMensagemOferta,
   verificarConexao,
   fecharConexao,
   mapearAnuncio,
+  mapearOferta,
+  mapearMensagemOferta,
   mapearUsuario,
   pool,
 };

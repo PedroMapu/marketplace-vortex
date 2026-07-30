@@ -13,7 +13,7 @@ const caminhoRotasPasswordReset = require.resolve("../password-reset-routes");
 const USUARIO = {
   id: "79ce52fb-1acf-455c-8d91-54e09a77e76b",
   nome: "Ana",
-  email: "ana@example.com",
+  email: "ana@edu.unifor.br",
 };
 const SEGREDO_ORIGINAL = process.env.JWT_SECRET;
 
@@ -133,7 +133,7 @@ test("cadastro normaliza dados, armazena somente hash e responde sessão", async
     incluirHeaders: true,
     body: {
       nome: "  Ana  ",
-      email: "  ANA@EXAMPLE.COM ",
+      email: "  ANA@EDU.UNIFOR.BR ",
       senha: "senha-segura",
     },
   });
@@ -149,7 +149,7 @@ test("cadastro normaliza dados, armazena somente hash e responde sessão", async
     },
     {
       nome: "Ana",
-      email: "ana@example.com",
+      email: "ana@edu.unifor.br",
     },
   );
   assert.equal("senha" in dadosRecebidos, false);
@@ -170,7 +170,7 @@ test("cadastro converte unicidade do PostgreSQL em 409 seguro", async () => {
     method: "POST",
     body: {
       nome: "Ana",
-      email: "ana@example.com",
+      email: "ana@edu.unifor.br",
       senha: "senha-segura",
     },
   });
@@ -199,14 +199,14 @@ test("login válido responde sessão e login inválido usa mensagem genérica", 
   const loginValido = await requisitar(app, "/api/auth/login", {
     method: "POST",
     body: {
-      email: "ANA@EXAMPLE.COM",
+      email: "ANA@EDU.UNIFOR.BR",
       senha: "senha-segura",
     },
   });
   const loginInvalido = await requisitar(app, "/api/auth/login", {
     method: "POST",
     body: {
-      email: "ana@example.com",
+      email: "ana@edu.unifor.br",
       senha: "senha-errada",
     },
   });
@@ -239,7 +239,7 @@ test("GET /api/auth/me usa a identidade carregada pelo Bearer", async () => {
     method: "POST",
     body: {
       nome: "Ana",
-      email: "ana@example.com",
+      email: "ana@edu.unifor.br",
       senha: "senha-segura",
     },
   });

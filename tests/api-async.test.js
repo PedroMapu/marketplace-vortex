@@ -19,8 +19,10 @@ function carregarApiComDatabaseMock(sobrescritas = {}, opcoes = {}) {
   const databaseMock = {
     listarAnuncios: async () => [],
     criarAnuncio: async (anuncio) => anuncio,
+    atualizarAnuncioPorId: async () => undefined,
     buscarAnuncioPorId: async () => undefined,
     excluirAnuncioPorId: async () => false,
+    registrarCliqueDetalhes: async () => undefined,
     verificarConexao: async () => true,
     ...sobrescritas,
   };
@@ -304,6 +306,115 @@ test("POST /api/anuncios rejeita autoria enviada no corpo antes de criar", async
   assert.equal(criacoes, 0);
 });
 
+test("PATCH /api/anuncios/:id atualiza somente o anúncio do usuário autenticado", async () => {
+  const entrada = {
+    nome: "  Calculadora atualizada  ",
+    categoria: "eletronicos",
+    condicao: "seminovo",
+    modalidade: "venda",
+    valor: 75.9,
+    localizacao: "  Bloco D  ",
+    descricao: "  Com capa protetora.  ",
+    imagemUrl: "data:image/png;base64,iVBORw0KGgo=",
+  };
+  const anuncioAtualizado = {
+    id: 14,
+    nome: "Calculadora atualizada",
+    categoria: "eletronicos",
+    condicao: "seminovo",
+    modalidade: "venda",
+    valor: 75.9,
+    localizacao: "Bloco D",
+    descricao: "Com capa protetora.",
+    imagemUrl: "data:image/png;base64,iVBORw0KGgo=",
+    usuarioId: USUARIO_ID,
+    usuarioNome: "Ana",
+    criadoEm: "2026-07-28T12:30:00.000Z",
+    cliquesDetalhes: 4,
+  };
+  const chamadas = [];
+  const { app } = carregarApiComDatabaseMock({
+    buscarAnuncioPorId: async (id) => ({
+      id,
+      usuarioId: USUARIO_ID,
+    }),
+    atualizarAnuncioPorId: async (id, usuarioId, dados) => {
+      chamadas.push({ id, usuarioId, dados });
+      return anuncioAtualizado;
+    },
+  });
+
+  assert.deepEqual(
+    await requisitar(app, "/api/anuncios/14", {
+      method: "PATCH",
+      headers: {
+        Authorization: "Bearer token-valido",
+        "X-Usuario-Id": USUARIO_ID_FALSIFICADO,
+      },
+      body: entrada,
+    }),
+    {
+      status: 200,
+      body: anuncioAtualizado,
+    },
+  );
+  assert.deepEqual(chamadas, [
+    {
+      id: 14,
+      usuarioId: USUARIO_ID,
+      dados: {
+        nome: "Calculadora atualizada",
+        categoria: "eletronicos",
+        condicao: "seminovo",
+        modalidade: "venda",
+        valor: 75.9,
+        localizacao: "Bloco D",
+        descricao: "Com capa protetora.",
+        imagemUrl: "data:image/png;base64,iVBORw0KGgo=",
+      },
+    },
+  ]);
+});
+
+test("PATCH /api/anuncios/:id impede edição de anúncio alheio", async () => {
+  let atualizacoes = 0;
+  const { app } = carregarApiComDatabaseMock({
+    buscarAnuncioPorId: async (id) => ({
+      id,
+      usuarioId: USUARIO_ID_FALSIFICADO,
+    }),
+    atualizarAnuncioPorId: async () => {
+      atualizacoes += 1;
+    },
+  });
+
+  const resposta = await requisitar(app, "/api/anuncios/14", {
+    method: "PATCH",
+    headers: {
+      Authorization: "Bearer token-valido",
+    },
+    body: {
+      nome: "Calculadora",
+      categoria: "eletronicos",
+      condicao: "usado",
+      modalidade: "venda",
+      valor: 50,
+      localizacao: "Bloco D",
+      descricao: "Funcionando.",
+      imagemUrl: "data:image/png;base64,iVBORw0KGgo=",
+    },
+  });
+
+  assert.deepEqual(resposta, {
+    status: 403,
+    body: {
+      erro: "Você só pode editar os seus próprios anúncios.",
+      codigo: "ANUNCIO_ALHEIO",
+    },
+  });
+  assert.equal(atualizacoes, 0);
+});
+
 test("DELETE deriva identidade de request.usuario apesar de query, cabeçalho e corpo falsificados", async () => {
   const chamadas = [];
   const { app } = carregarApiComDatabaseMock({
@@ -375,6 +486,49 @@ test("GET /api/anuncios/me filtra exclusivamente pelo usuário autenticado", asy
   assert.deepEqual(filtrosRecebidos, {
     usuarioId: USUARIO_ID,
   });
+});
+
+test("POST /api/anuncios/:id/cliques-detalhes registra o interesse sem exigir login", async () => {
+  const chamadas = [];
+  const { app } = carregarApiComDatabaseMock({
+    registrarCliqueDetalhes: async (id) => {
+      chamadas.push(id);
+      return { id, cliquesDetalhes: 8 };
+    },
+  });
+
+  assert.deepEqual(
+    await requisitar(app, "/api/anuncios/14/cliques-detalhes", {
+      method: "POST",
+    }),
+    {
+      status: 200,
+      body: {
+        id: 14,
+        cliquesDetalhes: 8,
+      },
+    },
+  );
+  assert.deepEqual(chamadas, [14]);
+});
+
+test("POST /api/anuncios/:id/cliques-detalhes responde 404 para anúncio ausente", async () => {
+  const { app } = carregarApiComDatabaseMock({
+    registrarCliqueDetalhes: async () => undefined,
+  });
+
+  assert.deepEqual(
+    await requisitar(app, "/api/anuncios/999/cliques-detalhes", {
+      method: "POST",
+    }),
+    {
+      status: 404,
+      body: {
+        erro: "Anúncio não encontrado.",
+        codigo: "ANUNCIO_NAO_ENCONTRADO",
+      },
+    },
+  );
 });
 
 test("rotas protegidas recusam requisição sem sessão antes de consultar o banco", async () => {

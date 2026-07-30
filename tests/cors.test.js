@@ -120,7 +120,7 @@ test("preflight Bearer responde 204 com métodos e headers necessários", async 
       method: "OPTIONS",
       headers: {
         Origin: "http://127.0.0.1:4173",
-        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Method": "PATCH",
         "Access-Control-Request-Headers": "authorization, content-type",
       },
     });
@@ -128,7 +128,7 @@ test("preflight Bearer responde 204 com métodos e headers necessários", async 
     assert.equal(resposta.status, 204);
     assert.equal(
       resposta.headers.get("access-control-allow-methods"),
-      "GET, POST, DELETE, OPTIONS",
+      "GET, POST, PATCH, DELETE, OPTIONS",
     );
     assert.equal(
       resposta.headers.get("access-control-allow-headers"),

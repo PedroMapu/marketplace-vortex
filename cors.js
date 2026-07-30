@@ -1,6 +1,12 @@
 "use strict";
 
-const METODOS_PERMITIDOS = Object.freeze(["GET", "POST", "DELETE", "OPTIONS"]);
+const METODOS_PERMITIDOS = Object.freeze([
+  "GET",
+  "POST",
+  "PATCH",
+  "DELETE",
+  "OPTIONS",
+]);
 const CABECALHOS_PERMITIDOS = Object.freeze([
   "Authorization",
   "Content-Type",
