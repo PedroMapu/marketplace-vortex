@@ -12,6 +12,7 @@ const {
   atualizarAnuncioPorId,
   buscarAnuncioPorId,
   excluirAnuncioPorId,
+  concluirAnuncioPorId,
   registrarCliqueDetalhes,
   criarOferta,
   listarOfertasDoUsuario,
@@ -33,6 +34,7 @@ const {
   schemaFiltrosAnuncios,
   schemaParametroAnuncio,
   schemaParametroOferta,
+  schemaConclusaoAnuncio,
   schemaOferta,
   schemaMensagemOferta,
 } = require("./validacao");
@@ -220,6 +222,7 @@ app.get("/api/anuncios", async (request, response) => {
 app.get("/api/anuncios/me", autenticarBearer, async (request, response) => {
   const anuncios = await listarAnuncios({
     usuarioId: request.usuario.id,
+    incluirConcluidos: true,
   });
 
   return response.status(200).json(anuncios);
@@ -296,6 +299,14 @@ app.patch(
       );
     }
 
+    if (anuncio.concluidoEm) {
+      return responderErro(
+        response,
+        409,
+        "Este anúncio já foi concluído e não pode ser editado.",
+        "ANUNCIO_JA_CONCLUIDO",
+      );
+    }
     const anuncioAtualizado = await atualizarAnuncioPorId(
       id,
       request.usuario.id,
@@ -315,6 +326,92 @@ app.patch(
   },
 );
 
+app.post(
+  "/api/anuncios/:id/concluir",
+  autenticarBearer,
+  async (request, response) => {
+    const validacaoParametro = validarComSchema(
+      schemaParametroAnuncio,
+      request.params,
+    );
+
+    if (!validacaoParametro.sucesso) {
+      return responderErro(
+        response,
+        400,
+        "Parâmetro de anúncio inválido.",
+        "VALIDACAO",
+        validacaoParametro.campos,
+      );
+    }
+
+    const validacao = validarComSchema(schemaConclusaoAnuncio, request.body);
+
+    if (!validacao.sucesso) {
+      return responderErro(
+        response,
+        400,
+        "Confirmação de e-mail inválida.",
+        "VALIDACAO",
+        validacao.campos,
+      );
+    }
+
+    if (validacao.dados.email !== request.usuario.email) {
+      return responderErro(
+        response,
+        403,
+        "Informe o e-mail da sua própria conta para concluir o anúncio.",
+        "EMAIL_CONFIRMACAO_INVALIDO",
+      );
+    }
+
+    const anuncio = await buscarAnuncioPorId(validacaoParametro.dados.id);
+
+    if (!anuncio) {
+      return responderErro(
+        response,
+        404,
+        "Anúncio não encontrado.",
+        "ANUNCIO_NAO_ENCONTRADO",
+      );
+    }
+
+    if (anuncio.usuarioId !== request.usuario.id) {
+      return responderErro(
+        response,
+        403,
+        "Você só pode concluir os seus próprios anúncios.",
+        "ANUNCIO_ALHEIO",
+      );
+    }
+
+    if (anuncio.concluidoEm) {
+      return responderErro(
+        response,
+        409,
+        "Este anúncio já foi concluído.",
+        "ANUNCIO_JA_CONCLUIDO",
+      );
+    }
+
+    const anuncioConcluido = await concluirAnuncioPorId(
+      anuncio.id,
+      request.usuario.id,
+    );
+
+    if (!anuncioConcluido) {
+      return responderErro(
+        response,
+        409,
+        "Este anúncio já foi concluído.",
+        "ANUNCIO_JA_CONCLUIDO",
+      );
+    }
+
+    return response.status(200).json(anuncioConcluido);
+  },
+);
 app.post("/api/anuncios/:id/cliques-detalhes", async (request, response) => {
   const validacao = validarComSchema(schemaParametroAnuncio, request.params);
 

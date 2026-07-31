@@ -279,6 +279,9 @@ const schemaParametroAnuncio = z.strictObject({
 
 const schemaParametroOferta = schemaParametroAnuncio;
 
+const schemaConclusaoAnuncio = z.strictObject({
+  email: schemaEmail,
+});
 const schemaOferta = z.strictObject({
   valor: z
     .number({
@@ -317,6 +320,7 @@ module.exports = {
   schemaFiltrosAnuncios,
   schemaParametroAnuncio,
   schemaParametroOferta,
+  schemaConclusaoAnuncio,
   schemaOferta,
   schemaMensagemOferta,
   senhaValida,

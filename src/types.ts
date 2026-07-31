@@ -114,6 +114,7 @@ export interface Anuncio {
   usuarioNome: string;
   criadoEm: string;
   cliquesDetalhes: number;
+  concluidoEm: string | null;
 }
 
 export interface Oferta {
@@ -155,7 +156,7 @@ export interface NovaMensagemOferta {
  */
 export type NovoAnuncio = Omit<
   Anuncio,
-  "id" | "criadoEm" | "usuarioId" | "usuarioNome" | "cliquesDetalhes"
+  "id" | "criadoEm" | "usuarioId" | "usuarioNome" | "cliquesDetalhes" | "concluidoEm"
 >;
 
 export interface FiltrosAnuncios {

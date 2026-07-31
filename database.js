@@ -25,7 +25,8 @@ const SELECAO_ANUNCIO = `
     a.usuario_id,
     u.nome AS usuario_nome,
     a.criado_em,
-    a.cliques_detalhes
+    a.cliques_detalhes,
+    a.concluido_em
   FROM anuncios AS a
   INNER JOIN usuarios AS u
     ON u.id = a.usuario_id
@@ -82,6 +83,7 @@ function mapearAnuncio(row) {
     usuarioNome: row.usuario_nome,
     criadoEm: normalizarTimestamp(row.criado_em),
     cliquesDetalhes: Number(row.cliques_detalhes ?? 0),
+    concluidoEm: row.concluido_em ? normalizarTimestamp(row.concluido_em) : null,
   };
 }
 
@@ -303,15 +305,17 @@ async function redefinirSenhaComToken(dados) {
 async function listarAnuncios(filtros = {}) {
   const categoria = filtros.categoria ?? null;
   const usuarioId = filtros.usuarioId ?? null;
+  const incluirConcluidos = filtros.incluirConcluidos === true;
 
   const resultado = await pool.query(
     `
       ${SELECAO_ANUNCIO}
       WHERE ($1::text IS NULL OR a.categoria = $1)
         AND ($2::uuid IS NULL OR a.usuario_id = $2)
+        AND ($3::boolean = true OR a.concluido_em IS NULL)
       ORDER BY a.criado_em DESC, a.id DESC
     `,
-    [categoria, usuarioId],
+    [categoria, usuarioId, incluirConcluidos],
   );
 
   return resultado.rows.map(mapearAnuncio);
@@ -348,7 +352,8 @@ async function criarAnuncio(dados) {
         a.usuario_id,
         u.nome AS usuario_nome,
         a.criado_em,
-        a.cliques_detalhes
+        a.cliques_detalhes,
+    a.concluido_em
       FROM anuncio_inserido AS a
       INNER JOIN usuarios AS u
         ON u.id = a.usuario_id
@@ -385,6 +390,7 @@ async function atualizarAnuncioPorId(id, usuarioId, dados) {
           imagem_url = $10
         WHERE id = $1
           AND usuario_id = $2
+          AND concluido_em IS NULL
         RETURNING *
       )
       SELECT
@@ -400,7 +406,8 @@ async function atualizarAnuncioPorId(id, usuarioId, dados) {
         a.usuario_id,
         u.nome AS usuario_nome,
         a.criado_em,
-        a.cliques_detalhes
+        a.cliques_detalhes,
+    a.concluido_em
       FROM anuncio_atualizado AS a
       INNER JOIN usuarios AS u
         ON u.id = a.usuario_id
@@ -449,12 +456,49 @@ async function excluirAnuncioPorId(id, usuarioId) {
   return resultado.rowCount > 0;
 }
 
+async function concluirAnuncioPorId(id, usuarioId) {
+  const resultado = await pool.query(
+    `
+      WITH anuncio_concluido AS (
+        UPDATE anuncios
+        SET concluido_em = CURRENT_TIMESTAMP
+        WHERE id = $1
+          AND usuario_id = $2
+          AND concluido_em IS NULL
+        RETURNING *
+      )
+      SELECT
+        a.id,
+        a.nome,
+        a.categoria,
+        a.condicao,
+        a.modalidade,
+        a.valor,
+        a.localizacao,
+        a.descricao,
+        a.imagem_url,
+        a.usuario_id,
+        u.nome AS usuario_nome,
+        a.criado_em,
+        a.cliques_detalhes,
+        a.concluido_em
+      FROM anuncio_concluido AS a
+      INNER JOIN usuarios AS u
+        ON u.id = a.usuario_id
+    `,
+    [id, usuarioId],
+  );
+
+  const anuncio = resultado.rows[0];
+  return anuncio ? mapearAnuncio(anuncio) : undefined;
+}
 async function registrarCliqueDetalhes(id) {
   const resultado = await pool.query(
     `
       UPDATE anuncios
       SET cliques_detalhes = cliques_detalhes + 1
       WHERE id = $1
+        AND concluido_em IS NULL
       RETURNING cliques_detalhes
     `,
     [id],
@@ -506,6 +550,7 @@ async function criarOferta(dados) {
         FROM anuncios AS a
         WHERE a.id = $1
           AND a.usuario_id <> $2
+          AND a.concluido_em IS NULL
         RETURNING id
       `,
       [
@@ -635,6 +680,7 @@ module.exports = {
   atualizarAnuncioPorId,
   buscarAnuncioPorId,
   excluirAnuncioPorId,
+  concluirAnuncioPorId,
   registrarCliqueDetalhes,
   criarOferta,
   listarOfertasDoUsuario,

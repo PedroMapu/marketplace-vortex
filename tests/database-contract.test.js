@@ -55,6 +55,7 @@ test("mapeia a linha do PostgreSQL para o DTO esperado pelo frontend", () => {
     usuarioNome: "Pedro",
     criadoEm: "2026-07-31T14:30:45.123Z",
     cliquesDetalhes: 17,
+    concluidoEm: null,
   });
 
   assert.equal(typeof anuncio.id, "number");
@@ -97,6 +98,7 @@ test("normaliza timestamps textuais sem expor nomes snake_case", () => {
       "usuarioNome",
       "criadoEm",
       "cliquesDetalhes",
+      "concluidoEm",
     ],
   );
   assert.equal("imagem_url" in anuncio, false);

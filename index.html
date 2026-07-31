@@ -1136,6 +1136,35 @@
     </dialog>
 
     <dialog
+      id="dialogo-concluir-anuncio"
+      class="dialogo-concluir-anuncio"
+      aria-labelledby="titulo-concluir-anuncio"
+      aria-describedby="descricao-concluir-anuncio feedback-concluir-anuncio"
+    >
+      <form id="formulario-concluir-anuncio" class="formulario-concluir-anuncio">
+        <h2 id="titulo-concluir-anuncio">Concluir anúncio</h2>
+        <p id="descricao-concluir-anuncio">
+          Esta ação remove o item do catálogo público e registra uma oferta concluída.
+        </p>
+        <label for="email-confirmacao-conclusao">
+          Digite o e-mail da sua conta para confirmar
+        </label>
+        <input
+          id="email-confirmacao-conclusao"
+          name="email"
+          type="email"
+          autocomplete="email"
+          inputmode="email"
+          required
+        />
+        <p id="feedback-concluir-anuncio" class="feedback-concluir-anuncio" role="status" aria-live="polite"></p>
+        <footer class="concluir-anuncio-acoes">
+          <button id="botao-cancelar-conclusao" type="button">Cancelar</button>
+          <button id="botao-confirmar-conclusao" type="submit">Concluir anúncio</button>
+        </footer>
+      </form>
+    </dialog>
+    <dialog
       id="dialogo-editar-anuncio"
       class="dialogo-editar-anuncio"
       aria-labelledby="titulo-editar-anuncio"

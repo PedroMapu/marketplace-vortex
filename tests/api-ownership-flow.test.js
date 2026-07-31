@@ -39,10 +39,12 @@ function carregarApiComBancoEmMemoria() {
       return usuarios.find((usuario) => usuario.id === id);
     },
     async listarAnuncios(filtros = {}) {
+      const incluirConcluidos = filtros.incluirConcluidos === true;
       return anuncios.filter(
         (anuncio) =>
           (!filtros.usuarioId || anuncio.usuarioId === filtros.usuarioId) &&
-          (!filtros.categoria || anuncio.categoria === filtros.categoria),
+          (!filtros.categoria || anuncio.categoria === filtros.categoria) &&
+          (incluirConcluidos || !anuncio.concluidoEm),
       );
     },
     async criarAnuncio(dados) {
@@ -56,6 +58,16 @@ function carregarApiComBancoEmMemoria() {
     },
     async buscarAnuncioPorId(id) {
       return anuncios.find((anuncio) => anuncio.id === id);
+    },
+    async concluirAnuncioPorId(id, usuarioId) {
+      const anuncio = anuncios.find(
+        (item) => item.id === id && item.usuarioId === usuarioId && !item.concluidoEm,
+      );
+      if (!anuncio) {
+        return undefined;
+      }
+      anuncio.concluidoEm = new Date().toISOString();
+      return anuncio;
     },
     async atualizarAnuncioPorId(id, usuarioId, dados) {
       const anuncio = anuncios.find(
@@ -255,6 +267,34 @@ test("dois usuários mantêm autoria, listagem própria e exclusão isoladas", a
   assert.equal(edicaoProprietaria.body.nome, "Mesa lateral atualizada");
   assert.equal(edicaoProprietaria.body.usuarioId, ana.body.usuario.id);
 
+
+  const emailInvalido = await requisitar(
+    baseUrl,
+    `/api/anuncios/${criacao.body.id}/concluir`,
+    {
+      method: "POST",
+      token: ana.body.token,
+      body: { email: "outra@edu.unifor.br" },
+    },
+  );
+  assert.equal(emailInvalido.status, 403);
+
+  const conclusao = await requisitar(
+    baseUrl,
+    `/api/anuncios/${criacao.body.id}/concluir`,
+    {
+      method: "POST",
+      token: ana.body.token,
+      body: { email: "ana.fluxo@edu.unifor.br" },
+    },
+  );
+  assert.equal(conclusao.status, 200);
+  assert.equal(typeof conclusao.body.concluidoEm, "string");
+  assert.deepEqual((await requisitar(baseUrl, "/api/anuncios")).body, []);
+  assert.equal(
+    (await requisitar(baseUrl, "/api/anuncios/me", { token: ana.body.token })).body.length,
+    1,
+  );
   const exclusaoAlheia = await requisitar(
     baseUrl,
     `/api/anuncios/${criacao.body.id}`,
@@ -269,7 +309,7 @@ test("dois usuários mantêm autoria, listagem própria e exclusão isoladas", a
   });
   assert.equal(
     (await requisitar(baseUrl, "/api/anuncios")).body.length,
-    1,
+    0,
   );
 
   const exclusaoProprietaria = await requisitar(

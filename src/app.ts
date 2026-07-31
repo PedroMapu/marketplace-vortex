@@ -292,6 +292,25 @@ const feedbackOfertas =
   document.querySelector<HTMLElement>("#feedback-ofertas");
 const notificacaoConversa =
   document.querySelector<HTMLElement>("#notificacao-conversa");
+const dialogoConcluirAnuncio =
+  document.querySelector<HTMLDialogElement>("#dialogo-concluir-anuncio");
+const formularioConcluirAnuncio = document.querySelector<HTMLFormElement>(
+  "#formulario-concluir-anuncio",
+);
+const tituloConcluirAnuncio = document.querySelector<HTMLElement>(
+  "#titulo-concluir-anuncio",
+);
+const campoEmailConfirmacaoConclusao =
+  document.querySelector<HTMLInputElement>("#email-confirmacao-conclusao");
+const feedbackConcluirAnuncio = document.querySelector<HTMLElement>(
+  "#feedback-concluir-anuncio",
+);
+const botaoCancelarConclusao = document.querySelector<HTMLButtonElement>(
+  "#botao-cancelar-conclusao",
+);
+const botaoConfirmarConclusao = document.querySelector<HTMLButtonElement>(
+  "#botao-confirmar-conclusao",
+);
 const bannerConectividade =
   document.querySelector<HTMLElement>("#banner-conectividade");
 const tituloBannerConectividade = document.querySelector<HTMLElement>(
@@ -381,6 +400,9 @@ const idsEmExclusao = new Set<string>();
 let publicacaoEmAndamento = false;
 let edicaoEmAndamento = false;
 let anuncioEmEdicao: Anuncio | null = null;
+let anuncioParaConcluir: Anuncio | null = null;
+let conclusaoEmAndamento = false;
+let elementoFocadoAntesDaConclusao: HTMLElement | null = null;
 let elementoFocadoAntesDaEdicao: HTMLElement | null = null;
 let sequenciaItemColecao = 0;
 let temporizadorFeedbackColecao: number | undefined;
@@ -720,6 +742,16 @@ function normalizarAnuncioDaApi(anuncio: unknown): Anuncio {
   const id = Number(dados.id);
   const valor = Number(dados.valor);
   const cliquesDetalhes = Number(dados.cliquesDetalhes ?? 0);
+  const concluidoEm =
+    dados.concluidoEm === null || dados.concluidoEm === undefined
+      ? null
+      : typeof dados.concluidoEm === "string" && dados.concluidoEm.trim()
+        ? dados.concluidoEm
+        : (() => {
+            throw new TypeError(
+              "A API retornou um anúncio com conclusão inválida.",
+            );
+          })();
 
   if (!Number.isInteger(id) || id <= 0) {
     throw new TypeError("A API retornou um anúncio com ID inválido.");
@@ -767,8 +799,10 @@ function normalizarAnuncioDaApi(anuncio: unknown): Anuncio {
     usuarioNome: obterTextoDoAnuncio(dados, "usuarioNome"),
     criadoEm: obterTextoDoAnuncio(dados, "criadoEm"),
     cliquesDetalhes,
+    concluidoEm,
   };
 }
+
 
 function criarUrlDaApiDeAnuncios(
   {
@@ -1924,6 +1958,8 @@ function atualizarContaNoHeader(): void {
   }
 
   const avatar = document.createElement("span");
+  const avatarComNotificacao = document.createElement("span");
+  const contadorMensagensNoAvatar = document.createElement("span");
   const saudacao = document.createElement("span");
   const seta = document.createElement("span");
 
@@ -1937,14 +1973,18 @@ function atualizarContaNoHeader(): void {
     avatar.textContent = obterIniciaisDoUsuario(usuarioAtual.nome);
   }
   avatar.setAttribute("aria-hidden", "true");
+  avatarComNotificacao.className = "avatar-com-notificacao";
+  contadorMensagensNoAvatar.className = "contador-mensagens-avatar";
+  contadorMensagensNoAvatar.setAttribute("aria-hidden", "true");
+  avatarComNotificacao.append(avatar, contadorMensagensNoAvatar);
   saudacao.className = "saudacao-usuario";
   saudacao.textContent = `Olá, ${usuarioAtual.nome}`;
   saudacao.title = `Olá, ${usuarioAtual.nome}`;
   seta.className = "seta-conta";
   seta.setAttribute("aria-hidden", "true");
 
-  botaoContaUsuario.append(avatar, saudacao, seta);
-  botaoContaUsuario.setAttribute("aria-label", `Abrir opções da conta de ${usuarioAtual.nome}`);
+  botaoContaUsuario.append(avatarComNotificacao, saudacao, seta);
+  atualizarContadorDeConversas();
   botaoContaUsuario.setAttribute("aria-haspopup", "menu");
   if (botaoAlterarFoto) {
     botaoAlterarFoto.textContent = usuarioAtual.fotoPerfilUrl
@@ -3440,14 +3480,34 @@ function salvarMensagensVistasDoUsuario(): void {
 }
 
 function atualizarContadorDeConversas(): void {
-  if (!contadorConversas || !botaoAbrirConversas) {
-    return;
-  }
-
   const total = [...naoLidasPorOferta.values()].reduce(
     (soma, quantidade) => soma + quantidade,
     0,
   );
+
+  const contadorNoAvatar = botaoContaUsuario?.querySelector<HTMLElement>(
+    ".contador-mensagens-avatar",
+  );
+
+  if (contadorNoAvatar) {
+    contadorNoAvatar.hidden = total === 0;
+    contadorNoAvatar.textContent = total > 99 ? "99+" : String(total);
+  }
+
+  if (usuarioAtual && botaoContaUsuario) {
+    const descricaoMensagens =
+      total === 0
+        ? ""
+        : `, ${total} ${total === 1 ? "nova mensagem" : "novas mensagens"}`;
+    botaoContaUsuario.setAttribute(
+      "aria-label",
+      `Abrir opções da conta de ${usuarioAtual.nome}${descricaoMensagens}`,
+    );
+  }
+
+  if (!contadorConversas || !botaoAbrirConversas) {
+    return;
+  }
 
   contadorConversas.hidden = total === 0;
   contadorConversas.textContent = total > 99 ? "99+" : String(total);
@@ -4295,13 +4355,19 @@ function inicializarOfertasEConversas(): void {
 }
 
 function criarCardDoUsuario(anuncio: Anuncio): HTMLElement {
-  const card = criarElemento("article", "card-meu-anuncio");
+  const concluido = anuncio.concluidoEm !== null;
+  const card = criarElemento(
+    "article",
+    concluido ? "card-meu-anuncio is-concluido" : "card-meu-anuncio",
+  );
   const media = criarMediaDoAnuncio(anuncio, "meu-anuncio-media");
   const detalhes = criarElemento("div", "meu-anuncio-detalhes");
   const status = criarElemento(
     "span",
-    `status-badge ${anuncio.modalidade === "doacao" ? "doacao" : "ativo"}`,
-    anuncio.modalidade === "doacao" ? "Doação" : "Ativo",
+    concluido
+      ? "status-badge concluido"
+      : `status-badge ${anuncio.modalidade === "doacao" ? "doacao" : "ativo"}`,
+    concluido ? "Concluído" : anuncio.modalidade === "doacao" ? "Doação" : "Ativo",
   );
   const titulo = criarElemento("h3", "", anuncio.nome);
   const preco =
@@ -4328,31 +4394,44 @@ function criarCardDoUsuario(anuncio: Anuncio): HTMLElement {
       : "cliques em Ver detalhes",
   );
   const acoes = criarElemento("div", "meu-anuncio-acoes");
-  const botaoEditar = criarElemento("button", "btn-editar");
-  const iconeEditar = criarElemento("span", "btn-editar-icone", "✎");
-  const rotuloEditar = criarElemento("span", "", "Editar");
   const botaoExcluir = criarElemento("button", "btn-excluir", "Excluir");
 
   card.dataset.id = String(anuncio.id);
-  botaoEditar.type = "button";
-  botaoEditar.dataset.id = String(anuncio.id);
-  botaoEditar.setAttribute("aria-label", `Editar ${anuncio.nome}`);
-  botaoEditar.title = `Editar ${anuncio.nome}`;
-  iconeEditar.setAttribute("aria-hidden", "true");
+  pulso.setAttribute("aria-hidden", "true");
+  metrica.append(pulso, valorMetrica, rotuloMetrica);
+  detalhes.append(status, titulo, informacoes, metrica);
+
   botaoExcluir.type = "button";
   botaoExcluir.dataset.id = String(anuncio.id);
   botaoExcluir.setAttribute("aria-label", `Excluir ${anuncio.nome}`);
 
-  pulso.setAttribute("aria-hidden", "true");
-  metrica.append(pulso, valorMetrica, rotuloMetrica);
-  detalhes.append(status, titulo, informacoes, metrica);
-  botaoEditar.append(iconeEditar, rotuloEditar);
-  acoes.append(botaoEditar, botaoExcluir);
+  if (!concluido) {
+    const botaoConcluir = criarElemento(
+      "button",
+      "btn-concluir",
+      "Concluir anúncio",
+    );
+    const botaoEditar = criarElemento("button", "btn-editar");
+    const iconeEditar = criarElemento("span", "btn-editar-icone", "✎");
+    const rotuloEditar = criarElemento("span", "", "Editar");
+
+    botaoConcluir.type = "button";
+    botaoConcluir.dataset.id = String(anuncio.id);
+    botaoConcluir.setAttribute("aria-label", `Concluir ${anuncio.nome}`);
+    botaoEditar.type = "button";
+    botaoEditar.dataset.id = String(anuncio.id);
+    botaoEditar.setAttribute("aria-label", `Editar ${anuncio.nome}`);
+    botaoEditar.title = `Editar ${anuncio.nome}`;
+    iconeEditar.setAttribute("aria-hidden", "true");
+    botaoEditar.append(iconeEditar, rotuloEditar);
+    acoes.append(botaoConcluir, botaoEditar);
+  }
+
+  acoes.append(botaoExcluir);
   card.append(media, detalhes, acoes);
 
   return card;
 }
-
 function criarEstadoVazio(mensagem: string): HTMLParagraphElement {
   return criarElemento("p", "estado-vazio", mensagem);
 }
@@ -4789,9 +4868,13 @@ function renderizarMeusAnuncios(): void {
       (total, anuncio) => total + anuncio.cliquesDetalhes,
       0,
     );
+    const totalConcluidos = cacheAnunciosUsuarioApi.filter(
+      (anuncio) => anuncio.concluidoEm !== null,
+    ).length;
     resumoMeusAnuncios.textContent =
       `${totalAnuncios} ${totalAnuncios === 1 ? "anúncio publicado" : "anúncios publicados"} · ` +
-      `${totalCliques} ${totalCliques === 1 ? "clique recebido" : "cliques recebidos"}`;
+      `${totalCliques} ${totalCliques === 1 ? "clique recebido" : "cliques recebidos"} · ` +
+      `${totalConcluidos} ${totalConcluidos === 1 ? "oferta concluída" : "ofertas concluídas"}`;
   }
 
   const fragmento = document.createDocumentFragment();
@@ -5948,12 +6031,170 @@ function inicializarPainelNovoAnuncio(): void {
 
 }
 
+function definirFeedbackConclusao(
+  mensagem: string,
+  tipo: "erro" | "sucesso" | "neutro" = "neutro",
+): void {
+  if (!feedbackConcluirAnuncio) {
+    return;
+  }
+
+  feedbackConcluirAnuncio.textContent = mensagem;
+  feedbackConcluirAnuncio.dataset.tipo = tipo;
+}
+
+function abrirDialogoDeConclusao(
+  anuncio: Anuncio,
+  acionador: HTMLElement,
+): void {
+  if (
+    !dialogoConcluirAnuncio ||
+    !formularioConcluirAnuncio ||
+    !campoEmailConfirmacaoConclusao ||
+    !tituloConcluirAnuncio ||
+    !usuarioAtual ||
+    anuncio.usuarioId !== usuarioAtual.id ||
+    anuncio.concluidoEm
+  ) {
+    return;
+  }
+
+  anuncioParaConcluir = anuncio;
+  elementoFocadoAntesDaConclusao = acionador;
+  formularioConcluirAnuncio.reset();
+  campoEmailConfirmacaoConclusao.setCustomValidity("");
+  tituloConcluirAnuncio.textContent = `Concluir “${anuncio.nome}”`;
+  definirFeedbackConclusao("Digite o e-mail da sua conta para confirmar esta ação.");
+  dialogoConcluirAnuncio.showModal();
+  document.body.classList.add("modal-aberto");
+  window.requestAnimationFrame(() => campoEmailConfirmacaoConclusao.focus());
+}
+
+function fecharDialogoDeConclusao(
+  { aposSucesso = false }: { aposSucesso?: boolean } = {},
+): void {
+  if (conclusaoEmAndamento && !aposSucesso) {
+    return;
+  }
+
+  if (dialogoConcluirAnuncio?.open) {
+    dialogoConcluirAnuncio.close();
+  }
+}
+
+async function concluirAnuncio(): Promise<void> {
+  if (
+    conclusaoEmAndamento ||
+    !anuncioParaConcluir ||
+    !sessaoAtual ||
+    !usuarioAtual ||
+    !campoEmailConfirmacaoConclusao ||
+    !botaoConfirmarConclusao
+  ) {
+    return;
+  }
+
+  const email = campoEmailConfirmacaoConclusao.value.trim().toLowerCase();
+  campoEmailConfirmacaoConclusao.setCustomValidity("");
+
+  if (email !== usuarioAtual.email.toLowerCase()) {
+    const mensagem = "Digite exatamente o e-mail da conta conectada para confirmar.";
+    campoEmailConfirmacaoConclusao.setCustomValidity(mensagem);
+    definirFeedbackConclusao(mensagem, "erro");
+    campoEmailConfirmacaoConclusao.reportValidity();
+    return;
+  }
+
+  const anuncio = anuncioParaConcluir;
+  conclusaoEmAndamento = true;
+  botaoConfirmarConclusao.disabled = true;
+  botaoConfirmarConclusao.setAttribute("aria-busy", "true");
+  botaoConfirmarConclusao.textContent = "Concluindo...";
+  definirFeedbackConclusao("Concluindo anúncio...");
+
+  try {
+    const { dados: anuncioConcluido } = await requisitarApiAutenticada(
+      `/api/anuncios/${encodeURIComponent(String(anuncio.id))}/concluir`,
+      normalizarAnuncioDaApi,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      },
+    );
+
+    await invalidarCacheCatalogoPublico();
+    await Promise.all([
+      carregarAnunciosDaApi({ mostrarCarregamento: false }),
+      carregarMeusAnunciosDaApi({ mostrarCarregamento: false }),
+    ]);
+    fecharDialogoDeConclusao({ aposSucesso: true });
+    mostrarFeedback(`Anúncio “${anuncioConcluido.nome}” concluído com sucesso.`);
+  } catch (erro) {
+    const mensagem =
+      erro instanceof Error
+        ? erro.message
+        : "Não foi possível concluir o anúncio. Tente novamente.";
+    definirFeedbackConclusao(mensagem, "erro");
+  } finally {
+    conclusaoEmAndamento = false;
+    botaoConfirmarConclusao.disabled = false;
+    botaoConfirmarConclusao.removeAttribute("aria-busy");
+    botaoConfirmarConclusao.textContent = "Concluir anúncio";
+  }
+}
+
+function inicializarConclusaoDeAnuncios(): void {
+  formularioConcluirAnuncio?.addEventListener("submit", (evento) => {
+    evento.preventDefault();
+    void concluirAnuncio();
+  });
+  botaoCancelarConclusao?.addEventListener("click", () => {
+    fecharDialogoDeConclusao();
+  });
+  dialogoConcluirAnuncio?.addEventListener("click", (evento) => {
+    if (evento.target === dialogoConcluirAnuncio) {
+      fecharDialogoDeConclusao();
+    }
+  });
+  dialogoConcluirAnuncio?.addEventListener("cancel", (evento) => {
+    if (conclusaoEmAndamento) {
+      evento.preventDefault();
+    }
+  });
+  dialogoConcluirAnuncio?.addEventListener("close", () => {
+    anuncioParaConcluir = null;
+
+    if (!document.querySelector("dialog[open]")) {
+      document.body.classList.remove("modal-aberto");
+    }
+
+    const elementoParaRestaurar = elementoFocadoAntesDaConclusao;
+    elementoFocadoAntesDaConclusao = null;
+    elementoParaRestaurar?.focus({ preventScroll: true });
+  });
+}
 function inicializarExclusaoDeAnuncios(): void {
   if (!listaMeusAnuncios) {
     return;
   }
 
   listaMeusAnuncios.addEventListener("click", (evento) => {
+    const botaoConcluir =
+      evento.target instanceof Element
+        ? evento.target.closest<HTMLButtonElement>(".btn-concluir")
+        : null;
+
+    if (botaoConcluir && listaMeusAnuncios.contains(botaoConcluir)) {
+      const anuncio = cacheAnunciosUsuarioApi.find(
+        (item) => String(item.id) === botaoConcluir.dataset.id,
+      );
+
+      if (anuncio) {
+        abrirDialogoDeConclusao(anuncio, botaoConcluir);
+      }
+      return;
+    }
     const botaoEditar =
       evento.target instanceof Element
         ? evento.target.closest<HTMLButtonElement>(".btn-editar")
@@ -6281,6 +6522,7 @@ inicializarFormularioDeAnuncio();
 inicializarFormularioDaColecao();
 inicializarExclusaoDeAnuncios();
 inicializarEdicaoDeAnuncios();
+inicializarConclusaoDeAnuncios();
 inicializarContagemDeCliquesEmDetalhes();
 inicializarOfertasEConversas();
 inicializarNotificacoesDeConversas();
