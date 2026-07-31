@@ -485,6 +485,7 @@ test("GET /api/anuncios/me filtra exclusivamente pelo usuário autenticado", asy
   );
   assert.deepEqual(filtrosRecebidos, {
     usuarioId: USUARIO_ID,
+    incluirConcluidos: true,
   });
 });
 
