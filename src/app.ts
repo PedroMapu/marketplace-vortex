@@ -311,6 +311,28 @@ const botaoCancelarConclusao = document.querySelector<HTMLButtonElement>(
 const botaoConfirmarConclusao = document.querySelector<HTMLButtonElement>(
   "#botao-confirmar-conclusao",
 );
+const dialogoDetalhesAnuncio =
+  document.querySelector<HTMLDialogElement>("#dialogo-detalhes-anuncio");
+const tituloDetalhesAnuncio =
+  document.querySelector<HTMLElement>("#titulo-detalhes-anuncio");
+const botaoFecharDetalhes =
+  document.querySelector<HTMLButtonElement>("#botao-fechar-detalhes");
+const detalhesAnuncioImagem =
+  document.querySelector<HTMLImageElement>("#detalhes-anuncio-imagem");
+const detalhesAnuncioPreco =
+  document.querySelector<HTMLElement>("#detalhes-anuncio-preco");
+const detalhesAnuncioCategoria =
+  document.querySelector<HTMLElement>("#detalhes-anuncio-categoria");
+const detalhesAnuncioCondicao =
+  document.querySelector<HTMLElement>("#detalhes-anuncio-condicao");
+const detalhesAnuncioLocalizacao =
+  document.querySelector<HTMLElement>("#detalhes-anuncio-localizacao");
+const detalhesAnuncioAnunciante =
+  document.querySelector<HTMLElement>("#detalhes-anuncio-anunciante");
+const descricaoDetalhesAnuncio =
+  document.querySelector<HTMLElement>("#descricao-detalhes-anuncio");
+const botaoDetalhesFazerOferta =
+  document.querySelector<HTMLButtonElement>("#botao-detalhes-fazer-oferta");
 const bannerConectividade =
   document.querySelector<HTMLElement>("#banner-conectividade");
 const tituloBannerConectividade = document.querySelector<HTMLElement>(
@@ -401,6 +423,8 @@ let publicacaoEmAndamento = false;
 let edicaoEmAndamento = false;
 let anuncioEmEdicao: Anuncio | null = null;
 let anuncioParaConcluir: Anuncio | null = null;
+let anuncioParaDetalhes: Anuncio | null = null;
+let elementoFocadoAntesDosDetalhes: HTMLElement | null = null;
 let conclusaoEmAndamento = false;
 let elementoFocadoAntesDaConclusao: HTMLElement | null = null;
 let elementoFocadoAntesDaEdicao: HTMLElement | null = null;
@@ -6319,7 +6343,105 @@ function inicializarContagemDeCliquesEmDetalhes(): void {
       return;
     }
 
-    void registrarCliqueEmDetalhes(linkDetalhes.dataset.id);
+    const id = linkDetalhes.dataset.id;
+    void registrarCliqueEmDetalhes(id);
+
+    const anuncio = cacheCatalogoApi.find((item) => String(item.id) === id);
+    if (anuncio) {
+      abrirDialogoDeDetalhes(anuncio, linkDetalhes);
+    }
+  });
+}
+
+function abrirDialogoDeDetalhes(
+  anuncio: Anuncio,
+  acionador: HTMLElement,
+): void {
+  if (
+    !dialogoDetalhesAnuncio ||
+    !tituloDetalhesAnuncio ||
+    !detalhesAnuncioImagem ||
+    !detalhesAnuncioPreco ||
+    !detalhesAnuncioCategoria ||
+    !detalhesAnuncioCondicao ||
+    !detalhesAnuncioLocalizacao ||
+    !detalhesAnuncioAnunciante ||
+    !descricaoDetalhesAnuncio
+  ) {
+    return;
+  }
+
+  anuncioParaDetalhes = anuncio;
+  elementoFocadoAntesDosDetalhes = acionador;
+
+  tituloDetalhesAnuncio.textContent = anuncio.nome;
+  detalhesAnuncioImagem.src = anuncio.imagemUrl || IMAGEM_PADRAO_ANUNCIO;
+  detalhesAnuncioImagem.alt = `Imagem de ${anuncio.nome}`;
+
+  detalhesAnuncioPreco.textContent =
+    anuncio.modalidade === "doacao"
+      ? "Doação"
+      : formatadorMoeda.format(anuncio.valor);
+
+  detalhesAnuncioCategoria.textContent =
+    obterDadosVisuaisCategoria(anuncio.categoria).nome;
+  detalhesAnuncioCondicao.textContent =
+    nomesCondicoes[anuncio.condicao] || anuncio.condicao;
+  detalhesAnuncioLocalizacao.textContent = anuncio.localizacao;
+  detalhesAnuncioAnunciante.textContent = anuncio.usuarioNome;
+  descricaoDetalhesAnuncio.textContent = anuncio.descricao;
+
+  if (botaoDetalhesFazerOferta) {
+    botaoDetalhesFazerOferta.dataset.id = String(anuncio.id);
+    if (usuarioAtual && anuncio.usuarioId === usuarioAtual.id) {
+      botaoDetalhesFazerOferta.hidden = true;
+    } else {
+      botaoDetalhesFazerOferta.hidden = false;
+    }
+  }
+
+  dialogoDetalhesAnuncio.showModal();
+  document.body.classList.add("modal-aberto");
+  window.requestAnimationFrame(() => botaoFecharDetalhes?.focus());
+}
+
+function fecharDialogoDeDetalhes(): void {
+  if (dialogoDetalhesAnuncio?.open) {
+    dialogoDetalhesAnuncio.close();
+  }
+}
+
+function inicializarDetalhesDeAnuncios(): void {
+  botaoFecharDetalhes?.addEventListener("click", () => {
+    fecharDialogoDeDetalhes();
+  });
+
+  dialogoDetalhesAnuncio?.addEventListener("click", (evento) => {
+    if (evento.target === dialogoDetalhesAnuncio) {
+      fecharDialogoDeDetalhes();
+    }
+  });
+
+  dialogoDetalhesAnuncio?.addEventListener("close", () => {
+    anuncioParaDetalhes = null;
+
+    if (!document.querySelector("dialog[open]")) {
+      document.body.classList.remove("modal-aberto");
+    }
+
+    const elementoParaRestaurar = elementoFocadoAntesDosDetalhes;
+    elementoFocadoAntesDosDetalhes = null;
+    elementoParaRestaurar?.focus({ preventScroll: true });
+  });
+
+  botaoDetalhesFazerOferta?.addEventListener("click", () => {
+    if (anuncioParaDetalhes && botaoDetalhesFazerOferta) {
+      const anuncio = anuncioParaDetalhes;
+      fecharDialogoDeDetalhes();
+      setTimeout(() => {
+        abrirDialogoDeOfertas(anuncio, botaoDetalhesFazerOferta);
+      }, 100);
+    }
   });
 }
 
@@ -6524,6 +6646,7 @@ inicializarExclusaoDeAnuncios();
 inicializarEdicaoDeAnuncios();
 inicializarConclusaoDeAnuncios();
 inicializarContagemDeCliquesEmDetalhes();
+inicializarDetalhesDeAnuncios();
 inicializarOfertasEConversas();
 inicializarNotificacoesDeConversas();
 inicializarVisualizacaoDeImagens();

@@ -1275,6 +1275,59 @@
     </dialog>
 
     <dialog
+      id="dialogo-detalhes-anuncio"
+      class="dialogo-detalhes-anuncio"
+      aria-labelledby="titulo-detalhes-anuncio"
+      aria-describedby="descricao-detalhes-anuncio"
+    >
+      <div class="detalhes-anuncio-conteudo">
+        <header class="detalhes-anuncio-cabecalho">
+          <div>
+            <span>Detalhes do item</span>
+            <h2 id="titulo-detalhes-anuncio"></h2>
+          </div>
+          <button
+            id="botao-fechar-detalhes"
+            class="botao-fechar-detalhes"
+            type="button"
+            aria-label="Fechar detalhes do anúncio"
+          >
+            &times;
+          </button>
+        </header>
+
+        <div class="detalhes-anuncio-layout">
+          <div class="detalhes-anuncio-imagem-container">
+            <img id="detalhes-anuncio-imagem" src="" alt="Imagem do item" />
+          </div>
+          <div class="detalhes-anuncio-info">
+            <div>
+              <span id="detalhes-anuncio-preco" class="detalhes-anuncio-preco"></span>
+            </div>
+            
+            <div class="detalhes-anuncio-metadados">
+              <p><strong>Categoria:</strong> <span id="detalhes-anuncio-categoria"></span></p>
+              <p><strong>Condição:</strong> <span id="detalhes-anuncio-condicao"></span></p>
+              <p><strong>Localização para retirada:</strong> <span id="detalhes-anuncio-localizacao"></span></p>
+              <p><strong>Anunciante:</strong> <span id="detalhes-anuncio-anunciante"></span></p>
+            </div>
+
+            <div class="detalhes-anuncio-descricao-secao">
+              <h3>Descrição</h3>
+              <p id="descricao-detalhes-anuncio" class="detalhes-anuncio-descricao"></p>
+            </div>
+
+            <div class="detalhes-anuncio-acoes">
+              <button id="botao-detalhes-fazer-oferta" class="btn-fazer-oferta" type="button" aria-haspopup="dialog" aria-controls="dialogo-ofertas">
+                Fazer oferta
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog
       id="dialogo-ofertas"
       class="dialogo-ofertas"
       aria-labelledby="titulo-dialogo-ofertas"
