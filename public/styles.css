@@ -8644,3 +8644,283 @@ footer a:focus-visible {
     0 0.75rem 1.5rem rgba(19, 10, 36, 0.34),
     0 0 1.3rem rgba(95, 131, 255, 0.25);
 }
+
+/* ============================================================
+   VORTEX CIRCULAR PROGRESS SPINNER
+   Aplicado em todos os estados de carregamento do site
+   ============================================================ */
+
+/* ---------- Keyframes da rotação ---------- */
+@keyframes vortex-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Animação do traço do círculo (dash-offset) */
+@keyframes vortex-dash {
+  0%   { stroke-dashoffset: 220; }
+  50%  { stroke-dashoffset: 40; }
+  100% { stroke-dashoffset: 220; }
+}
+
+/* Animação de cor do traço (cicla entre roxo → ciano → magenta) */
+@keyframes vortex-color {
+  0%   { stroke: #6f4bef; }
+  33%  { stroke: #12cee4; }
+  66%  { stroke: #ff00d6; }
+  100% { stroke: #6f4bef; }
+}
+
+/* Glow pulsante no centro */
+@keyframes vortex-glow {
+  0%, 100% { filter: drop-shadow(0 0 4px #6f4bef88); }
+  50%       { filter: drop-shadow(0 0 10px #12cee4aa); }
+}
+
+/* ---------- Spinner SVG inline (.vortex-spinner) ---------- */
+.vortex-spinner {
+  display: inline-block;
+  flex-shrink: 0;
+  height: 1.4em;
+  width: 1.4em;
+  vertical-align: middle;
+  animation: vortex-spin 1.5s linear infinite;
+}
+
+.vortex-spinner circle {
+  animation:
+    vortex-dash  1.5s ease-in-out infinite,
+    vortex-color 3s   linear       infinite,
+    vortex-glow  1.5s ease-in-out  infinite;
+  fill: none;
+  stroke-dasharray: 226;
+  stroke-dashoffset: 220;
+  stroke-linecap: round;
+  stroke-width: 10;
+  transform-origin: center;
+}
+
+/* ---------- Estado de carregamento de lista/área ---------- */
+.vortex-loading-state {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  justify-content: center;
+  min-height: 8rem;
+  padding: 2rem 1rem;
+  width: 100%;
+}
+
+.vortex-loading-state .vortex-spinner {
+  height: 3rem;
+  width: 3rem;
+}
+
+.vortex-loading-state .vortex-loading-text {
+  color: var(--cinza-500, #94a3b8);
+  font-size: 0.875rem;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* No tema dark (vitrine) */
+.grid-vitrine .vortex-loading-state .vortex-loading-text {
+  color: var(--vortex-lilas, #b8b0c8);
+}
+
+/* ---------- Botões com [aria-busy="true"] ---------- */
+/* Adiciona spinner antes do texto nos botões de ação */
+button[aria-busy="true"] {
+  align-items: center;
+  cursor: wait;
+  display: inline-flex;
+  gap: 0.55em;
+  justify-content: center;
+  opacity: 0.82;
+  position: relative;
+}
+
+/* Spinner via pseudo-elemento para botões [aria-busy] */
+button[aria-busy="true"]::before {
+  animation: vortex-spin 0.85s linear infinite;
+  border: 2.5px solid transparent;
+  border-radius: 50%;
+  border-top-color: currentColor;
+  border-right-color: currentColor;
+  content: "";
+  display: inline-block;
+  flex-shrink: 0;
+  height: 1em;
+  width: 1em;
+}
+
+/* Botões no tema dark têm spinner mais brilhante */
+#vitrine button[aria-busy="true"]::before,
+.painel-dark button[aria-busy="true"]::before,
+.chat-painel button[aria-busy="true"]::before,
+.dialogo-dark button[aria-busy="true"]::before {
+  border-top-color: #12cee4;
+  border-right-color: #6f4bef;
+}
+
+/* Spinner específico nos botões primários (fundo roxo) */
+#botao-publicar-anuncio[aria-busy="true"]::before,
+.autenticacao-submit[aria-busy="true"]::before,
+#botao-salvar-edicao[aria-busy="true"]::before,
+#botao-confirmar-conclusao[aria-busy="true"]::before,
+.importacao-legada-confirmar[aria-busy="true"]::before {
+  border-top-color: rgba(255, 255, 255, 0.9);
+  border-right-color: #12cee4;
+}
+
+/* Spinner nos botões de exclusão/perigo */
+.btn-excluir[aria-busy="true"]::before,
+[id*="excluir"][aria-busy="true"]::before {
+  border-top-color: rgba(255, 255, 255, 0.9);
+  border-right-color: #ff00d6;
+}
+
+/* ---------- Feedback de foto de perfil com spinner ---------- */
+.feedback-foto-perfil:not(:empty)::before {
+  animation: vortex-spin 0.85s linear infinite;
+  border: 2px solid transparent;
+  border-top-color: #12cee4;
+  border-right-color: #6f4bef;
+  border-radius: 50%;
+  content: "";
+  display: inline-block;
+  height: 0.85em;
+  margin-right: 0.45em;
+  vertical-align: middle;
+  width: 0.85em;
+}
+
+/* Remove o spinner quando a foto foi salva (sucesso/erro) */
+.feedback-foto-perfil[data-tipo="sucesso"]::before,
+.feedback-foto-perfil[data-tipo="erro"]::before {
+  display: none;
+}
+
+/* ---------- Feedback de oferta/mensagem no chat com spinner ---------- */
+/* Aparece apenas no estado neutro (sem data-estado = carregando) */
+#feedback-ofertas:not(:empty):not([data-estado])::before {
+  animation: vortex-spin 0.85s linear infinite;
+  border: 2px solid transparent;
+  border-top-color: #12cee4;
+  border-right-color: #6f4bef;
+  border-radius: 50%;
+  content: "";
+  display: inline-block;
+  height: 0.85em;
+  margin-right: 0.45em;
+  vertical-align: middle;
+  width: 0.85em;
+}
+
+/* ---------- Feedback de conclusão de anúncio com spinner ---------- */
+#feedback-concluir-anuncio[data-tipo="neutro"]:not(:empty)::before {
+  animation: vortex-spin 0.85s linear infinite;
+  border: 2px solid transparent;
+  border-top-color: #12cee4;
+  border-right-color: #6f4bef;
+  border-radius: 50%;
+  content: "";
+  display: inline-block;
+  height: 0.85em;
+  margin-right: 0.45em;
+  vertical-align: middle;
+  width: 0.85em;
+}
+
+/* ---------- Feedback de edição de anúncio com spinner ---------- */
+#feedback-editar-anuncio[data-tipo="neutro"]:not(:empty)::before {
+  animation: vortex-spin 0.85s linear infinite;
+  border: 2px solid transparent;
+  border-top-color: #6f4bef;
+  border-right-color: #12cee4;
+  border-radius: 50%;
+  content: "";
+  display: inline-block;
+  height: 0.85em;
+  margin-right: 0.45em;
+  vertical-align: middle;
+  width: 0.85em;
+}
+
+/* ---------- Feedback de autenticação (login/cadastro) com spinner ---------- */
+#feedback-autenticacao[data-tipo="neutro"]:not(:empty)::before {
+  animation: vortex-spin 0.85s linear infinite;
+  border: 2px solid transparent;
+  border-top-color: rgba(255, 255, 255, 0.85);
+  border-right-color: #12cee4;
+  border-radius: 50%;
+  content: "";
+  display: inline-block;
+  height: 0.85em;
+  margin-right: 0.45em;
+  vertical-align: middle;
+  width: 0.85em;
+}
+
+/* ---------- Lista de conversas carregando ---------- */
+
+#lista-conversas[aria-busy="true"] {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 6rem;
+}
+
+/* ---------- Lista de mensagens carregando ---------- */
+#lista-mensagens[aria-busy="true"] {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 10rem;
+}
+
+/* ---------- Estado carregamento dentro do grid vitrine ---------- */
+/* .estado-carregamento já tem grid-column: 1 / -1 definido acima */
+.estado-carregamento .vortex-loading-state {
+  min-height: 4rem;
+  padding: 1.5rem 1rem 0.5rem;
+}
+
+/* O skeleton-catalogo precisa estar como grid dentro do estado */
+.estado-carregamento .skeleton-catalogo {
+  margin-top: 0.5rem;
+}
+
+/* ---------- Oculta texto de status sr-only do spinner nos botões ---------- */
+button[aria-busy="true"] .somente-leitor {
+  display: none;
+}
+
+/* ---------- Variante inline pequena do spinner ---------- */
+.vortex-spinner-sm {
+  display: inline-block;
+  flex-shrink: 0;
+  height: 1rem;
+  width: 1rem;
+  vertical-align: middle;
+  animation: vortex-spin 0.9s linear infinite;
+}
+
+.vortex-spinner-sm circle {
+  animation:
+    vortex-dash  0.9s ease-in-out infinite,
+    vortex-color 2.7s linear       infinite;
+  fill: none;
+  stroke-dasharray: 226;
+  stroke-dashoffset: 180;
+  stroke-linecap: round;
+  stroke-width: 14;
+}
+
+/* ---------- Tema claro — ajuste de cores ---------- */
+@media (prefers-color-scheme: light) {
+  .vortex-loading-state .vortex-loading-text {
+    color: #625a70;
+  }
+}

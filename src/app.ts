@@ -1126,14 +1126,43 @@ function criarEstadoDeCarregamento(
   skeleton: HTMLElement,
 ): HTMLDivElement {
   const estado = criarElemento("div", "estado-carregamento");
-  const mensagem = criarElemento(
-    "p",
-    "somente-leitor",
-    texto,
-  );
 
-  mensagem.setAttribute("role", "status");
-  estado.append(mensagem, skeleton);
+  // Spinner circular animado acima do skeleton
+  const spinnerContainer = document.createElement("div");
+  spinnerContainer.className = "vortex-loading-state";
+  spinnerContainer.setAttribute("role", "status");
+  spinnerContainer.setAttribute("aria-label", texto);
+
+  const spinnerSvgNs = "http://www.w3.org/2000/svg";
+  const spinnerSvg = document.createElementNS(spinnerSvgNs, "svg") as SVGSVGElement;
+  spinnerSvg.setAttribute("viewBox", "0 0 80 80");
+  spinnerSvg.setAttribute("aria-hidden", "true");
+  spinnerSvg.setAttribute("focusable", "false");
+  spinnerSvg.className.baseVal = "vortex-spinner";
+
+  const spinnerTrilho = document.createElementNS(spinnerSvgNs, "circle");
+  spinnerTrilho.setAttribute("cx", "40");
+  spinnerTrilho.setAttribute("cy", "40");
+  spinnerTrilho.setAttribute("r", "36");
+  spinnerTrilho.setAttribute("fill", "none");
+  spinnerTrilho.setAttribute("stroke", "currentColor");
+  spinnerTrilho.setAttribute("stroke-opacity", "0.12");
+  spinnerTrilho.setAttribute("stroke-width", "10");
+
+  const spinnerProgresso = document.createElementNS(spinnerSvgNs, "circle");
+  spinnerProgresso.setAttribute("cx", "40");
+  spinnerProgresso.setAttribute("cy", "40");
+  spinnerProgresso.setAttribute("r", "36");
+
+  spinnerSvg.append(spinnerTrilho, spinnerProgresso);
+
+  const spinnerTexto = document.createElement("span");
+  spinnerTexto.className = "vortex-loading-text";
+  spinnerTexto.setAttribute("aria-hidden", "true");
+  spinnerTexto.textContent = texto;
+
+  spinnerContainer.append(spinnerSvg, spinnerTexto);
+  estado.append(spinnerContainer, skeleton);
   return estado;
 }
 
@@ -3157,6 +3186,58 @@ function criarElemento<K extends keyof HTMLElementTagNameMap>(
   return elemento;
 }
 
+/**
+ * Cria um SVG de barra circular de progresso animada
+ * seguindo a paleta de cores do Vortex (roxo → ciano → magenta).
+ * Tamanho controlado via CSS (.vortex-spinner ou .vortex-spinner-sm).
+ */
+function criarSpinnerVortex(pequeno = false): SVGSVGElement {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg") as SVGSVGElement;
+  svg.setAttribute("viewBox", "0 0 80 80");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  svg.className.baseVal = pequeno ? "vortex-spinner-sm" : "vortex-spinner";
+
+  const trilho = document.createElementNS(ns, "circle");
+  trilho.setAttribute("cx", "40");
+  trilho.setAttribute("cy", "40");
+  trilho.setAttribute("r", "36");
+  trilho.setAttribute("fill", "none");
+  trilho.setAttribute("stroke", "currentColor");
+  trilho.setAttribute("stroke-opacity", "0.12");
+  trilho.setAttribute("stroke-width", "10");
+
+  const progresso = document.createElementNS(ns, "circle");
+  progresso.setAttribute("cx", "40");
+  progresso.setAttribute("cy", "40");
+  progresso.setAttribute("r", "36");
+
+  svg.append(trilho, progresso);
+  return svg;
+}
+
+/**
+ * Cria um estado de carregamento com spinner circular + texto acessível.
+ * Substitui os parágrafos simples de "Carregando..." nas listas.
+ */
+function criarEstadoCarregamentoVortex(texto: string): HTMLDivElement {
+  const container = document.createElement("div");
+  container.className = "vortex-loading-state";
+  container.setAttribute("role", "status");
+  container.setAttribute("aria-label", texto);
+
+  const spinner = criarSpinnerVortex();
+
+  const rotulo = document.createElement("span");
+  rotulo.className = "vortex-loading-text";
+  rotulo.setAttribute("aria-hidden", "true");
+  rotulo.textContent = texto;
+
+  container.append(spinner, rotulo);
+  return container;
+}
+
 function obterDadosVisuaisCategoria(
   categoria: unknown,
 ): MapaCategorias[Categoria] {
@@ -3587,7 +3668,7 @@ function renderizarListaDeConversas(): void {
 
   if (ofertasEmCarregamento) {
     listaConversas.append(
-      criarElemento("p", "", "Carregando conversas..."),
+      criarEstadoCarregamentoVortex("Carregando conversas..."),
     );
     listaConversas.setAttribute("aria-busy", "true");
     return;
@@ -3841,7 +3922,7 @@ async function carregarMensagensDaOferta(oferta: Oferta): Promise<void> {
 
   listaMensagens.setAttribute("aria-busy", "true");
   listaMensagens.replaceChildren(
-    criarElemento("p", "", "Carregando mensagens..."),
+    criarEstadoCarregamentoVortex("Carregando mensagens..."),
   );
   renderizarListaDeConversas();
   definirFeedbackOfertas("");
