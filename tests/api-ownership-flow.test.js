@@ -268,6 +268,28 @@ test("dois usuários mantêm autoria, listagem própria e exclusão isoladas", a
   assert.equal(edicaoProprietaria.body.usuarioId, ana.body.usuario.id);
 
 
+  const conclusaoAlheia = await requisitar(
+    baseUrl,
+    `/api/anuncios/${criacao.body.id}/concluir`,
+    {
+      method: "POST",
+      token: bruno.body.token,
+      body: { email: "bruno.fluxo@edu.unifor.br" },
+    },
+  );
+  assert.deepEqual(conclusaoAlheia, {
+    status: 403,
+    body: {
+      erro: "Você só pode concluir os seus próprios anúncios.",
+      codigo: "ANUNCIO_ALHEIO",
+    },
+  });
+  assert.equal(
+    (await requisitar(baseUrl, "/api/anuncios")).body.length,
+    1,
+  );
+
+
   const emailInvalido = await requisitar(
     baseUrl,
     `/api/anuncios/${criacao.body.id}/concluir`,

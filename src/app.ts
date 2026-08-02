@@ -4178,8 +4178,10 @@ function atualizarAcaoConclusaoNoChat(oferta: Oferta | null): void {
     : undefined;
   const podeConcluir = Boolean(
     oferta &&
+      anuncio &&
       usuarioAtual?.id === oferta.anuncianteId &&
-      (!anuncio || !anuncio.concluidoEm),
+      anuncio.usuarioId === oferta.anuncianteId &&
+      !anuncio.concluidoEm,
   );
 
   botaoConcluirAnuncioChat.hidden = !podeConcluir;
@@ -4219,6 +4221,16 @@ async function abrirConclusaoDaOfertaAtiva(): Promise<void> {
     botaoConcluirAnuncioChat.dataset.anuncioId = "";
     definirFeedbackOfertas(
       "Não foi possível localizar este anúncio. Atualize a página e tente novamente.",
+      "erro",
+    );
+    return;
+  }
+
+  if (anuncio.usuarioId !== usuarioAtual.id) {
+    botaoConcluirAnuncioChat.hidden = true;
+    botaoConcluirAnuncioChat.dataset.anuncioId = "";
+    definirFeedbackOfertas(
+      "Você só pode concluir os seus próprios anúncios.",
       "erro",
     );
     return;
@@ -6529,6 +6541,17 @@ async function concluirAnuncio(): Promise<void> {
     return;
   }
 
+  const anuncio = anuncioParaConcluir;
+
+  if (anuncio.usuarioId !== usuarioAtual.id) {
+    definirFeedbackConclusao(
+      "Você só pode concluir os seus próprios anúncios.",
+      "erro",
+    );
+    fecharDialogoDeConclusao();
+    return;
+  }
+
   const email = campoEmailConfirmacaoConclusao.value.trim().toLowerCase();
   campoEmailConfirmacaoConclusao.setCustomValidity("");
 
@@ -6540,7 +6563,6 @@ async function concluirAnuncio(): Promise<void> {
     return;
   }
 
-  const anuncio = anuncioParaConcluir;
   conclusaoEmAndamento = true;
   botaoConfirmarConclusao.disabled = true;
   definirEstadoDeCarregamentoDoBotao(
@@ -6851,6 +6873,12 @@ function inicializarDetalhesDeAnuncios(): void {
   botaoDetalhesFazerOferta?.addEventListener("click", () => {
     if (anuncioParaDetalhes && botaoDetalhesFazerOferta) {
       const anuncio = anuncioParaDetalhes;
+
+      if (usuarioAtual?.id === anuncio.usuarioId) {
+        botaoDetalhesFazerOferta.hidden = true;
+        return;
+      }
+
       fecharDialogoDeDetalhes();
       setTimeout(() => {
         abrirDialogoDeOfertas(anuncio, botaoDetalhesFazerOferta);
