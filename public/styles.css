@@ -12,6 +12,9 @@
   --azul-claro: #5c8aff;
   --verde: #439a5d;
   --verde-claro: #72ca8c;
+  --vermelho-saida: #dc2626;
+  --vermelho-saida-hover: #b91c1c;
+  --vermelho-saida-ativo: #991b1b;
   --borda: rgba(0, 0, 0, 0.06);
   --borda-clara: rgba(0, 0, 0, 0.04);
   --raio: 1.5rem;
@@ -9092,6 +9095,48 @@ footer a:focus-visible {
 .botao-fechar-detalhes:hover {
   background: rgba(95, 131, 255, 0.22);
   border-color: rgba(95, 131, 255, 0.62);
+}
+
+.botao-fechar-anuncio,
+.botao-fechar-colecao,
+.botao-fechar-meus-anuncios,
+.autenticacao-fechar,
+.botao-fechar-edicao,
+.botao-fechar-detalhes,
+.modal-imagem-fechar,
+.dialogo-ofertas #botao-fechar-ofertas,
+.dialogo-ofertas .botao-fechar-ofertas-lista {
+  background: var(--vermelho-saida);
+  border-color: rgba(254, 202, 202, 0.76);
+  box-shadow: 0 0.65rem 1.25rem rgba(153, 27, 27, 0.24);
+  color: #ffffff;
+}
+
+.botao-fechar-anuncio:hover,
+.botao-fechar-colecao:hover,
+.botao-fechar-meus-anuncios:hover,
+.autenticacao-fechar:hover,
+.autenticacao-fechar:focus-visible,
+.botao-fechar-edicao:hover,
+.botao-fechar-detalhes:hover,
+.modal-imagem-fechar:hover,
+.dialogo-ofertas #botao-fechar-ofertas:hover,
+.dialogo-ofertas .botao-fechar-ofertas-lista:hover {
+  background: var(--vermelho-saida-hover);
+  border-color: rgba(254, 202, 202, 0.92);
+  color: #ffffff;
+}
+
+.botao-fechar-anuncio:active,
+.botao-fechar-colecao:active,
+.botao-fechar-meus-anuncios:active,
+.autenticacao-fechar:active,
+.botao-fechar-edicao:active,
+.botao-fechar-detalhes:active,
+.modal-imagem-fechar:active,
+.dialogo-ofertas #botao-fechar-ofertas:active,
+.dialogo-ofertas .botao-fechar-ofertas-lista:active {
+  background: var(--vermelho-saida-ativo);
 }
 
 .detalhes-anuncio-layout {

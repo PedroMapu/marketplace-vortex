@@ -378,7 +378,9 @@ const INTERVALO_POLLING_CONVERSAS_MS = 15_000;
 const URL_BASE_API = (import.meta.env.VITE_API_URL ?? "")
   .trim()
   .replace(/\/+$/, "");
-const MENSAGEM_API_GRATUITA_INICIANDO = "A API gratuita está iniciando";
+const MENSAGEM_CARREGANDO_ANUNCIOS = "Carregando anúncios...";
+const MENSAGEM_CARREGANDO_SEUS_ANUNCIOS = "Carregando seus anúncios...";
+const MENSAGEM_VALIDANDO_LOGIN = "Validando login";
 const ATRASO_AVISO_API_GRATUITA_MS = 1_500;
 const MENSAGEM_IMAGEM_OBRIGATORIA = "Escolha uma imagem para o anúncio.";
 const MENSAGEM_IMAGEM_INVALIDA = "Envie uma imagem PNG, JPG ou JPEG.";
@@ -1195,10 +1197,11 @@ function exibirContagemDeResultados(texto: string): void {
 }
 
 function exibirEstadoDeCarregamento(
-  texto = "Carregando anúncios...",
+  texto = MENSAGEM_CARREGANDO_ANUNCIOS,
+  mostrarComoAviso = false,
 ): void {
   listaAnuncios?.replaceChildren(
-    texto === MENSAGEM_API_GRATUITA_INICIANDO
+    mostrarComoAviso
       ? criarEstadoVazio(texto)
       : criarEstadoDeCarregamento(texto, criarSkeletonDoCatalogo()),
   );
@@ -1208,11 +1211,12 @@ function exibirEstadoDeCarregamento(
 }
 
 function exibirEstadoDeCarregamentoDoUsuario(
-  texto = "Carregando seus anúncios...",
+  texto = MENSAGEM_CARREGANDO_SEUS_ANUNCIOS,
+  mostrarComoAviso = false,
 ): void {
   if (listaMeusAnuncios) {
     listaMeusAnuncios.replaceChildren(
-      texto === MENSAGEM_API_GRATUITA_INICIANDO
+      mostrarComoAviso
         ? criarEstadoVazio(texto)
         : criarEstadoDeCarregamento(
             texto,
@@ -1299,7 +1303,7 @@ async function carregarAnunciosDaApi(
   const cancelarAvisoApiGratuita = mostrarCarregamento
     ? agendarAvisoApiGratuita(() => {
         if (sequenciaDestaRequisicao === sequenciaRequisicaoCatalogo) {
-          exibirEstadoDeCarregamento(MENSAGEM_API_GRATUITA_INICIANDO);
+          exibirEstadoDeCarregamento(MENSAGEM_CARREGANDO_ANUNCIOS, true);
         }
       })
     : () => {};
@@ -1373,7 +1377,8 @@ async function carregarMeusAnunciosDaApi(
           sessaoAtual?.token === sessaoDaRequisicao.token
         ) {
           exibirEstadoDeCarregamentoDoUsuario(
-            MENSAGEM_API_GRATUITA_INICIANDO,
+            MENSAGEM_CARREGANDO_SEUS_ANUNCIOS,
+            true,
           );
         }
       })
@@ -2506,7 +2511,9 @@ async function enviarFormularioAutenticacao(
   definirBloqueioAutenticacao(formulario, botaoEnviar, true);
 
   const cancelarAvisoApiGratuita = agendarAvisoApiGratuita(() => {
-    definirFeedbackAutenticacao(MENSAGEM_API_GRATUITA_INICIANDO);
+    definirFeedbackAutenticacao(
+      modo === "login" ? MENSAGEM_VALIDANDO_LOGIN : "Criando sua conta...",
+    );
   });
 
   try {
