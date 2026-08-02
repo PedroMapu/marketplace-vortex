@@ -3957,6 +3957,7 @@ function renderizarListaDeConversas(): void {
 function renderizarInicioDeOferta(anuncio: Anuncio): void {
   ofertaAtiva = null;
   definirVisaoMobileDoChat("chat");
+  definirConteudoDoChat("oferta");
   atualizarAcaoConclusaoNoChat(null);
 
   if (tituloChatOferta) {
@@ -3973,7 +3974,7 @@ function renderizarInicioDeOferta(anuncio: Anuncio): void {
       criarElemento(
         "p",
         "",
-        "Informe o valor e envie uma mensagem para iniciar a conversa com o anunciante.",
+        "Defina o valor e envie sua proposta ao anunciante.",
       ),
     );
   }
@@ -4003,6 +4004,7 @@ function renderizarInicioDeOferta(anuncio: Anuncio): void {
 function renderizarChatSemSelecao(): void {
   ofertaAtiva = null;
   definirVisaoMobileDoChat("lista");
+  definirConteudoDoChat("vazio");
   atualizarAcaoConclusaoNoChat(null);
 
   if (tituloChatOferta) {
@@ -4124,6 +4126,7 @@ async function carregarMensagensDaOferta(oferta: Oferta): Promise<void> {
   ofertaAtiva = oferta;
   anuncioParaOferta = null;
   definirVisaoMobileDoChat("chat", { focar: true });
+  definirConteudoDoChat("conversa");
   atualizarAcaoConclusaoNoChat(oferta);
 
   if (tituloChatOferta) {
@@ -4221,6 +4224,14 @@ function definirVisaoMobileDoChat(
       : null;
     (conversaAtiva ?? botaoFecharOfertasLista)?.focus();
   });
+}
+
+function definirConteudoDoChat(
+  conteudo: "oferta" | "conversa" | "vazio",
+): void {
+  if (dialogoOfertas) {
+    dialogoOfertas.dataset.conteudoChat = conteudo;
+  }
 }
 
 function atualizarAcaoConclusaoNoChat(oferta: Oferta | null): void {

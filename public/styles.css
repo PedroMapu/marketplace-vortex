@@ -8353,6 +8353,10 @@ footer a:focus-visible {
     display: none;
   }
 
+  .dialogo-ofertas:has(.formulario-oferta:not([hidden])) .conversas-sidebar {
+    display: none;
+  }
+
   .conversas-sidebar {
     border-right: 0;
     padding:
@@ -8443,6 +8447,88 @@ footer a:focus-visible {
 
   .formulario-oferta {
     margin: 0.8rem 1rem;
+  }
+
+  .dialogo-ofertas[data-conteudo-chat="oferta"] .chat-painel,
+  .dialogo-ofertas:has(.formulario-oferta:not([hidden])) .chat-painel {
+    align-content: start;
+    grid-template-rows: auto auto auto auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
+
+  .dialogo-ofertas[data-conteudo-chat="oferta"] .chat-painel > header,
+  .dialogo-ofertas:has(.formulario-oferta:not([hidden])) .chat-painel > header {
+    position: sticky;
+    top: 0;
+  }
+
+  .dialogo-ofertas[data-conteudo-chat="oferta"] .lista-mensagens,
+  .dialogo-ofertas:has(.formulario-oferta:not([hidden])) .lista-mensagens {
+    min-height: 0;
+    overflow: visible;
+    padding: 0.85rem 1rem 0.35rem;
+  }
+
+  .dialogo-ofertas[data-conteudo-chat="oferta"]
+    .lista-mensagens
+    > p:only-child,
+  .dialogo-ofertas:has(.formulario-oferta:not([hidden]))
+    .lista-mensagens
+    > p:only-child {
+    font-size: 0.9rem;
+    line-height: 1.45;
+    margin: 0 auto;
+    padding: 0.35rem 0.25rem 0.7rem;
+  }
+
+  .dialogo-ofertas[data-conteudo-chat="oferta"] .formulario-oferta,
+  .dialogo-ofertas:has(.formulario-oferta:not([hidden])) .formulario-oferta {
+    gap: 0.65rem;
+    margin:
+      0.35rem max(0.75rem, env(safe-area-inset-right))
+      max(0.75rem, env(safe-area-inset-bottom))
+      max(0.75rem, env(safe-area-inset-left));
+    padding: 0.9rem;
+  }
+
+  .dialogo-ofertas[data-conteudo-chat="oferta"] .formulario-oferta h4,
+  .dialogo-ofertas:has(.formulario-oferta:not([hidden]))
+    .formulario-oferta
+    h4 {
+    font-size: 1.05rem;
+    margin: 0 0 0.15rem;
+  }
+
+  .dialogo-ofertas[data-conteudo-chat="oferta"] .formulario-oferta input,
+  .dialogo-ofertas[data-conteudo-chat="oferta"] .formulario-oferta textarea,
+  .dialogo-ofertas:has(.formulario-oferta:not([hidden]))
+    .formulario-oferta
+    input,
+  .dialogo-ofertas:has(.formulario-oferta:not([hidden]))
+    .formulario-oferta
+    textarea {
+    font-size: 1rem;
+    line-height: 1.45;
+    min-height: 3rem;
+    padding: 0.75rem;
+  }
+
+  .dialogo-ofertas[data-conteudo-chat="oferta"] .formulario-oferta textarea,
+  .dialogo-ofertas:has(.formulario-oferta:not([hidden]))
+    .formulario-oferta
+    textarea {
+    min-height: 6rem;
+    resize: none;
+  }
+
+  .dialogo-ofertas[data-conteudo-chat="oferta"] .formulario-oferta button,
+  .dialogo-ofertas:has(.formulario-oferta:not([hidden]))
+    .formulario-oferta
+    button {
+    min-height: 3rem;
+    width: 100%;
   }
 
   .formulario-mensagem {
