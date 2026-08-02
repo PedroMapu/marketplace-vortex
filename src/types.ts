@@ -122,6 +122,7 @@ export interface Oferta {
   anuncioId: number;
   anuncioNome: string;
   anuncioImagemUrl?: string;
+  anuncioConcluidoEm: string | null;
   valor: number;
   mensagem: string;
   compradorId: string;

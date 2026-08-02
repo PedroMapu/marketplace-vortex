@@ -980,6 +980,20 @@ function normalizarOfertaDaApi(resposta: unknown): Oferta {
     typeof oferta.atualizadaEm === "string" && oferta.atualizadaEm.trim()
       ? oferta.atualizadaEm
       : undefined;
+  const anuncioConcluidoEm =
+    oferta.anuncioConcluidoEm === undefined ||
+    oferta.anuncioConcluidoEm === null
+      ? null
+      : typeof oferta.anuncioConcluidoEm === "string" &&
+          oferta.anuncioConcluidoEm.trim()
+        ? oferta.anuncioConcluidoEm
+        : undefined;
+
+  if (anuncioConcluidoEm === undefined) {
+    throw new TypeError(
+      "A API retornou uma oferta com conclusão de anúncio inválida.",
+    );
+  }
 
   return {
     id,
@@ -990,6 +1004,7 @@ function normalizarOfertaDaApi(resposta: unknown): Oferta {
       "uma oferta",
     ),
     ...(anuncioImagemUrl ? { anuncioImagemUrl } : {}),
+    anuncioConcluidoEm,
     valor,
     mensagem: obterStringObrigatoria(oferta, "mensagem", "uma oferta"),
     compradorId: obterStringObrigatoria(
@@ -4171,17 +4186,10 @@ function atualizarAcaoConclusaoNoChat(oferta: Oferta | null): void {
     return;
   }
 
-  const anuncio = oferta
-    ? cacheAnunciosUsuarioApi.find(
-        (item) => item.id === oferta.anuncioId,
-      )
-    : undefined;
   const podeConcluir = Boolean(
     oferta &&
-      anuncio &&
       usuarioAtual?.id === oferta.anuncianteId &&
-      anuncio.usuarioId === oferta.anuncianteId &&
-      !anuncio.concluidoEm,
+      oferta.anuncioConcluidoEm === null,
   );
 
   botaoConcluirAnuncioChat.hidden = !podeConcluir;
@@ -6588,6 +6596,22 @@ async function concluirAnuncio(): Promise<void> {
       carregarAnunciosDaApi({ mostrarCarregamento: false }),
       carregarMeusAnunciosDaApi({ mostrarCarregamento: false }),
     ]);
+    cacheOfertasApi = cacheOfertasApi.map((oferta) =>
+      oferta.anuncioId === anuncioConcluido.id
+        ? {
+            ...oferta,
+            anuncioConcluidoEm: anuncioConcluido.concluidoEm,
+          }
+        : oferta,
+    );
+
+    if (ofertaAtiva?.anuncioId === anuncioConcluido.id) {
+      ofertaAtiva = {
+        ...ofertaAtiva,
+        anuncioConcluidoEm: anuncioConcluido.concluidoEm,
+      };
+    }
+
     atualizarAcaoConclusaoNoChat(ofertaAtiva);
     fecharDialogoDeConclusao({ aposSucesso: true });
     mostrarFeedback(`Anúncio “${anuncioConcluido.nome}” concluído com sucesso.`);

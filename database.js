@@ -38,6 +38,7 @@ const SELECAO_OFERTA = `
     o.anuncio_id,
     a.nome AS anuncio_nome,
     a.imagem_url AS anuncio_imagem_url,
+    a.concluido_em AS anuncio_concluido_em,
     o.valor,
     o.mensagem,
     o.comprador_id,
@@ -93,6 +94,9 @@ function mapearOferta(row) {
     anuncioId: Number(row.anuncio_id),
     anuncioNome: row.anuncio_nome,
     anuncioImagemUrl: row.anuncio_imagem_url,
+    anuncioConcluidoEm: row.anuncio_concluido_em
+      ? normalizarTimestamp(row.anuncio_concluido_em)
+      : null,
     valor: Number(row.valor),
     mensagem: row.mensagem,
     compradorId: row.comprador_id,

@@ -7894,7 +7894,7 @@ footer a:focus-visible {
   font-weight: 900;
   gap: 0.45rem;
   letter-spacing: 0.025em;
-  min-height: 2.65rem;
+  min-height: 2.75rem;
   padding: 0.55rem 0.9rem;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.22);
   white-space: nowrap;
@@ -8394,10 +8394,27 @@ footer a:focus-visible {
   }
 
   .chat-cabecalho-acoes .btn-concluir-chat {
-    font-size: 0.72rem;
-    min-height: 2.65rem;
+    font-size: 0.78rem;
+    min-height: 2.75rem;
     padding-inline: 0.65rem;
     white-space: normal;
+  }
+
+  .chat-cabecalho-acoes #botao-fechar-ofertas {
+    height: 2.75rem;
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    width: 2.75rem;
+  }
+}
+
+@media (max-width: 26rem) {
+  .chat-cabecalho-acoes {
+    gap: 0.35rem;
+  }
+
+  .chat-cabecalho-acoes .btn-concluir-chat::after {
+    display: none;
   }
 }
 
