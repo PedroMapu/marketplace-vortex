@@ -58,7 +58,6 @@ interface ContextoImportacaoLegada {
 
 type ModoAutenticacao = "login" | "cadastro";
 type PersistenciaSessao = "aba" | "navegador";
-type AcaoAposAutenticacao = "abrir-formulario-anuncio";
 type EstadoBannerConectividade =
   | "offline"
   | "dados-salvos"
@@ -144,8 +143,6 @@ const resumoMeusAnuncios =
   document.querySelector<HTMLElement>("#resumo-meus-anuncios");
 const linksAbrirMeusAnuncios =
   document.querySelectorAll<HTMLAnchorElement>("[data-abrir-meus-anuncios]");
-const linksAbrirNovoAnuncio =
-  document.querySelectorAll<HTMLAnchorElement>("[data-abrir-novo-anuncio]");
 const dialogoEditarAnuncio =
   document.querySelector<HTMLDialogElement>("#dialogo-editar-anuncio");
 const formularioEditarAnuncio = document.querySelector<HTMLFormElement>(
@@ -466,7 +463,6 @@ let catalogoUsaDadosSalvos = false;
 let autenticacaoEmAndamento = false;
 let atualizacaoFotoEmAndamento = false;
 let elementoFocadoAntesDaAutenticacao: HTMLElement | null = null;
-let acaoAposAutenticacao: AcaoAposAutenticacao | null = null;
 let cacheOfertasApi: Oferta[] = [];
 let ofertaAtiva: Oferta | null = null;
 let anuncioParaOferta: Anuncio | null = null;
@@ -2341,13 +2337,7 @@ function definirModoAutenticacao(
   }
 }
 
-function abrirDialogoAutenticacao(
-  acaoPendente: AcaoAposAutenticacao | null = null,
-): void {
-  if (acaoPendente) {
-    acaoAposAutenticacao = acaoPendente;
-  }
-
+function abrirDialogoAutenticacao(): void {
   if (!dialogoAutenticacao || dialogoAutenticacao.open) {
     return;
   }
@@ -2375,10 +2365,6 @@ function fecharDialogoAutenticacao(
 ): void {
   if (autenticacaoEmAndamento && !aposSucesso) {
     return;
-  }
-
-  if (!aposSucesso) {
-    acaoAposAutenticacao = null;
   }
 
   if (dialogoAutenticacao?.open) {
@@ -2555,13 +2541,6 @@ async function enviarFormularioAutenticacao(
     renderizarAnuncios();
     renderizarColecoesDoUsuario();
     void carregarMeusAnunciosDaApi();
-    const proximaAcao = acaoAposAutenticacao;
-    acaoAposAutenticacao = null;
-
-    if (proximaAcao) {
-      elementoFocadoAntesDaAutenticacao = null;
-    }
-
     fecharDialogoAutenticacao({ aposSucesso: true });
     agendarOfertaImportacaoLegada(resultado.dados.usuario);
     mostrarFeedback(
@@ -2569,10 +2548,6 @@ async function enviarFormularioAutenticacao(
         ? `Olá, ${usuarioAtual.nome}. Você entrou na sua conta.`
         : `Conta criada. Boas-vindas, ${usuarioAtual.nome}.`,
     );
-
-    if (proximaAcao === "abrir-formulario-anuncio") {
-      abrirFormularioNovoAnuncio();
-    }
   } catch (erro) {
     if (ehErroRequisicaoApi(erro)) {
       let primeiroCampoComErro: HTMLInputElement | null = null;
@@ -2805,7 +2780,6 @@ function inicializarContaUsuario(): void {
     }
   });
   dialogoAutenticacao?.addEventListener("close", () => {
-    acaoAposAutenticacao = null;
     document.body.classList.remove("modal-aberto");
     const elementoParaRestaurar = elementoFocadoAntesDaAutenticacao;
     elementoFocadoAntesDaAutenticacao = null;
@@ -6039,21 +6013,6 @@ function definirPainelAnuncioAberto(
   }
 }
 
-function abrirFormularioNovoAnuncio(): void {
-  definirPainelColecaoAberto(false, { moverFoco: false });
-  definirPainelMeusAnunciosAberto(false, { moverFoco: false });
-  definirPainelAnuncioAberto(true);
-}
-
-function solicitarAberturaFormularioNovoAnuncio(): void {
-  if (!sessaoAtual || !usuarioAtual) {
-    abrirDialogoAutenticacao("abrir-formulario-anuncio");
-    return;
-  }
-
-  abrirFormularioNovoAnuncio();
-}
-
 function mostrarFeedbackDaColecao(
   mensagem: string,
   { persistente = false }: { persistente?: boolean } = {},
@@ -6537,13 +6496,6 @@ function inicializarPainelNovoAnuncio(): void {
     definirPainelAnuncioAberto(Boolean(painelNovoAnuncio.hidden));
   });
 
-  linksAbrirNovoAnuncio.forEach((link) => {
-    link.addEventListener("click", (evento) => {
-      evento.preventDefault();
-      solicitarAberturaFormularioNovoAnuncio();
-    });
-  });
-
   botaoFecharAnuncio?.addEventListener("click", () => {
     definirPainelAnuncioAberto(false);
   });
@@ -6581,12 +6533,6 @@ function inicializarPainelNovoAnuncio(): void {
   linksAbrirMeusAnuncios.forEach((link) => {
     link.addEventListener("click", (evento) => {
       evento.preventDefault();
-
-      if (!sessaoAtual || !usuarioAtual) {
-        solicitarAberturaFormularioNovoAnuncio();
-        return;
-      }
-
       definirPainelAnuncioAberto(false, { moverFoco: false });
       definirPainelColecaoAberto(false, { moverFoco: false });
       definirPainelMeusAnunciosAberto(true);
