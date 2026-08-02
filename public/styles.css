@@ -7547,8 +7547,7 @@ footer a:focus-visible {
   outline-offset: 3px;
 }
 
-#botao-conversas,
-#botao-abrir-conversas {
+#botao-conversas {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.13), transparent 52%),
     var(--vortex-azul-eletrico, #5f83ff);
@@ -7559,10 +7558,19 @@ footer a:focus-visible {
   color: #ffffff;
 }
 
+#botao-abrir-conversas {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 52%),
+    #ff6a00;
+  border-color: rgba(255, 187, 112, 0.68);
+  box-shadow:
+    0 0.65rem 1.5rem rgba(255, 106, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  color: #000000;
+}
+
 #botao-conversas:hover,
-#botao-conversas[aria-expanded="true"],
-#botao-abrir-conversas:hover,
-#botao-abrir-conversas[aria-expanded="true"] {
+#botao-conversas[aria-expanded="true"] {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 52%),
     #7394ff;
@@ -7571,6 +7579,18 @@ footer a:focus-visible {
     0 0.85rem 1.8rem rgba(95, 131, 255, 0.34),
     0 0 1.4rem rgba(18, 206, 228, 0.1);
   color: #ffffff;
+}
+
+#botao-abrir-conversas:hover,
+#botao-abrir-conversas[aria-expanded="true"] {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22), transparent 52%),
+    #ff7f11;
+  border-color: #ffd09a;
+  box-shadow:
+    0 0.85rem 1.8rem rgba(255, 106, 0, 0.4),
+    0 0 1.4rem rgba(255, 175, 36, 0.18);
+  color: #000000;
 }
 
 .dialogo-ofertas {
