@@ -286,6 +286,10 @@ const dialogoOfertas =
   document.querySelector<HTMLDialogElement>("#dialogo-ofertas");
 const botaoFecharOfertas =
   document.querySelector<HTMLButtonElement>("#botao-fechar-ofertas");
+const botaoFecharOfertasLista =
+  document.querySelector<HTMLButtonElement>("#botao-fechar-ofertas-lista");
+const botaoVoltarConversas =
+  document.querySelector<HTMLButtonElement>("#botao-voltar-conversas");
 const listaConversas =
   document.querySelector<HTMLElement>("#lista-conversas");
 const chatPainel =
@@ -473,6 +477,7 @@ let idsMensagensVistas = new Map<number, number>();
 const idsUltimasMensagensInspecionadas = new Map<number, number>();
 const atualizacoesOfertasInspecionadas = new Map<number, string>();
 const naoLidasPorOferta = new Map<number, number>();
+const consultaChatUmaColuna = window.matchMedia("(max-width: 48rem)");
 
 const formatadorMoeda = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -3951,6 +3956,7 @@ function renderizarListaDeConversas(): void {
 
 function renderizarInicioDeOferta(anuncio: Anuncio): void {
   ofertaAtiva = null;
+  definirVisaoMobileDoChat("chat");
   atualizarAcaoConclusaoNoChat(null);
 
   if (tituloChatOferta) {
@@ -3989,11 +3995,14 @@ function renderizarInicioDeOferta(anuncio: Anuncio): void {
   }
 
   renderizarListaDeConversas();
-  window.requestAnimationFrame(() => campoValorOferta?.focus());
+  if (!consultaChatUmaColuna.matches) {
+    window.requestAnimationFrame(() => campoValorOferta?.focus());
+  }
 }
 
 function renderizarChatSemSelecao(): void {
   ofertaAtiva = null;
+  definirVisaoMobileDoChat("lista");
   atualizarAcaoConclusaoNoChat(null);
 
   if (tituloChatOferta) {
@@ -4114,6 +4123,7 @@ async function carregarMensagensDaOferta(oferta: Oferta): Promise<void> {
   const sequencia = ++sequenciaRequisicaoMensagens;
   ofertaAtiva = oferta;
   anuncioParaOferta = null;
+  definirVisaoMobileDoChat("chat", { focar: true });
   atualizarAcaoConclusaoNoChat(oferta);
 
   if (tituloChatOferta) {
@@ -4154,7 +4164,9 @@ async function carregarMensagensDaOferta(oferta: Oferta): Promise<void> {
     }
 
     renderizarMensagensDaOferta(oferta, dados);
-    window.requestAnimationFrame(() => campoConteudoMensagem?.focus());
+    if (!consultaChatUmaColuna.matches) {
+      window.requestAnimationFrame(() => campoConteudoMensagem?.focus());
+    }
   } catch (erro) {
     if (sequencia !== sequenciaRequisicaoMensagens) {
       return;
@@ -4178,7 +4190,37 @@ function selecionarOferta(id: string | undefined): void {
     return;
   }
 
+  definirVisaoMobileDoChat("chat");
   void carregarMensagensDaOferta(oferta);
+}
+
+function definirVisaoMobileDoChat(
+  visao: "lista" | "chat",
+  { focar = false }: { focar?: boolean } = {},
+): void {
+  if (!dialogoOfertas) {
+    return;
+  }
+
+  dialogoOfertas.dataset.visaoMobile = visao;
+
+  if (!focar || !consultaChatUmaColuna.matches) {
+    return;
+  }
+
+  window.requestAnimationFrame(() => {
+    if (visao === "chat") {
+      botaoVoltarConversas?.focus();
+      return;
+    }
+
+    const conversaAtiva = ofertaAtiva
+      ? listaConversas?.querySelector<HTMLButtonElement>(
+          `[data-oferta-id="${ofertaAtiva.id}"]`,
+        )
+      : null;
+    (conversaAtiva ?? botaoFecharOfertasLista)?.focus();
+  });
 }
 
 function atualizarAcaoConclusaoNoChat(oferta: Oferta | null): void {
@@ -4333,6 +4375,7 @@ function abrirDialogoDeOfertas(
   elementoFocadoAntesDasOfertas = elementoAcionador;
   anuncioParaOferta = anuncio;
   ofertaAtiva = null;
+  definirVisaoMobileDoChat(anuncio ? "chat" : "lista");
   definirFeedbackOfertas("");
 
   if (!dialogoOfertas.open) {
@@ -4782,6 +4825,10 @@ function inicializarOfertasEConversas(): void {
   });
 
   botaoFecharOfertas?.addEventListener("click", fecharDialogoDeOfertas);
+  botaoFecharOfertasLista?.addEventListener("click", fecharDialogoDeOfertas);
+  botaoVoltarConversas?.addEventListener("click", () => {
+    definirVisaoMobileDoChat("lista", { focar: true });
+  });
   dialogoOfertas.addEventListener("click", (evento) => {
     if (evento.target === dialogoOfertas) {
       fecharDialogoDeOfertas();

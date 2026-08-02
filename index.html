@@ -1430,9 +1430,19 @@
     >
       <div class="ofertas-layout">
         <aside class="conversas-sidebar" aria-labelledby="titulo-dialogo-ofertas">
-          <div>
-            <p>Negocie com segurança</p>
-            <h2 id="titulo-dialogo-ofertas">Ofertas e conversas</h2>
+          <div class="conversas-sidebar-cabecalho">
+            <div>
+              <p>Negocie com segurança</p>
+              <h2 id="titulo-dialogo-ofertas">Ofertas e conversas</h2>
+            </div>
+            <button
+              id="botao-fechar-ofertas-lista"
+              class="botao-fechar-ofertas-lista"
+              type="button"
+              aria-label="Fechar ofertas e conversas"
+            >
+              ×
+            </button>
           </div>
           <div
             id="lista-conversas"
@@ -1451,7 +1461,15 @@
           aria-labelledby="titulo-chat-oferta"
         >
           <header>
-            <div>
+            <button
+              id="botao-voltar-conversas"
+              class="botao-voltar-conversas"
+              type="button"
+              aria-label="Voltar para a lista de conversas"
+            >
+              <span aria-hidden="true">←</span>
+            </button>
+            <div class="chat-cabecalho-texto">
               <p id="contexto-chat-oferta">Selecione uma conversa</p>
               <h3 id="titulo-chat-oferta">Chat da oferta</h3>
             </div>
@@ -1538,7 +1556,7 @@
               placeholder="Escreva uma mensagem..."
               required
             ></textarea>
-            <button type="submit">Enviar mensagem</button>
+            <button type="submit" aria-label="Enviar mensagem">Enviar</button>
           </form>
         </section>
       </div>
