@@ -294,6 +294,9 @@ const tituloChatOferta =
   document.querySelector<HTMLElement>("#titulo-chat-oferta");
 const contextoChatOferta =
   document.querySelector<HTMLElement>("#contexto-chat-oferta");
+const botaoConcluirAnuncioChat = document.querySelector<HTMLButtonElement>(
+  "#botao-concluir-anuncio-chat",
+);
 const listaMensagens =
   document.querySelector<HTMLElement>("#lista-mensagens");
 const formularioOferta =
@@ -1375,6 +1378,7 @@ async function carregarMeusAnunciosDaApi(
     cacheAnunciosUsuarioApi = resultado.dados;
     listaMeusAnuncios?.removeAttribute("aria-busy");
     renderizarMeusAnuncios();
+    atualizarAcaoConclusaoNoChat(ofertaAtiva);
     return true;
   } catch (erro) {
     if (
@@ -3932,6 +3936,7 @@ function renderizarListaDeConversas(): void {
 
 function renderizarInicioDeOferta(anuncio: Anuncio): void {
   ofertaAtiva = null;
+  atualizarAcaoConclusaoNoChat(null);
 
   if (tituloChatOferta) {
     tituloChatOferta.textContent = anuncio.nome;
@@ -3974,6 +3979,7 @@ function renderizarInicioDeOferta(anuncio: Anuncio): void {
 
 function renderizarChatSemSelecao(): void {
   ofertaAtiva = null;
+  atualizarAcaoConclusaoNoChat(null);
 
   if (tituloChatOferta) {
     tituloChatOferta.textContent = "Chat da oferta";
@@ -4093,6 +4099,7 @@ async function carregarMensagensDaOferta(oferta: Oferta): Promise<void> {
   const sequencia = ++sequenciaRequisicaoMensagens;
   ofertaAtiva = oferta;
   anuncioParaOferta = null;
+  atualizarAcaoConclusaoNoChat(oferta);
 
   if (tituloChatOferta) {
     tituloChatOferta.textContent = oferta.anuncioNome;
@@ -4157,6 +4164,73 @@ function selecionarOferta(id: string | undefined): void {
   }
 
   void carregarMensagensDaOferta(oferta);
+}
+
+function atualizarAcaoConclusaoNoChat(oferta: Oferta | null): void {
+  if (!botaoConcluirAnuncioChat) {
+    return;
+  }
+
+  const anuncio = oferta
+    ? cacheAnunciosUsuarioApi.find(
+        (item) => item.id === oferta.anuncioId,
+      )
+    : undefined;
+  const podeConcluir = Boolean(
+    oferta &&
+      usuarioAtual?.id === oferta.anuncianteId &&
+      (!anuncio || !anuncio.concluidoEm),
+  );
+
+  botaoConcluirAnuncioChat.hidden = !podeConcluir;
+  botaoConcluirAnuncioChat.dataset.anuncioId = podeConcluir
+    ? String(oferta?.anuncioId)
+    : "";
+  botaoConcluirAnuncioChat.setAttribute(
+    "aria-label",
+    podeConcluir && oferta
+      ? `Concluir ${oferta.anuncioNome}`
+      : "Concluir anúncio",
+  );
+}
+
+async function abrirConclusaoDaOfertaAtiva(): Promise<void> {
+  if (
+    !ofertaAtiva ||
+    !botaoConcluirAnuncioChat ||
+    usuarioAtual?.id !== ofertaAtiva.anuncianteId
+  ) {
+    return;
+  }
+
+  let anuncio = cacheAnunciosUsuarioApi.find(
+    (item) => item.id === ofertaAtiva?.anuncioId,
+  );
+
+  if (!anuncio) {
+    await carregarMeusAnunciosDaApi({ mostrarCarregamento: false });
+    anuncio = cacheAnunciosUsuarioApi.find(
+      (item) => item.id === ofertaAtiva?.anuncioId,
+    );
+  }
+
+  if (!anuncio) {
+    botaoConcluirAnuncioChat.hidden = true;
+    botaoConcluirAnuncioChat.dataset.anuncioId = "";
+    definirFeedbackOfertas(
+      "Não foi possível localizar este anúncio. Atualize a página e tente novamente.",
+      "erro",
+    );
+    return;
+  }
+
+  if (anuncio.concluidoEm) {
+    atualizarAcaoConclusaoNoChat(ofertaAtiva);
+    definirFeedbackOfertas("Este anúncio já foi concluído.", "erro");
+    return;
+  }
+
+  abrirDialogoDeConclusao(anuncio, botaoConcluirAnuncioChat);
 }
 
 async function carregarConversas(
@@ -4681,6 +4755,10 @@ function inicializarOfertasEConversas(): void {
   formularioMensagem?.addEventListener("submit", (evento) => {
     evento.preventDefault();
     void enviarMensagemDaOferta();
+  });
+
+  botaoConcluirAnuncioChat?.addEventListener("click", () => {
+    void abrirConclusaoDaOfertaAtiva();
   });
 
   botaoFecharOfertas?.addEventListener("click", fecharDialogoDeOfertas);
@@ -6488,6 +6566,7 @@ async function concluirAnuncio(): Promise<void> {
       carregarAnunciosDaApi({ mostrarCarregamento: false }),
       carregarMeusAnunciosDaApi({ mostrarCarregamento: false }),
     ]);
+    atualizarAcaoConclusaoNoChat(ofertaAtiva);
     fecharDialogoDeConclusao({ aposSucesso: true });
     mostrarFeedback(`Anúncio “${anuncioConcluido.nome}” concluído com sucesso.`);
   } catch (erro) {

@@ -7361,6 +7361,18 @@ footer a:focus-visible {
     border-radius: 1rem;
   }
 
+  .busca-input-container,
+  #busca-vitrine {
+    min-height: 2.75rem;
+  }
+
+  .layout-toggle .btn-layout {
+    height: 2.75rem;
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    width: 2.75rem;
+  }
+
   .vitrine-ctas {
     width: 100%;
   }
@@ -7393,6 +7405,17 @@ footer a:focus-visible {
   .footer-nav-container,
   .footer-bottom {
     min-width: 0;
+  }
+
+  .footer-socials a {
+    height: 2.75rem;
+    width: 2.75rem;
+  }
+
+  .footer-nav-container nav a {
+    align-items: center;
+    display: inline-flex;
+    min-height: 2.75rem;
   }
 }
 
@@ -7845,6 +7868,47 @@ footer a:focus-visible {
   margin: 0.2rem 0 0;
 }
 
+.chat-cabecalho-acoes {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.65rem;
+}
+
+.chat-cabecalho-acoes .btn-concluir-chat[hidden] {
+  display: none !important;
+}
+
+.chat-cabecalho-acoes .btn-concluir-chat {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 55%),
+    rgba(21, 128, 61, 0.28);
+  border: 1px solid rgba(74, 222, 128, 0.52);
+  border-radius: 0.62rem;
+  box-shadow: 0 0.65rem 1.4rem rgba(21, 128, 61, 0.12);
+  color: #dcfce7;
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.025em;
+  min-height: 2.65rem;
+  padding: 0.55rem 0.9rem;
+  white-space: nowrap;
+}
+
+.chat-cabecalho-acoes .btn-concluir-chat:hover {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 55%),
+    rgba(21, 128, 61, 0.5);
+  border-color: #86efac;
+  box-shadow: 0 0.8rem 1.6rem rgba(21, 128, 61, 0.2);
+  color: #ffffff;
+}
+
+.chat-cabecalho-acoes .btn-concluir-chat:focus-visible {
+  outline: 3px solid #86efac;
+  outline-offset: 3px;
+}
+
 .lista-mensagens {
   align-content: start;
   display: flex;
@@ -8286,6 +8350,26 @@ footer a:focus-visible {
     overflow: hidden;
     padding-inline: 0.65rem;
   }
+
+  .chat-painel > header {
+    align-items: flex-start;
+    gap: 0.55rem;
+  }
+
+  .chat-painel > header > div:first-child {
+    min-width: 0;
+  }
+
+  .chat-cabecalho-acoes {
+    gap: 0.45rem;
+  }
+
+  .chat-cabecalho-acoes .btn-concluir-chat {
+    font-size: 0.72rem;
+    min-height: 2.65rem;
+    padding-inline: 0.65rem;
+    white-space: normal;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -8300,6 +8384,7 @@ footer a:focus-visible {
   #botao-conversas,
   #botao-abrir-conversas,
   .conversa-item,
+  .chat-cabecalho-acoes .btn-concluir-chat,
   .dialogo-ofertas .botao-fechar,
   .dialogo-ofertas .btn-fechar,
   .dialogo-ofertas .botao-fechar-ofertas,
