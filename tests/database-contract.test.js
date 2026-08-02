@@ -3,7 +3,37 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { mapearAnuncio, mapearUsuario } = require("../database");
+const {
+  buscarFotoPerfilUsuarioPorId,
+  mapearAnuncio,
+  mapearUsuario,
+  pool,
+} = require("../database");
+
+test("consulta somente a foto pública do perfil pelo usuário", async () => {
+  const queryOriginal = pool.query;
+  const id = "d7ff9c07-4409-4cf3-9458-6a7bd8d94104";
+  let consulta;
+
+  pool.query = async (texto, parametros) => {
+    consulta = { texto, parametros };
+    return {
+      rows: [
+        { foto_perfil_url: "data:image/png;base64,iVBORw0KGgo=" },
+      ],
+    };
+  };
+
+  try {
+    assert.deepEqual(await buscarFotoPerfilUsuarioPorId(id), {
+      fotoPerfilUrl: "data:image/png;base64,iVBORw0KGgo=",
+    });
+    assert.match(consulta.texto, /SELECT foto_perfil_url/u);
+    assert.deepEqual(consulta.parametros, [id]);
+  } finally {
+    pool.query = queryOriginal;
+  }
+});
 
 test("mapeia a foto de perfil do usuário sem expor snake_case", () => {
   assert.deepEqual(

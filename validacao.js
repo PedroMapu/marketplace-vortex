@@ -278,6 +278,17 @@ const schemaParametroAnuncio = z.strictObject({
     }),
 });
 
+const schemaParametroUsuario = z.strictObject({
+  id: z
+    .string({
+      error: "O ID do usuário deve ser um UUID válido.",
+    })
+    .trim()
+    .uuid({
+      error: "O ID do usuário deve ser um UUID válido.",
+    }),
+});
+
 const schemaParametroOferta = schemaParametroAnuncio;
 
 const schemaConclusaoAnuncio = z.strictObject({
@@ -320,6 +331,7 @@ module.exports = {
   schemaAnuncio,
   schemaFiltrosAnuncios,
   schemaParametroAnuncio,
+  schemaParametroUsuario,
   schemaParametroOferta,
   schemaConclusaoAnuncio,
   schemaOferta,

@@ -17,6 +17,7 @@ const USUARIO_ID_FALSIFICADO = "4dc9a1ff-4be3-4d35-9ef7-514a7a3a19f5";
 
 function carregarApiComDatabaseMock(sobrescritas = {}, opcoes = {}) {
   const databaseMock = {
+    buscarFotoPerfilUsuarioPorId: async () => undefined,
     listarAnuncios: async () => [],
     criarAnuncio: async (anuncio) => anuncio,
     atualizarAnuncioPorId: async () => undefined,
@@ -118,6 +119,27 @@ async function requisitar(app, caminho, opcoes = {}) {
   }
 }
 
+async function requisitarBinario(app, caminho) {
+  const servidor = app.listen(0, "127.0.0.1");
+  await once(servidor, "listening");
+
+  try {
+    const { port } = servidor.address();
+    const resposta = await fetch(`http://127.0.0.1:${port}${caminho}`);
+
+    return {
+      status: resposta.status,
+      contentType: resposta.headers.get("content-type"),
+      cacheControl: resposta.headers.get("cache-control"),
+      nosniff: resposta.headers.get("x-content-type-options"),
+      body: Buffer.from(await resposta.arrayBuffer()),
+    };
+  } finally {
+    servidor.close();
+    await once(servidor, "close");
+  }
+}
+
 test("GET /api/status aguarda o healthcheck e preserva a resposta de sucesso", async () => {
   let liberarHealthcheck;
   const healthcheckPendente = new Promise((resolve) => {
@@ -159,6 +181,68 @@ test("GET /api/status responde 503 sem expor a falha do PostgreSQL", async () =>
       codigo: "SERVICO_INDISPONIVEL",
     },
   });
+});
+
+test("GET /api/usuarios/:id/foto entrega a foto real do perfil", async () => {
+  const foto = Buffer.from("iVBORw0KGgo=", "base64");
+  let usuarioConsultado;
+  const { app } = carregarApiComDatabaseMock({
+    buscarFotoPerfilUsuarioPorId: async (id) => {
+      usuarioConsultado = id;
+      return { fotoPerfilUrl: "data:image/png;base64,iVBORw0KGgo=" };
+    },
+  });
+
+  assert.deepEqual(
+    await requisitarBinario(app, `/api/usuarios/${USUARIO_ID}/foto`),
+    {
+      status: 200,
+      contentType: "image/png",
+      cacheControl: "public, max-age=0, must-revalidate",
+      nosniff: "nosniff",
+      body: foto,
+    },
+  );
+  assert.equal(usuarioConsultado, USUARIO_ID);
+});
+
+test("GET /api/usuarios/:id/foto usa 404 quando o perfil não tem foto", async () => {
+  const { app } = carregarApiComDatabaseMock({
+    buscarFotoPerfilUsuarioPorId: async () => ({ fotoPerfilUrl: null }),
+  });
+
+  assert.deepEqual(
+    await requisitar(app, `/api/usuarios/${USUARIO_ID}/foto`),
+    {
+      status: 404,
+      body: {
+        erro: "Foto de perfil não encontrada.",
+        codigo: "FOTO_PERFIL_NAO_ENCONTRADA",
+      },
+    },
+  );
+});
+
+test("GET /api/usuarios/:id/foto rejeita ID inválido antes do banco", async () => {
+  let consultas = 0;
+  const { app } = carregarApiComDatabaseMock({
+    buscarFotoPerfilUsuarioPorId: async () => {
+      consultas += 1;
+      return undefined;
+    },
+  });
+
+  assert.deepEqual(await requisitar(app, "/api/usuarios/invalido/foto"), {
+    status: 400,
+    body: {
+      erro: "Parâmetro de usuário inválido.",
+      codigo: "VALIDACAO",
+      campos: {
+        id: "O ID do usuário deve ser um UUID válido.",
+      },
+    },
+  });
+  assert.equal(consultas, 0);
 });
 
 test("GET /api/anuncios aguarda a consulta e encaminha os filtros", async () => {

@@ -2151,6 +2151,8 @@ async function salvarFotoPerfil(fotoPerfilUrl: string | null): Promise<void> {
     usuarioAtual = usuarioAtualizado;
     salvarSessao(sessaoAtual);
     atualizarContaNoHeader();
+    renderizarAnuncios();
+    renderizarMeusAnuncios();
     definirFeedbackFotoPerfil(
       fotoPerfilUrl ? "Foto atualizada." : "Foto removida.",
       "sucesso",
@@ -3425,7 +3427,8 @@ function inicializarVisualizacaoDeImagens(): void {
 
 function criarBotaoAvatarDoAnunciante(anuncio: Anuncio): HTMLButtonElement {
   const nomeAnunciante = anuncio.usuarioNome.trim() || "Anunciante";
-  const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(nomeAnunciante)}`;
+  const avatarFallbackUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(nomeAnunciante)}`;
+  const avatarUrl = `${URL_BASE_API}/api/usuarios/${encodeURIComponent(anuncio.usuarioId)}/foto`;
   const botaoAvatar = criarElemento(
     "button",
     "card-creators botao-avatar-anunciante",
@@ -3442,6 +3445,14 @@ function criarBotaoAvatarDoAnunciante(anuncio: Anuncio): HTMLButtonElement {
   avatar.alt = `Avatar de ${nomeAnunciante}`;
   avatar.loading = "lazy";
   avatar.decoding = "async";
+  avatar.addEventListener(
+    "error",
+    () => {
+      botaoAvatar.dataset.avatarUrl = avatarFallbackUrl;
+      avatar.src = avatarFallbackUrl;
+    },
+    { once: true },
+  );
   botaoAvatar.append(avatar);
 
   return botaoAvatar;

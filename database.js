@@ -184,6 +184,22 @@ async function buscarPerfilUsuarioPorId(id) {
   return usuario ? mapearUsuario(usuario) : undefined;
 }
 
+async function buscarFotoPerfilUsuarioPorId(id) {
+  const resultado = await pool.query(
+    `
+      SELECT foto_perfil_url
+      FROM usuarios
+      WHERE id = $1
+    `,
+    [id],
+  );
+  const usuario = resultado.rows[0];
+
+  return usuario
+    ? { fotoPerfilUrl: usuario.foto_perfil_url ?? null }
+    : undefined;
+}
+
 async function atualizarFotoPerfilUsuario(id, fotoPerfilUrl) {
   const resultado = await pool.query(
     `
@@ -672,6 +688,7 @@ module.exports = {
   buscarUsuarioPorEmail,
   buscarUsuarioPorId,
   buscarPerfilUsuarioPorId,
+  buscarFotoPerfilUsuarioPorId,
   atualizarFotoPerfilUsuario,
   registrarTokenRedefinicaoSenha,
   redefinirSenhaComToken,

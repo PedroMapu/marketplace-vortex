@@ -12,6 +12,7 @@ const {
   schemaAnuncio,
   schemaFiltrosAnuncios,
   schemaParametroAnuncio,
+  schemaParametroUsuario,
 } = require("../validacao");
 const { validarComSchema } = require("../erros-api");
 
@@ -274,6 +275,16 @@ test("query e parâmetro rejeitam valores desconhecidos, repetidos ou inseguros"
     false,
   );
   assert.equal(schemaParametroAnuncio.parse({ id: "42" }).id, 42);
+  assert.equal(
+    schemaParametroUsuario.parse({
+      id: "d55e51c8-abd6-4775-bf9d-574d876d3f0a",
+    }).id,
+    "d55e51c8-abd6-4775-bf9d-574d876d3f0a",
+  );
+  assert.equal(
+    schemaParametroUsuario.safeParse({ id: "usuario-legado" }).success,
+    false,
+  );
 
   for (const id of ["0", "-1", "1.5", "9007199254740992"]) {
     assert.equal(schemaParametroAnuncio.safeParse({ id }).success, false);

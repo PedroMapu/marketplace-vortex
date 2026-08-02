@@ -6,6 +6,7 @@ const {
   criarUsuario,
   buscarUsuarioPorEmail,
   buscarPerfilUsuarioPorId,
+  buscarFotoPerfilUsuarioPorId,
   atualizarFotoPerfilUsuario,
   listarAnuncios,
   criarAnuncio,
@@ -33,6 +34,7 @@ const {
   schemaAnuncio,
   schemaFiltrosAnuncios,
   schemaParametroAnuncio,
+  schemaParametroUsuario,
   schemaParametroOferta,
   schemaConclusaoAnuncio,
   schemaOferta,
@@ -185,6 +187,47 @@ app.patch("/api/auth/me/foto", autenticarBearer, async (request, response) => {
   return response.status(200).json({
     usuario: usuarioPublico(usuario),
   });
+});
+
+app.get("/api/usuarios/:id/foto", async (request, response) => {
+  const validacao = validarComSchema(schemaParametroUsuario, request.params);
+
+  if (!validacao.sucesso) {
+    return responderErro(
+      response,
+      400,
+      "Parâmetro de usuário inválido.",
+      "VALIDACAO",
+      validacao.campos,
+    );
+  }
+
+  const resultado = await buscarFotoPerfilUsuarioPorId(validacao.dados.id);
+  const fotoPerfilUrl = resultado?.fotoPerfilUrl;
+  const correspondencia =
+    typeof fotoPerfilUrl === "string"
+      ? /^data:(image\/(?:png|jpeg));base64,([A-Za-z0-9+/]+={0,2})$/u.exec(
+          fotoPerfilUrl,
+        )
+      : null;
+
+  if (!correspondencia) {
+    return responderErro(
+      response,
+      404,
+      "Foto de perfil não encontrada.",
+      "FOTO_PERFIL_NAO_ENCONTRADA",
+    );
+  }
+
+  const conteudo = Buffer.from(correspondencia[2], "base64");
+
+  response.set({
+    "Cache-Control": "public, max-age=0, must-revalidate",
+    "Content-Type": correspondencia[1],
+    "X-Content-Type-Options": "nosniff",
+  });
+  return response.status(200).send(conteudo);
 });
 
 registrarRotasRedefinicaoSenha(app);
