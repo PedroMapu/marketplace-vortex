@@ -139,7 +139,9 @@ app.post("/api/auth/login", async (request, response) => {
   }
 
   return response.status(200).json({
-    token: criarToken(usuario),
+    token: criarToken(usuario, {
+      manterConectado: validacao.dados.manterConectado,
+    }),
     usuario: usuarioPublico(usuario),
   });
 });

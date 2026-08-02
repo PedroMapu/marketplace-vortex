@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const { once } = require("node:events");
 const test = require("node:test");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const caminhoApi = require.resolve("../api");
 const caminhoDatabase = require.resolve("../database");
@@ -232,6 +233,28 @@ test("login válido responde sessão e login inválido usa mensagem genérica", 
     },
   });
   assert.deepEqual(loginInexistente, loginInvalido);
+});
+
+test("login com manter conectado emite uma sessão de 30 dias", async () => {
+  const senhaHash = await bcrypt.hash("senha-segura", 4);
+  const app = carregarApiComDatabaseMock({
+    buscarUsuarioPorEmail: async () => ({ ...USUARIO, senhaHash }),
+  });
+
+  const resposta = await requisitar(app, "/api/auth/login", {
+    method: "POST",
+    body: {
+      email: USUARIO.email,
+      senha: "senha-segura",
+      manterConectado: true,
+    },
+  });
+  const payload = jwt.decode(resposta.body.token);
+  const trintaDiasEmSegundos = 30 * 24 * 60 * 60;
+
+  assert.equal(resposta.status, 200);
+  assert.ok(payload.exp - payload.iat <= trintaDiasEmSegundos);
+  assert.ok(payload.exp - payload.iat >= trintaDiasEmSegundos - 1);
 });
 
 test("GET /api/auth/me usa a identidade carregada pelo Bearer", async () => {

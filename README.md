@@ -96,7 +96,7 @@ No Render, o serviço executa `npm ci` no build e
 |---|---|---|
 | `GET /api/status` | público | Verifica a API e a conexão PostgreSQL. |
 | `POST /api/auth/register` | público | Cadastra usuário e devolve token e perfil. |
-| `POST /api/auth/login` | público | Autentica e devolve token e perfil. |
+| `POST /api/auth/login` | público | Autentica e devolve token e perfil; aceita `manterConectado: true` para uma sessão de 30 dias. |
 | `GET /api/auth/me` | Bearer JWT | Revalida a sessão atual. |
 | `POST /api/auth/password-reset/request` | público | Registra uma solicitação sem revelar se o e-mail existe. |
 | `POST /api/auth/password-reset/confirm` | público | Confirma a troca com token válido. |

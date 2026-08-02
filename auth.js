@@ -6,6 +6,7 @@ const JWT_ALGORITMO = "HS256";
 const JWT_ISSUER = "marketplace-vortex-api";
 const JWT_AUDIENCE = "marketplace-vortex-web";
 const JWT_EXPIRACAO = "24h";
+const JWT_EXPIRACAO_PERSISTENTE = "30d";
 const JWT_SEGREDO_MINIMO_BYTES = 32;
 
 function obterSegredoJwt() {
@@ -32,7 +33,7 @@ function usuarioPublico(usuario) {
   };
 }
 
-function criarToken(usuario) {
+function criarToken(usuario, { manterConectado = false } = {}) {
   const usuarioSeguro = usuarioPublico(usuario);
 
   return jwt.sign({}, obterSegredoJwt(), {
@@ -40,7 +41,9 @@ function criarToken(usuario) {
     subject: usuarioSeguro.id,
     issuer: JWT_ISSUER,
     audience: JWT_AUDIENCE,
-    expiresIn: JWT_EXPIRACAO,
+    expiresIn: manterConectado
+      ? JWT_EXPIRACAO_PERSISTENTE
+      : JWT_EXPIRACAO,
   });
 }
 
@@ -64,4 +67,6 @@ module.exports = {
   JWT_ALGORITMO,
   JWT_ISSUER,
   JWT_AUDIENCE,
+  JWT_EXPIRACAO,
+  JWT_EXPIRACAO_PERSISTENTE,
 };

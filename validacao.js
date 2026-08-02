@@ -70,6 +70,7 @@ const schemaCadastro = z
 const schemaLogin = z.strictObject({
   email: schemaEmail,
   senha: schemaSenha,
+  manterConectado: z.boolean().optional().default(false),
 });
 
 const schemaFotoPerfil = z.strictObject({

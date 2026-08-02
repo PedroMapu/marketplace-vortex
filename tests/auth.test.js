@@ -47,6 +47,17 @@ test("cria JWT HS256 com sub e escopo mínimos, sem PII redundante", () => {
   assert.ok(payload.exp - payload.iat >= 24 * 60 * 60 - 1);
 });
 
+test("cria JWT de 30 dias para a opção manter conectado", () => {
+  process.env.JWT_SECRET = SEGREDO_TESTE;
+
+  const token = criarToken(USUARIO, { manterConectado: true });
+  const payload = verificarToken(token);
+  const trintaDiasEmSegundos = 30 * 24 * 60 * 60;
+
+  assert.ok(payload.exp - payload.iat <= trintaDiasEmSegundos);
+  assert.ok(payload.exp - payload.iat >= trintaDiasEmSegundos - 1);
+});
+
 test("rejeita segredo ausente ou menor que 32 bytes", () => {
   delete process.env.JWT_SECRET;
   assert.throws(validarConfiguracaoAuth, /JWT_SECRET é obrigatória/);

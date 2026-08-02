@@ -61,6 +61,60 @@
       </nav>
 
       <div class="header-actions">
+        <div id="notificacoes-conversas" class="notificacoes-conversas" hidden>
+          <button
+            id="botao-notificacoes-conversas"
+            class="botao-notificacoes-conversas"
+            type="button"
+            aria-label="Abrir notificações de conversas"
+            aria-expanded="false"
+            aria-controls="painel-notificacoes-conversas"
+          >
+            <svg
+              class="icone-sino"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+              <path d="M10 21h4" />
+            </svg>
+            <span
+              id="contador-notificacoes-conversas"
+              class="contador-notificacoes-conversas"
+              aria-hidden="true"
+              hidden
+            ></span>
+          </button>
+          <section
+            id="painel-notificacoes-conversas"
+            class="painel-notificacoes-conversas"
+            aria-labelledby="titulo-notificacoes-conversas"
+            hidden
+          >
+            <div class="painel-notificacoes-cabecalho">
+              <div>
+                <span>Mensagens</span>
+                <h2 id="titulo-notificacoes-conversas">Não lidas</h2>
+              </div>
+              <span
+                id="resumo-notificacoes-conversas"
+                class="resumo-notificacoes-conversas"
+                aria-live="polite"
+              ></span>
+            </div>
+            <div
+              id="lista-notificacoes-conversas"
+              class="lista-notificacoes-conversas"
+              role="list"
+              aria-label="Conversas não lidas"
+            ></div>
+          </section>
+        </div>
         <div class="conta-usuario">
           <button
             id="nome-usuario"
@@ -891,7 +945,7 @@
 
       <div class="footer-nav-container">
         <nav aria-label="Navegação do rodapé - Coluna 1">
-          <h3>Plataforma</h3>
+          <h3 class="footer-heading">Plataforma</h3>
           <ul>
             <li><a href="#como-funciona">Economia circular</a></li>
             <li><a href="#vitrine">Explorar anúncios</a></li>
@@ -900,7 +954,7 @@
         </nav>
         
         <nav aria-label="Navegação do rodapé - Coluna 2">
-          <h3>Suporte</h3>
+          <h3 class="footer-heading">Suporte</h3>
           <ul>
             <li><a href="#aba-meus-anuncios" data-abrir-meus-anuncios>Meus anúncios</a></li>
             <li><a href="#faq">Perguntas frequentes</a></li>
@@ -911,11 +965,37 @@
 
       <div class="footer-bottom">
         <p>Projeto acadêmico desenvolvido para a Universidade de Fortaleza — UNIFOR.</p>
-        <div class="footer-lang">
-          <span>🌐 Português - BR</span>
+        <div class="footer-language-selector">
+          <button
+            class="footer-lang"
+            id="footer-lang-button"
+            type="button"
+            aria-haspopup="menu"
+            aria-controls="footer-lang-menu"
+            aria-expanded="false"
+          >
+            <img class="footer-lang-flag" src="/icons/flags/br.svg" alt="" aria-hidden="true" />
+            <span class="footer-lang-label">Português - BR</span>
+            <span class="footer-lang-chevron" aria-hidden="true">⌃</span>
+          </button>
+          <ul
+            class="footer-lang-menu"
+            id="footer-lang-menu"
+            role="menu"
+            aria-label="Selecionar idioma"
+            hidden
+          >
+            <li role="none"><button type="button" role="menuitemradio" aria-checked="true" data-language="pt-BR" data-flag-src="/icons/flags/br.svg"><img src="/icons/flags/br.svg" alt="" aria-hidden="true" /><span>Português - BR</span></button></li>
+            <li role="none"><button type="button" role="menuitemradio" aria-checked="false" data-language="de" data-flag-src="/icons/flags/de.svg"><img src="/icons/flags/de.svg" alt="" aria-hidden="true" /><span>Alemão</span></button></li>
+            <li role="none"><button type="button" role="menuitemradio" aria-checked="false" data-language="en" data-flag-src="/icons/flags/gb.svg"><img src="/icons/flags/gb.svg" alt="" aria-hidden="true" /><span>Inglês</span></button></li>
+            <li role="none"><button type="button" role="menuitemradio" aria-checked="false" data-language="fr" data-flag-src="/icons/flags/fr.svg"><img src="/icons/flags/fr.svg" alt="" aria-hidden="true" /><span>Francês</span></button></li>
+            <li role="none"><button type="button" role="menuitemradio" aria-checked="false" data-language="es" data-flag-src="/icons/flags/es.svg"><img src="/icons/flags/es.svg" alt="" aria-hidden="true" /><span>Espanhol</span></button></li>
+            <li role="none"><button type="button" role="menuitemradio" aria-checked="false" data-language="ja" data-flag-src="/icons/flags/jp.svg"><img src="/icons/flags/jp.svg" alt="" aria-hidden="true" /><span>Japonês</span></button></li>
+            <li role="none"><button type="button" role="menuitemradio" aria-checked="false" data-language="zh-CN" data-flag-src="/icons/flags/cn.svg"><img src="/icons/flags/cn.svg" alt="" aria-hidden="true" /><span>Chinês</span></button></li>
+          </ul>
         </div>
       </div>
-      <p class="footer-copy">&copy; 2026 Marketplace Vortex. Todos os direitos reservados(Feito por PEDRO MAPURUNGA).</p>
+      <p class="footer-copy">&copy; 2026 Marketplace Vortex. Todos os direitos reservados (Feito por <span class="footer-author">PEDRO MAPURUNGA</span>).</p>
     </footer>
 
     <dialog
@@ -1017,6 +1097,21 @@
                 data-erro-campo="senha"
               ></span>
             </div>
+
+            <label class="opcao-manter-conectado" for="login-manter-conectado">
+              <input
+                id="login-manter-conectado"
+                name="manterConectado"
+                type="checkbox"
+                value="true"
+              />
+              <span>
+                <strong>Manter conectado</strong>
+                <small>
+                  Não será necessário entrar novamente neste dispositivo por até 30 dias.
+                </small>
+              </span>
+            </label>
 
             <button class="autenticacao-submit" type="submit">
               Entrar na conta

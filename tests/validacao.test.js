@@ -97,6 +97,21 @@ test("cadastro aceita somente o domínio institucional edu.unifor.br", () => {
 });
 
 test("login e redefinição compartilham e-mail e senha entre 8 e 72 bytes", () => {
+  const loginValido = schemaLogin.safeParse({
+    email: "ana@example.com",
+    senha: "12345678",
+  });
+
+  assert.equal(loginValido.success, true);
+  assert.equal(loginValido.data?.manterConectado, false);
+  assert.equal(
+    schemaLogin.safeParse({
+      email: "ana@example.com",
+      senha: "12345678",
+      manterConectado: "sim",
+    }).success,
+    false,
+  );
   assert.equal(
     schemaLogin.safeParse({
       email: "ana@example.com",

@@ -57,6 +57,7 @@ interface ContextoImportacaoLegada {
 }
 
 type ModoAutenticacao = "login" | "cadastro";
+type PersistenciaSessao = "aba" | "navegador";
 type EstadoBannerConectividade =
   | "offline"
   | "dados-salvos"
@@ -197,6 +198,23 @@ const campoFotoPerfil =
   document.querySelector<HTMLInputElement>("#foto-perfil");
 const feedbackFotoPerfil =
   document.querySelector<HTMLElement>("#feedback-foto-perfil");
+const containerNotificacoesConversas = document.querySelector<HTMLElement>(
+  "#notificacoes-conversas",
+);
+const botaoNotificacoesConversas =
+  document.querySelector<HTMLButtonElement>("#botao-notificacoes-conversas");
+const contadorNotificacoesConversas = document.querySelector<HTMLElement>(
+  "#contador-notificacoes-conversas",
+);
+const painelNotificacoesConversas = document.querySelector<HTMLElement>(
+  "#painel-notificacoes-conversas",
+);
+const resumoNotificacoesConversas = document.querySelector<HTMLElement>(
+  "#resumo-notificacoes-conversas",
+);
+const listaNotificacoesConversas = document.querySelector<HTMLElement>(
+  "#lista-notificacoes-conversas",
+);
 const dialogoAutenticacao =
   document.querySelector<HTMLDialogElement>("#dialogo-autenticacao");
 const botaoFecharAutenticacao =
@@ -1126,44 +1144,31 @@ function criarEstadoDeCarregamento(
   skeleton: HTMLElement,
 ): HTMLDivElement {
   const estado = criarElemento("div", "estado-carregamento");
-
-  // Spinner circular animado acima do skeleton
-  const spinnerContainer = document.createElement("div");
-  spinnerContainer.className = "vortex-loading-state";
-  spinnerContainer.setAttribute("role", "status");
-  spinnerContainer.setAttribute("aria-label", texto);
-
-  const spinnerSvgNs = "http://www.w3.org/2000/svg";
-  const spinnerSvg = document.createElementNS(spinnerSvgNs, "svg") as SVGSVGElement;
-  spinnerSvg.setAttribute("viewBox", "0 0 80 80");
-  spinnerSvg.setAttribute("aria-hidden", "true");
-  spinnerSvg.setAttribute("focusable", "false");
-  spinnerSvg.className.baseVal = "vortex-spinner";
-
-  const spinnerTrilho = document.createElementNS(spinnerSvgNs, "circle");
-  spinnerTrilho.setAttribute("cx", "40");
-  spinnerTrilho.setAttribute("cy", "40");
-  spinnerTrilho.setAttribute("r", "36");
-  spinnerTrilho.setAttribute("fill", "none");
-  spinnerTrilho.setAttribute("stroke", "currentColor");
-  spinnerTrilho.setAttribute("stroke-opacity", "0.12");
-  spinnerTrilho.setAttribute("stroke-width", "10");
-
-  const spinnerProgresso = document.createElementNS(spinnerSvgNs, "circle");
-  spinnerProgresso.setAttribute("cx", "40");
-  spinnerProgresso.setAttribute("cy", "40");
-  spinnerProgresso.setAttribute("r", "36");
-
-  spinnerSvg.append(spinnerTrilho, spinnerProgresso);
-
-  const spinnerTexto = document.createElement("span");
-  spinnerTexto.className = "vortex-loading-text";
-  spinnerTexto.setAttribute("aria-hidden", "true");
-  spinnerTexto.textContent = texto;
-
-  spinnerContainer.append(spinnerSvg, spinnerTexto);
-  estado.append(spinnerContainer, skeleton);
+  estado.append(criarEstadoCarregamentoVortex(texto), skeleton);
   return estado;
+}
+
+function exibirContagemDeResultadosCarregando(): void {
+  if (!resultadosContagem) {
+    return;
+  }
+
+  resultadosContagem.classList.add("resultados-contagem-carregando");
+  resultadosContagem.setAttribute("aria-label", "Carregando resultados");
+  resultadosContagem.replaceChildren(
+    criarSpinnerVortex(true),
+    criarElemento("span", "somente-leitor", "Carregando resultados..."),
+  );
+}
+
+function exibirContagemDeResultados(texto: string): void {
+  if (!resultadosContagem) {
+    return;
+  }
+
+  resultadosContagem.classList.remove("resultados-contagem-carregando");
+  resultadosContagem.removeAttribute("aria-label");
+  resultadosContagem.textContent = texto;
 }
 
 function exibirEstadoDeCarregamento(
@@ -1176,9 +1181,7 @@ function exibirEstadoDeCarregamento(
   );
   listaAnuncios?.setAttribute("aria-busy", "true");
 
-  if (resultadosContagem) {
-    resultadosContagem.textContent = "Carregando resultados...";
-  }
+  exibirContagemDeResultadosCarregando();
 }
 
 function exibirEstadoDeCarregamentoDoUsuario(
@@ -1228,11 +1231,9 @@ function exibirErroAoCarregarAnuncios(erro?: unknown) {
     listaAnuncios.removeAttribute("aria-busy");
   }
 
-  if (resultadosContagem) {
-    resultadosContagem.textContent = offlineSemCache
-      ? "Catálogo indisponível offline"
-      : "Anúncios indisponíveis";
-  }
+  exibirContagemDeResultados(
+    offlineSemCache ? "Catálogo indisponível offline" : "Anúncios indisponíveis",
+  );
 }
 
 function exibirErroAoCarregarAnunciosDoUsuario() {
@@ -1466,9 +1467,14 @@ function sessaoSalvaEhValida(sessao: unknown): sessao is Sessao {
   );
 }
 
-function lerSessaoSalva(): Sessao | null {
+let persistenciaSessaoAtual: PersistenciaSessao | null = null;
+
+function lerSessaoDoArmazenamento(
+  armazenamento: Storage,
+  persistencia: PersistenciaSessao,
+): Sessao | null {
   try {
-    const conteudoSalvo = window.sessionStorage.getItem(CHAVE_SESSAO);
+    const conteudoSalvo = armazenamento.getItem(CHAVE_SESSAO);
 
     if (!conteudoSalvo) {
       return null;
@@ -1478,8 +1484,11 @@ function lerSessaoSalva(): Sessao | null {
 
     if (!sessaoSalvaEhValida(sessao)) {
       console.warn("A sessão salva tem uma estrutura inválida.");
+      armazenamento.removeItem(CHAVE_SESSAO);
       return null;
     }
+
+    persistenciaSessaoAtual = persistencia;
 
     return {
       token: sessao.token,
@@ -1491,12 +1500,22 @@ function lerSessaoSalva(): Sessao | null {
       },
     };
   } catch (erro) {
-    console.warn("Não foi possível recuperar a sessão desta aba.", erro);
+    console.warn("Não foi possível recuperar a sessão salva.", erro);
     return null;
   }
 }
 
-function salvarSessao(sessao: Sessao): void {
+function lerSessaoSalva(): Sessao | null {
+  return (
+    lerSessaoDoArmazenamento(window.sessionStorage, "aba") ??
+    lerSessaoDoArmazenamento(window.localStorage, "navegador")
+  );
+}
+
+function salvarSessao(
+  sessao: Sessao,
+  persistencia: PersistenciaSessao = persistenciaSessaoAtual ?? "aba",
+): void {
   try {
     const sessaoSemFoto: Sessao = {
       token: sessao.token,
@@ -1508,12 +1527,20 @@ function salvarSessao(sessao: Sessao): void {
       },
     };
 
-    window.sessionStorage.setItem(
-      CHAVE_SESSAO,
-      JSON.stringify(sessaoSemFoto),
-    );
+    const armazenamento =
+      persistencia === "navegador"
+        ? window.localStorage
+        : window.sessionStorage;
+    const outroArmazenamento =
+      persistencia === "navegador"
+        ? window.sessionStorage
+        : window.localStorage;
+
+    armazenamento.setItem(CHAVE_SESSAO, JSON.stringify(sessaoSemFoto));
+    outroArmazenamento.removeItem(CHAVE_SESSAO);
+    persistenciaSessaoAtual = persistencia;
   } catch (erro) {
-    console.warn("Não foi possível salvar a sessão nesta aba.", erro);
+    console.warn("Não foi possível salvar a sessão neste navegador.", erro);
   }
 }
 
@@ -1523,6 +1550,14 @@ function removerSessaoSalva(): void {
   } catch (erro) {
     console.warn("Não foi possível remover a sessão desta aba.", erro);
   }
+
+  try {
+    window.localStorage.removeItem(CHAVE_SESSAO);
+  } catch (erro) {
+    console.warn("Não foi possível remover a sessão persistente.", erro);
+  }
+
+  persistenciaSessaoAtual = null;
 }
 
 let sessaoAtual = lerSessaoSalva();
@@ -2007,12 +2042,14 @@ function atualizarContaNoHeader(): void {
       botaoRemoverFoto.hidden = true;
     }
     menuContaUsuario.hidden = true;
+    if (containerNotificacoesConversas) {
+      containerNotificacoesConversas.hidden = true;
+    }
+    fecharPainelNotificacoes();
     return;
   }
 
   const avatar = document.createElement("span");
-  const avatarComNotificacao = document.createElement("span");
-  const contadorMensagensNoAvatar = document.createElement("span");
   const saudacao = document.createElement("span");
   const seta = document.createElement("span");
 
@@ -2026,17 +2063,16 @@ function atualizarContaNoHeader(): void {
     avatar.textContent = obterIniciaisDoUsuario(usuarioAtual.nome);
   }
   avatar.setAttribute("aria-hidden", "true");
-  avatarComNotificacao.className = "avatar-com-notificacao";
-  contadorMensagensNoAvatar.className = "contador-mensagens-avatar";
-  contadorMensagensNoAvatar.setAttribute("aria-hidden", "true");
-  avatarComNotificacao.append(avatar, contadorMensagensNoAvatar);
   saudacao.className = "saudacao-usuario";
   saudacao.textContent = `Olá, ${usuarioAtual.nome}`;
   saudacao.title = `Olá, ${usuarioAtual.nome}`;
   seta.className = "seta-conta";
   seta.setAttribute("aria-hidden", "true");
 
-  botaoContaUsuario.append(avatarComNotificacao, saudacao, seta);
+  botaoContaUsuario.append(avatar, saudacao, seta);
+  if (containerNotificacoesConversas) {
+    containerNotificacoesConversas.hidden = false;
+  }
   atualizarContadorDeConversas();
   botaoContaUsuario.setAttribute("aria-haspopup", "menu");
   if (botaoAlterarFoto) {
@@ -2317,6 +2353,11 @@ function definirBloqueioAutenticacao(
   if (botaoEnviar) {
     botaoEnviar.disabled = bloqueado;
     botaoEnviar.setAttribute("aria-disabled", String(bloqueado));
+    definirEstadoDeCarregamentoDoBotao(
+      botaoEnviar,
+      bloqueado,
+      "Autenticando conta",
+    );
   }
 
   if (botaoFecharAutenticacao) {
@@ -2423,6 +2464,8 @@ async function enviarFormularioAutenticacao(
   const dadosFormulario = new FormData(formulario);
   const email = String(dadosFormulario.get("email") ?? "").trim();
   const senha = String(dadosFormulario.get("senha") ?? "");
+  const manterConectado =
+    modo === "login" && dadosFormulario.get("manterConectado") === "true";
   const corpo =
     modo === "cadastro"
       ? {
@@ -2430,17 +2473,12 @@ async function enviarFormularioAutenticacao(
           email,
           senha,
         }
-      : { email, senha };
+      : { email, senha, manterConectado };
   const botaoEnviar =
     formulario.querySelector<HTMLButtonElement>("[type='submit']");
-  const rotuloOriginal = botaoEnviar?.textContent ?? "";
 
   definirBloqueioAutenticacao(formulario, botaoEnviar, true);
 
-  if (botaoEnviar) {
-    botaoEnviar.textContent =
-      modo === "login" ? "Entrando..." : "Criando conta...";
-  }
   const cancelarAvisoApiGratuita = agendarAvisoApiGratuita(() => {
     definirFeedbackAutenticacao(MENSAGEM_API_GRATUITA_INICIANDO);
   });
@@ -2460,7 +2498,10 @@ async function enviarFormularioAutenticacao(
 
     sessaoAtual = resultado.dados;
     usuarioAtual = resultado.dados.usuario;
-    salvarSessao(resultado.dados);
+    salvarSessao(
+      resultado.dados,
+      manterConectado ? "navegador" : "aba",
+    );
     resetarNotificacoesDaSessao();
     agendarPollingDeConversas({ imediato: true });
     atualizarContaNoHeader();
@@ -2515,10 +2556,6 @@ async function enviarFormularioAutenticacao(
   } finally {
     cancelarAvisoApiGratuita();
     definirBloqueioAutenticacao(formulario, botaoEnviar, false);
-
-    if (botaoEnviar) {
-      botaoEnviar.textContent = rotuloOriginal;
-    }
   }
 }
 
@@ -2602,6 +2639,7 @@ function inicializarContaUsuario(): void {
       return;
     }
 
+    fecharPainelNotificacoes();
     const menuEstaAberto = !menuContaUsuario.hidden;
     menuContaUsuario.hidden = menuEstaAberto;
     botaoContaUsuario.setAttribute("aria-expanded", String(!menuEstaAberto));
@@ -3217,6 +3255,29 @@ function criarSpinnerVortex(pequeno = false): SVGSVGElement {
   return svg;
 }
 
+function definirEstadoDeCarregamentoDoBotao(
+  botao: HTMLButtonElement,
+  carregando: boolean,
+  descricao: string,
+): void {
+  if (carregando) {
+    botao.dataset.tinhaRotuloAria = String(botao.hasAttribute("aria-label"));
+    botao.dataset.rotuloAriaOriginal = botao.getAttribute("aria-label") ?? "";
+    botao.setAttribute("aria-busy", "true");
+    botao.setAttribute("aria-label", descricao);
+    return;
+  }
+
+  botao.removeAttribute("aria-busy");
+  if (botao.dataset.tinhaRotuloAria === "true") {
+    botao.setAttribute("aria-label", botao.dataset.rotuloAriaOriginal ?? "");
+  } else {
+    botao.removeAttribute("aria-label");
+  }
+  delete botao.dataset.tinhaRotuloAria;
+  delete botao.dataset.rotuloAriaOriginal;
+}
+
 /**
  * Cria um estado de carregamento com spinner circular + texto acessível.
  * Substitui os parágrafos simples de "Carregando..." nas listas.
@@ -3229,10 +3290,7 @@ function criarEstadoCarregamentoVortex(texto: string): HTMLDivElement {
 
   const spinner = criarSpinnerVortex();
 
-  const rotulo = document.createElement("span");
-  rotulo.className = "vortex-loading-text";
-  rotulo.setAttribute("aria-hidden", "true");
-  rotulo.textContent = texto;
+  const rotulo = criarElemento("span", "somente-leitor", texto);
 
   container.append(spinner, rotulo);
   return container;
@@ -3584,31 +3642,127 @@ function salvarMensagensVistasDoUsuario(): void {
   }
 }
 
+function fecharPainelNotificacoes(
+  { devolverFoco = false }: { devolverFoco?: boolean } = {},
+): void {
+  if (!painelNotificacoesConversas || !botaoNotificacoesConversas) {
+    return;
+  }
+
+  painelNotificacoesConversas.hidden = true;
+  botaoNotificacoesConversas.setAttribute("aria-expanded", "false");
+
+  if (devolverFoco && !botaoNotificacoesConversas.hidden) {
+    botaoNotificacoesConversas.focus();
+  }
+}
+
+function renderizarPainelNotificacoes(): void {
+  if (!listaNotificacoesConversas || !resumoNotificacoesConversas) {
+    return;
+  }
+
+  const ofertasNaoLidas = cacheOfertasApi
+    .filter((oferta) => (naoLidasPorOferta.get(oferta.id) ?? 0) > 0)
+    .sort((a, b) =>
+      (b.atualizadaEm ?? b.criadaEm).localeCompare(
+        a.atualizadaEm ?? a.criadaEm,
+      ),
+    );
+  const totalMensagens = ofertasNaoLidas.reduce(
+    (total, oferta) => total + (naoLidasPorOferta.get(oferta.id) ?? 0),
+    0,
+  );
+
+  resumoNotificacoesConversas.textContent =
+    totalMensagens === 0
+      ? "Tudo em dia"
+      : `${totalMensagens} ${totalMensagens === 1 ? "pendente" : "pendentes"}`;
+  listaNotificacoesConversas.replaceChildren();
+
+  if (ofertasNaoLidas.length === 0) {
+    const estadoVazio = criarElemento("div", "notificacoes-vazias");
+    const icone = criarElemento("span", "notificacoes-vazias-icone");
+    const texto = criarElemento("div");
+
+    icone.setAttribute("aria-hidden", "true");
+    texto.append(
+      criarElemento("strong", "", "Nenhuma conversa pendente"),
+      criarElemento("p", "", "Quando chegar uma mensagem, ela aparecerá aqui."),
+    );
+    estadoVazio.append(icone, texto);
+    listaNotificacoesConversas.append(estadoVazio);
+    return;
+  }
+
+  const fragmento = document.createDocumentFragment();
+
+  ofertasNaoLidas.forEach((oferta) => {
+    const quantidade = naoLidasPorOferta.get(oferta.id) ?? 0;
+    const item = criarElemento("div", "item-notificacao-conversa-wrapper");
+    const botao = criarElemento("button", "item-notificacao-conversa");
+    const conteudo = criarElemento("span", "item-notificacao-conteudo");
+    const titulo = criarElemento("strong", "", oferta.anuncioNome);
+    const participante = criarElemento(
+      "span",
+      "item-notificacao-participante",
+      `Conversa com ${obterParticipanteDaConversa(oferta)}`,
+    );
+    const data = criarElemento(
+      "time",
+      "item-notificacao-data",
+      formatarDataHoraSegura(oferta.atualizadaEm ?? oferta.criadaEm),
+    );
+    const contador = criarElemento(
+      "span",
+      "item-notificacao-quantidade",
+      String(quantidade),
+    );
+
+    botao.type = "button";
+    botao.dataset.ofertaId = String(oferta.id);
+    botao.setAttribute(
+      "aria-label",
+      `Abrir conversa sobre ${oferta.anuncioNome} com ${obterParticipanteDaConversa(oferta)}, ${quantidade} ${quantidade === 1 ? "mensagem não lida" : "mensagens não lidas"}`,
+    );
+    data.dateTime = oferta.atualizadaEm ?? oferta.criadaEm;
+    contador.setAttribute("aria-hidden", "true");
+    conteudo.append(titulo, participante, data);
+    botao.append(conteudo, contador);
+    item.setAttribute("role", "listitem");
+    item.append(botao);
+    fragmento.append(item);
+  });
+
+  listaNotificacoesConversas.append(fragmento);
+}
+
 function atualizarContadorDeConversas(): void {
   const total = [...naoLidasPorOferta.values()].reduce(
     (soma, quantidade) => soma + quantidade,
     0,
   );
 
-  const contadorNoAvatar = botaoContaUsuario?.querySelector<HTMLElement>(
-    ".contador-mensagens-avatar",
-  );
-
-  if (contadorNoAvatar) {
-    contadorNoAvatar.hidden = total === 0;
-    contadorNoAvatar.textContent = total > 99 ? "99+" : String(total);
-  }
-
   if (usuarioAtual && botaoContaUsuario) {
-    const descricaoMensagens =
-      total === 0
-        ? ""
-        : `, ${total} ${total === 1 ? "nova mensagem" : "novas mensagens"}`;
     botaoContaUsuario.setAttribute(
       "aria-label",
-      `Abrir opções da conta de ${usuarioAtual.nome}${descricaoMensagens}`,
+      `Abrir opções da conta de ${usuarioAtual.nome}`,
     );
   }
+
+  if (contadorNotificacoesConversas && botaoNotificacoesConversas) {
+    contadorNotificacoesConversas.hidden = total === 0;
+    contadorNotificacoesConversas.textContent =
+      total > 99 ? "99+" : String(total);
+    botaoNotificacoesConversas.setAttribute(
+      "aria-label",
+      total === 0
+        ? "Abrir notificações de conversas, nenhuma mensagem não lida"
+        : `Abrir notificações de conversas, ${total} ${total === 1 ? "mensagem não lida" : "mensagens não lidas"}`,
+    );
+  }
+
+  renderizarPainelNotificacoes();
 
   if (!contadorConversas || !botaoAbrirConversas) {
     return;
@@ -4026,6 +4180,7 @@ async function carregarConversas(
 function abrirDialogoDeOfertas(
   anuncio: Anuncio | null,
   elementoAcionador: HTMLElement,
+  ofertaParaSelecionarId?: number,
 ): void {
   if (!sessaoAtual || !usuarioAtual) {
     abrirDialogoAutenticacao();
@@ -4059,7 +4214,7 @@ function abrirDialogoDeOfertas(
     void carregarConversas({ selecionarPrimeira: false });
   } else {
     renderizarChatSemSelecao();
-    void carregarConversas();
+    void carregarConversas({ selecionarOfertaId: ofertaParaSelecionarId });
   }
 }
 
@@ -4369,6 +4524,63 @@ function resetarNotificacoesDaSessao(): void {
 }
 
 function inicializarNotificacoesDeConversas(): void {
+  botaoNotificacoesConversas?.addEventListener("click", () => {
+    if (!usuarioAtual) {
+      return;
+    }
+
+    const painelEstaAberto = !painelNotificacoesConversas?.hidden;
+    fecharMenuConta();
+    renderizarPainelNotificacoes();
+
+    if (painelEstaAberto || !painelNotificacoesConversas) {
+      fecharPainelNotificacoes();
+      return;
+    }
+
+    painelNotificacoesConversas.hidden = false;
+    botaoNotificacoesConversas.setAttribute("aria-expanded", "true");
+  });
+
+  listaNotificacoesConversas?.addEventListener("click", (evento) => {
+    const botao =
+      evento.target instanceof Element
+        ? evento.target.closest<HTMLButtonElement>(
+            ".item-notificacao-conversa",
+          )
+        : null;
+    const ofertaId = Number(botao?.dataset.ofertaId);
+
+    if (!botao || !Number.isInteger(ofertaId) || ofertaId <= 0) {
+      return;
+    }
+
+    fecharPainelNotificacoes();
+    abrirDialogoDeOfertas(null, botaoNotificacoesConversas ?? botao, ofertaId);
+  });
+
+  document.addEventListener("click", (evento) => {
+    if (
+      painelNotificacoesConversas &&
+      !painelNotificacoesConversas.hidden &&
+      !containerNotificacoesConversas?.contains(
+        evento.target instanceof Node ? evento.target : null,
+      )
+    ) {
+      fecharPainelNotificacoes();
+    }
+  });
+
+  document.addEventListener("keydown", (evento) => {
+    if (
+      evento.key === "Escape" &&
+      painelNotificacoesConversas &&
+      !painelNotificacoesConversas.hidden
+    ) {
+      fecharPainelNotificacoes({ devolverFoco: true });
+    }
+  });
+
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       pararPollingDeConversas();
@@ -4734,19 +4946,16 @@ function renderizarAnuncios(): void {
     listaAnuncios.append(fragmento);
   }
 
-  if (resultadosContagem) {
-    const totalVisivel = anunciosVisiveis.length;
-    const totalGeral = cacheCatalogoApi.length;
+  const totalVisivel = anunciosVisiveis.length;
+  const totalGeral = cacheCatalogoApi.length;
 
-    if (totalVisivel === totalGeral) {
-      resultadosContagem.textContent =
-        totalVisivel === 1
-          ? "Mostrando 1 resultado"
-          : `Mostrando ${totalVisivel} resultados`;
-    } else {
-      resultadosContagem.textContent = `Mostrando ${totalVisivel} de ${totalGeral} resultados`;
-    }
-  }
+  exibirContagemDeResultados(
+    totalVisivel === totalGeral
+      ? totalVisivel === 1
+        ? "Mostrando 1 resultado"
+        : `Mostrando ${totalVisivel} resultados`
+      : `Mostrando ${totalVisivel} de ${totalGeral} resultados`,
+  );
 
   atualizarContadoresDosFiltros();
 }
@@ -5039,8 +5248,11 @@ async function criarAnuncio(): Promise<boolean> {
   window.clearTimeout(temporizadorAvisoBotao);
   publicacaoEmAndamento = true;
   botaoPublicarAnuncio.disabled = true;
-  botaoPublicarAnuncio.setAttribute("aria-busy", "true");
-  botaoPublicarAnuncio.textContent = "Publicando...";
+  definirEstadoDeCarregamentoDoBotao(
+    botaoPublicarAnuncio,
+    true,
+    "Publicando anúncio",
+  );
   botaoPublicarAnuncio.classList.remove("is-warning");
 
   try {
@@ -5132,9 +5344,7 @@ async function criarAnuncio(): Promise<boolean> {
   } finally {
     publicacaoEmAndamento = false;
     botaoPublicarAnuncio.disabled = false;
-    botaoPublicarAnuncio.removeAttribute("aria-busy");
-    botaoPublicarAnuncio.textContent =
-      botaoPublicarAnuncio.dataset.textoOriginal ?? "";
+    definirEstadoDeCarregamentoDoBotao(botaoPublicarAnuncio, false, "");
   }
 }
 
@@ -5313,8 +5523,11 @@ async function salvarEdicaoDoAnuncio(): Promise<boolean> {
   const anuncioOriginal = anuncioEmEdicao;
   edicaoEmAndamento = true;
   botaoSalvarEdicao.disabled = true;
-  botaoSalvarEdicao.setAttribute("aria-busy", "true");
-  botaoSalvarEdicao.textContent = "Salvando...";
+  definirEstadoDeCarregamentoDoBotao(
+    botaoSalvarEdicao,
+    true,
+    "Salvando alterações do anúncio",
+  );
   definirFeedbackEdicao("Atualizando o anúncio...");
 
   try {
@@ -5377,8 +5590,7 @@ async function salvarEdicaoDoAnuncio(): Promise<boolean> {
   } finally {
     edicaoEmAndamento = false;
     botaoSalvarEdicao.disabled = false;
-    botaoSalvarEdicao.removeAttribute("aria-busy");
-    botaoSalvarEdicao.textContent = "Salvar alterações";
+    definirEstadoDeCarregamentoDoBotao(botaoSalvarEdicao, false, "");
   }
 }
 
@@ -5421,8 +5633,11 @@ async function excluirAnuncio(
 
   if (botaoExcluir) {
     botaoExcluir.disabled = true;
-    botaoExcluir.setAttribute("aria-busy", "true");
-    botaoExcluir.textContent = "Excluindo...";
+    definirEstadoDeCarregamentoDoBotao(
+      botaoExcluir,
+      true,
+      "Excluindo anúncio",
+    );
   }
 
   try {
@@ -5481,8 +5696,7 @@ async function excluirAnuncio(
 
     if (botaoExcluir?.isConnected) {
       botaoExcluir.disabled = false;
-      botaoExcluir.removeAttribute("aria-busy");
-      botaoExcluir.textContent = "Excluir";
+      definirEstadoDeCarregamentoDoBotao(botaoExcluir, false, "");
     }
   }
 }
@@ -6213,8 +6427,11 @@ async function concluirAnuncio(): Promise<void> {
   const anuncio = anuncioParaConcluir;
   conclusaoEmAndamento = true;
   botaoConfirmarConclusao.disabled = true;
-  botaoConfirmarConclusao.setAttribute("aria-busy", "true");
-  botaoConfirmarConclusao.textContent = "Concluindo...";
+  definirEstadoDeCarregamentoDoBotao(
+    botaoConfirmarConclusao,
+    true,
+    "Concluindo anúncio",
+  );
   definirFeedbackConclusao("Concluindo anúncio...");
 
   try {
@@ -6244,8 +6461,7 @@ async function concluirAnuncio(): Promise<void> {
   } finally {
     conclusaoEmAndamento = false;
     botaoConfirmarConclusao.disabled = false;
-    botaoConfirmarConclusao.removeAttribute("aria-busy");
-    botaoConfirmarConclusao.textContent = "Concluir anúncio";
+    definirEstadoDeCarregamentoDoBotao(botaoConfirmarConclusao, false, "");
   }
 }
 
