@@ -3423,12 +3423,35 @@ function inicializarVisualizacaoDeImagens(): void {
   });
 }
 
+function criarBotaoAvatarDoAnunciante(anuncio: Anuncio): HTMLButtonElement {
+  const nomeAnunciante = anuncio.usuarioNome.trim() || "Anunciante";
+  const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(nomeAnunciante)}`;
+  const botaoAvatar = criarElemento(
+    "button",
+    "card-creators botao-avatar-anunciante",
+  );
+  const avatar = document.createElement("img");
+
+  botaoAvatar.type = "button";
+  botaoAvatar.dataset.avatarUrl = avatarUrl;
+  botaoAvatar.dataset.avatarName = nomeAnunciante;
+  botaoAvatar.setAttribute("aria-label", `Ampliar avatar de ${nomeAnunciante}`);
+  botaoAvatar.setAttribute("aria-haspopup", "dialog");
+  botaoAvatar.setAttribute("aria-controls", "dialogo-avatar-anunciante");
+  avatar.src = avatarUrl;
+  avatar.alt = `Avatar de ${nomeAnunciante}`;
+  avatar.loading = "lazy";
+  avatar.decoding = "async";
+  botaoAvatar.append(avatar);
+
+  return botaoAvatar;
+}
+
 function criarCardDaVitrine(anuncio: Anuncio): HTMLElement {
   const categoria = obterDadosVisuaisCategoria(anuncio.categoria);
   const card = criarElemento("article", "card-anuncio");
   const media = criarMediaDoAnuncio(anuncio, "card-media");
-  const autor = criarElemento("div", "card-creators");
-  const avatar = document.createElement("img");
+  const botaoAvatar = criarBotaoAvatarDoAnunciante(anuncio);
   const categoriaTexto = criarElemento("p", "card-cat", categoria.nome);
   const titulo = criarElemento("h3", "", anuncio.nome);
   const informacoes = criarElemento(
@@ -3456,11 +3479,6 @@ function criarCardDaVitrine(anuncio: Anuncio): HTMLElement {
   card.dataset.modalidade = anuncio.modalidade;
   card.dataset.preco = String(anuncio.valor);
 
-  avatar.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(anuncio.usuarioNome)}`;
-  avatar.alt = "";
-  autor.append(avatar);
-  media.append(autor);
-
   detalhes.href = "#vitrine";
   detalhes.dataset.id = String(anuncio.id);
   detalhes.setAttribute(
@@ -3475,7 +3493,15 @@ function criarCardDaVitrine(anuncio: Anuncio): HTMLElement {
   );
   botaoOferta.setAttribute("aria-haspopup", "dialog");
   botaoOferta.setAttribute("aria-controls", "dialogo-ofertas");
-  card.append(media, categoriaTexto, titulo, informacoes, preco, detalhes);
+  card.append(
+    media,
+    botaoAvatar,
+    categoriaTexto,
+    titulo,
+    informacoes,
+    preco,
+    detalhes,
+  );
 
   if (usuarioAtual?.id !== anuncio.usuarioId) {
     card.append(botaoOferta);
@@ -4678,6 +4704,7 @@ function criarCardDoUsuario(anuncio: Anuncio): HTMLElement {
     concluido ? "card-meu-anuncio is-concluido" : "card-meu-anuncio",
   );
   const media = criarMediaDoAnuncio(anuncio, "meu-anuncio-media");
+  const botaoAvatar = criarBotaoAvatarDoAnunciante(anuncio);
   const detalhes = criarElemento("div", "meu-anuncio-detalhes");
   const status = criarElemento(
     "span",
@@ -4745,7 +4772,7 @@ function criarCardDoUsuario(anuncio: Anuncio): HTMLElement {
   }
 
   acoes.append(botaoExcluir);
-  card.append(media, detalhes, acoes);
+  card.append(media, botaoAvatar, detalhes, acoes);
 
   return card;
 }
