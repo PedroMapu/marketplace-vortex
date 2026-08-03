@@ -134,6 +134,9 @@ const listaAnuncios =
 const botoesExplorarCatalogo = document.querySelectorAll<HTMLAnchorElement>(
   "[data-explorar-catalogo]",
 );
+const atalhosAnunciar = document.querySelectorAll<HTMLAnchorElement>(
+  "[data-atalho-anunciar]",
+);
 const listaMeusAnuncios =
   document.querySelector<HTMLElement>("#lista-meus-anuncios");
 const painelMeusAnuncios =
@@ -5195,6 +5198,26 @@ function inicializarExploracaoDoCatalogo(): void {
   });
 }
 
+function inicializarAtalhosDeAnuncio(): void {
+  atalhosAnunciar.forEach((atalhoAnunciar) => {
+    atalhoAnunciar.addEventListener("click", (evento) => {
+      evento.preventDefault();
+
+      if (!usuarioAtual) {
+        abrirDialogoAutenticacao();
+        definirFeedbackAutenticacao(
+          "Entre na sua conta para anunciar um item.",
+        );
+        return;
+      }
+
+      definirPainelColecaoAberto(false, { moverFoco: false });
+      definirPainelMeusAnunciosAberto(false, { moverFoco: false });
+      definirPainelAnuncioAberto(true);
+    });
+  });
+}
+
 function renderizarAnuncios(): void {
   if (!listaAnuncios) {
     return;
@@ -7256,6 +7279,7 @@ inicializarNotificacoesDeConversas();
 inicializarVisualizacaoDeImagens();
 inicializarControlesDaVitrine();
 inicializarExploracaoDoCatalogo();
+inicializarAtalhosDeAnuncio();
 inicializarNavegacaoResponsiva();
 inicializarFiltrosResponsivos();
 inicializarHeaderFixo();
