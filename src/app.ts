@@ -131,7 +131,7 @@ const gradeColecoes =
   secaoColecoes?.querySelector<HTMLElement>(".colecoes-grid");
 const listaAnuncios =
   document.querySelector<HTMLElement>("#lista-anuncios");
-const botaoExplorarCatalogo = document.querySelector<HTMLAnchorElement>(
+const botoesExplorarCatalogo = document.querySelectorAll<HTMLAnchorElement>(
   "[data-explorar-catalogo]",
 );
 const listaMeusAnuncios =
@@ -5171,25 +5171,27 @@ function concluirRolagemPendenteDoCatalogo(): void {
 }
 
 function inicializarExploracaoDoCatalogo(): void {
-  botaoExplorarCatalogo?.addEventListener("click", (evento) => {
-    evento.preventDefault();
-    rolagemPrimeiroAnuncioPendente = true;
+  botoesExplorarCatalogo.forEach((botaoExplorarCatalogo) => {
+    botaoExplorarCatalogo.addEventListener("click", (evento) => {
+      evento.preventDefault();
+      rolagemPrimeiroAnuncioPendente = true;
 
-    if (centralizarPrimeiroAnuncioVisivel()) {
-      rolagemPrimeiroAnuncioPendente = false;
-      return;
-    }
-
-    if (listaAnuncios) {
-      if (listaAnuncios.getAttribute("aria-busy") !== "true") {
+      if (centralizarPrimeiroAnuncioVisivel()) {
         rolagemPrimeiroAnuncioPendente = false;
+        return;
       }
 
-      centralizarElementoSemFoco(
-        listaAnuncios,
-        usuarioPrefereMovimentoReduzido(),
-      );
-    }
+      if (listaAnuncios) {
+        if (listaAnuncios.getAttribute("aria-busy") !== "true") {
+          rolagemPrimeiroAnuncioPendente = false;
+        }
+
+        centralizarElementoSemFoco(
+          listaAnuncios,
+          usuarioPrefereMovimentoReduzido(),
+        );
+      }
+    });
   });
 }
 

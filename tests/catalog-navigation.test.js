@@ -66,7 +66,7 @@ test("respeita preferência por movimento reduzido", () => {
   assert.equal(opcoesRolagem.block, "center");
 });
 
-test("CTA usa um contrato próprio e aguarda o primeiro card quando necessário", () => {
+test("CTAs do hero e da navbar usam o mesmo contrato de navegação", () => {
   const html = readProjectFile("index.html");
   const app = readProjectFile("src/app.ts");
 
@@ -75,9 +75,18 @@ test("CTA usa um contrato próprio e aguarda o primeiro card quando necessário"
     /class="hero-cta hero-cta-secondary"[^>]*data-explorar-catalogo[^>]*href="#lista-anuncios"|href="#lista-anuncios"[^>]*class="hero-cta hero-cta-secondary"[^>]*data-explorar-catalogo/,
   );
   assert.match(
-    app,
-    /querySelector<HTMLAnchorElement>\(\s*"\[data-explorar-catalogo\]"/,
+    html,
+    /href="#lista-anuncios" data-explorar-catalogo>Explorar<\/a>/,
   );
+  assert.equal(
+    (html.match(/data-explorar-catalogo/g) || []).length,
+    2,
+  );
+  assert.match(
+    app,
+    /querySelectorAll<HTMLAnchorElement>\(\s*"\[data-explorar-catalogo\]"/,
+  );
+  assert.match(app, /botoesExplorarCatalogo\.forEach/);
   assert.match(app, /:scope > \.card-anuncio/);
   assert.match(app, /rolagemPrimeiroAnuncioPendente/);
   assert.match(app, /inicializarExploracaoDoCatalogo\(\)/);
