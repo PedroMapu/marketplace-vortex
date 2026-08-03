@@ -68,3 +68,34 @@ test("diálogos móveis respeitam largura, altura dinâmica e área segura", () 
     /@media \(max-width:\s*60rem\) and \(max-height:\s*35rem\)[\s\S]*max-height:\s*calc\(100dvh[^;]*env\(safe-area-inset-top\)[^;]*env\(safe-area-inset-bottom\)/,
   );
 });
+
+test("hero compacto mantém respiro sem reflexos que simulam caixas extras", () => {
+  assert.match(
+    responsiveCss,
+    /@media \(max-width:\s*48rem\)[\s\S]*\.hero-cta-primary,[\s\S]*\.hero-cta-secondary[\s\S]*-webkit-box-reflect:\s*below 0 linear-gradient\(transparent,\s*transparent\)/,
+  );
+  assert.match(
+    responsiveCss,
+    /@media \(max-width:\s*32rem\)[\s\S]*#inicio\s*\{[\s\S]*padding-inline:[\s\S]*max\(1rem,[^;]*safe-area-inset/,
+  );
+  assert.match(
+    responsiveCss,
+    /@media \(max-width:\s*32rem\)[\s\S]*#inicio h1\s*\{[\s\S]*text-wrap:\s*wrap/,
+  );
+  assert.match(
+    responsiveCss,
+    /@media \(max-width:\s*32rem\)[\s\S]*#inicio aside\s*\{[\s\S]*margin-top:\s*4rem/,
+  );
+  assert.match(
+    responsiveCss,
+    /@media \(max-width:\s*32rem\)[\s\S]*#inicio\s*\{[\s\S]*padding-block:\s*3\.5rem 5\.75rem/,
+  );
+  assert.match(
+    responsiveCss,
+    /@media \(max-width:\s*32rem\)[\s\S]*\.hero-cta\s*\{[\s\S]*min-height:\s*3\.25rem/,
+  );
+  assert.match(
+    responsiveCss,
+    /@media \(max-width:\s*32rem\)[\s\S]*#inicio aside p\s*\{[\s\S]*bottom:\s*-3rem/,
+  );
+});

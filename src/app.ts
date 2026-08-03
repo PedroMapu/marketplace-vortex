@@ -36,6 +36,7 @@ import {
   type DecisaoImportacao,
 } from "./legacy-import.mjs";
 import { invalidarCacheCatalogoPublico } from "./pwa";
+import { centralizarElementoSemFoco } from "./catalog-navigation";
 
 type CampoFormulario =
   | HTMLInputElement
@@ -130,6 +131,9 @@ const gradeColecoes =
   secaoColecoes?.querySelector<HTMLElement>(".colecoes-grid");
 const listaAnuncios =
   document.querySelector<HTMLElement>("#lista-anuncios");
+const botaoExplorarCatalogo = document.querySelector<HTMLAnchorElement>(
+  "[data-explorar-catalogo]",
+);
 const listaMeusAnuncios =
   document.querySelector<HTMLElement>("#lista-meus-anuncios");
 const painelMeusAnuncios =
@@ -460,6 +464,7 @@ let temporizadorFeedbackColecao: number | undefined;
 let temporizadorBannerConectividade: number | undefined;
 let reconexaoEmAndamento = false;
 let catalogoUsaDadosSalvos = false;
+let rolagemPrimeiroAnuncioPendente = false;
 let autenticacaoEmAndamento = false;
 let atualizacaoFotoEmAndamento = false;
 let elementoFocadoAntesDaAutenticacao: HTMLElement | null = null;
@@ -1257,6 +1262,8 @@ function exibirErroAoCarregarAnuncios(erro?: unknown) {
     listaAnuncios.replaceChildren(estado);
     listaAnuncios.removeAttribute("aria-busy");
   }
+
+  concluirRolagemPendenteDoCatalogo();
 
   exibirContagemDeResultados(
     offlineSemCache ? "Catálogo indisponível offline" : "Anúncios indisponíveis",
@@ -5123,6 +5130,69 @@ function atualizarContadoresDosFiltros(): void {
   });
 }
 
+function usuarioPrefereMovimentoReduzido(): boolean {
+  return (
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false
+  );
+}
+
+function centralizarPrimeiroAnuncioVisivel(): boolean {
+  const primeiroAnuncio =
+    listaAnuncios?.querySelector<HTMLElement>(":scope > .card-anuncio");
+
+  if (!primeiroAnuncio) {
+    return false;
+  }
+
+  centralizarElementoSemFoco(
+    primeiroAnuncio,
+    usuarioPrefereMovimentoReduzido(),
+  );
+  return true;
+}
+
+function concluirRolagemPendenteDoCatalogo(): void {
+  if (!rolagemPrimeiroAnuncioPendente || !listaAnuncios) {
+    return;
+  }
+
+  if (centralizarPrimeiroAnuncioVisivel()) {
+    rolagemPrimeiroAnuncioPendente = false;
+    return;
+  }
+
+  if (listaAnuncios.getAttribute("aria-busy") !== "true") {
+    rolagemPrimeiroAnuncioPendente = false;
+    centralizarElementoSemFoco(
+      listaAnuncios,
+      usuarioPrefereMovimentoReduzido(),
+    );
+  }
+}
+
+function inicializarExploracaoDoCatalogo(): void {
+  botaoExplorarCatalogo?.addEventListener("click", (evento) => {
+    evento.preventDefault();
+    rolagemPrimeiroAnuncioPendente = true;
+
+    if (centralizarPrimeiroAnuncioVisivel()) {
+      rolagemPrimeiroAnuncioPendente = false;
+      return;
+    }
+
+    if (listaAnuncios) {
+      if (listaAnuncios.getAttribute("aria-busy") !== "true") {
+        rolagemPrimeiroAnuncioPendente = false;
+      }
+
+      centralizarElementoSemFoco(
+        listaAnuncios,
+        usuarioPrefereMovimentoReduzido(),
+      );
+    }
+  });
+}
+
 function renderizarAnuncios(): void {
   if (!listaAnuncios) {
     return;
@@ -5159,6 +5229,7 @@ function renderizarAnuncios(): void {
   );
 
   atualizarContadoresDosFiltros();
+  concluirRolagemPendenteDoCatalogo();
 }
 
 function obterControleDoFiltro(
@@ -7182,6 +7253,7 @@ inicializarOfertasEConversas();
 inicializarNotificacoesDeConversas();
 inicializarVisualizacaoDeImagens();
 inicializarControlesDaVitrine();
+inicializarExploracaoDoCatalogo();
 inicializarNavegacaoResponsiva();
 inicializarFiltrosResponsivos();
 inicializarHeaderFixo();

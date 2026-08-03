@@ -10154,6 +10154,19 @@ canvas {
     min-height: 2.75rem;
   }
 
+  .hero-cta-primary,
+  .hero-cta-secondary {
+    -webkit-box-reflect: below 0 linear-gradient(transparent, transparent);
+  }
+
+  .hero-cta-primary {
+    box-shadow: 0 0 0.55rem rgba(111, 75, 239, 0.55);
+  }
+
+  .hero-cta-secondary {
+    box-shadow: 0 0 0.5rem rgba(115, 255, 92, 0.48);
+  }
+
   header nav a,
   .footer-nav-container nav a {
     min-height: 2.75rem;
@@ -10297,6 +10310,45 @@ canvas {
 }
 
 @media (max-width: 32rem) {
+  #inicio {
+    padding-block: 3.5rem 5.75rem;
+    padding-inline:
+      max(1rem, env(safe-area-inset-left))
+      max(1rem, env(safe-area-inset-right));
+  }
+
+  #inicio h1 {
+    font-size: clamp(2.25rem, 10.8vw, 2.85rem);
+    line-height: 1.04;
+    max-width: 11.5ch;
+    text-wrap: wrap;
+  }
+
+  #inicio h1 + p {
+    line-height: 1.65;
+    margin-bottom: 2rem;
+  }
+
+  .hero-ctas {
+    gap: 0.75rem;
+  }
+
+  .hero-cta {
+    min-height: 3.25rem;
+    padding-inline: 1rem;
+  }
+
+  #inicio aside {
+    margin-top: 4rem;
+    width: min(90%, 25rem);
+  }
+
+  #inicio aside p {
+    bottom: -3rem;
+    line-height: 1.2;
+    padding: 0.9rem 1rem;
+  }
+
   .vitrine-abas {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
