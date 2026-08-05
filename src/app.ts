@@ -2395,9 +2395,22 @@ function abrirDialogoAutenticacao(): void {
   dialogoAutenticacao.showModal();
   document.body.classList.add("modal-aberto");
   window.requestAnimationFrame(() => {
-    dialogoAutenticacao
-      .querySelector<HTMLInputElement>("#login-email")
-      ?.focus();
+    const layoutAutenticacao =
+      dialogoAutenticacao.querySelector<HTMLElement>(".autenticacao-layout");
+    const campoEmail =
+      dialogoAutenticacao.querySelector<HTMLInputElement>("#login-email");
+
+    dialogoAutenticacao.scrollTop = 0;
+    if (layoutAutenticacao) {
+      layoutAutenticacao.scrollTop = 0;
+    }
+
+    if (window.matchMedia("(min-width: 48.0625rem)").matches) {
+      campoEmail?.focus({ preventScroll: true });
+      return;
+    }
+
+    dialogoAutenticacao.focus({ preventScroll: true });
   });
 }
 

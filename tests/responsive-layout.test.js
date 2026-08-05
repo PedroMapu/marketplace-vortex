@@ -8,6 +8,7 @@ const test = require("node:test");
 const projectRoot = join(__dirname, "..");
 const html = readFileSync(join(projectRoot, "index.html"), "utf8");
 const css = readFileSync(join(projectRoot, "public", "styles.css"), "utf8");
+const app = readFileSync(join(projectRoot, "src", "app.ts"), "utf8");
 const responsiveMarker = "MOBILE E TABLET — CONSOLIDAÇÃO 2026";
 const responsiveCss = css.slice(css.indexOf(responsiveMarker));
 
@@ -66,6 +67,27 @@ test("diálogos móveis respeitam largura, altura dinâmica e área segura", () 
   assert.match(
     responsiveCss,
     /@media \(max-width:\s*60rem\) and \(max-height:\s*35rem\)[\s\S]*max-height:\s*calc\(100dvh[^;]*env\(safe-area-inset-top\)[^;]*env\(safe-area-inset-bottom\)/,
+  );
+});
+
+test("autenticação compacta mantém uma única rolagem e o topo visível", () => {
+  assert.match(
+    responsiveCss,
+    /\.dialogo-autenticacao\s*\{[\s\S]*?height:\s*calc\([\s\S]*?100dvh[\s\S]*?overflow:\s*hidden/,
+  );
+  assert.match(
+    responsiveCss,
+    /\.dialogo-autenticacao \.autenticacao-layout\s*\{[\s\S]*height:\s*100%[\s\S]*overflow-y:\s*auto/,
+  );
+  assert.match(
+    responsiveCss,
+    /\.dialogo-autenticacao \.autenticacao-assinatura\s*\{[\s\S]*display:\s*none/,
+  );
+  assert.match(app, /matchMedia\("\(min-width:\s*48\.0625rem\)"\)/);
+  assert.match(app, /campoEmail\?\.focus\(\{\s*preventScroll:\s*true\s*\}\)/);
+  assert.match(
+    app,
+    /dialogoAutenticacao\.focus\(\{\s*preventScroll:\s*true\s*\}\)/,
   );
 });
 
