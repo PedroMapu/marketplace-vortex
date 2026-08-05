@@ -95,10 +95,10 @@ test("CTAs do hero e da navbar usam o mesmo contrato de navegação", () => {
 test("limpa a navegação pendente quando o catálogo está vazio ou falha", () => {
   const app = readProjectFile("src/app.ts");
   const inicioExploracao = app.indexOf(
-    "function inicializarExploracaoDoCatalogo",
+    "function explorarCatalogo",
   );
   const fimExploracao = app.indexOf(
-    "function renderizarAnuncios",
+    "function sincronizarInterfaceComDestino",
     inicioExploracao,
   );
   const fluxoExploracao = app.slice(inicioExploracao, fimExploracao);

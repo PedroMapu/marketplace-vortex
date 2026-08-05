@@ -59,6 +59,17 @@ interface ContextoImportacaoLegada {
 
 type ModoAutenticacao = "login" | "cadastro";
 type PersistenciaSessao = "aba" | "navegador";
+type DestinoProtegido =
+  | "#painel-novo-anuncio"
+  | "#painel-meus-anuncios";
+type DestinoAutenticacao =
+  | "#entrar"
+  | "#entrar/anunciar"
+  | "#entrar/meus-anuncios";
+type DestinoNavegacao =
+  | "#lista-anuncios"
+  | DestinoProtegido
+  | DestinoAutenticacao;
 type EstadoBannerConectividade =
   | "offline"
   | "dados-salvos"
@@ -150,6 +161,16 @@ const resumoMeusAnuncios =
   document.querySelector<HTMLElement>("#resumo-meus-anuncios");
 const linksAbrirMeusAnuncios =
   document.querySelectorAll<HTMLAnchorElement>("[data-abrir-meus-anuncios]");
+const DESTINO_EXPLORAR: DestinoNavegacao = "#lista-anuncios";
+const DESTINO_ANUNCIAR: DestinoProtegido = "#painel-novo-anuncio";
+const DESTINO_MEUS_ANUNCIOS: DestinoProtegido =
+  "#painel-meus-anuncios";
+const DESTINO_ENTRAR: DestinoAutenticacao = "#entrar";
+const DESTINO_ENTRAR_PARA_ANUNCIAR: DestinoAutenticacao =
+  "#entrar/anunciar";
+const DESTINO_ENTRAR_PARA_MEUS_ANUNCIOS: DestinoAutenticacao =
+  "#entrar/meus-anuncios";
+let moverFocoNaProximaSincronizacao = false;
 const dialogoEditarAnuncio =
   document.querySelector<HTMLDialogElement>("#dialogo-editar-anuncio");
 const formularioEditarAnuncio = document.querySelector<HTMLFormElement>(
@@ -2348,6 +2369,16 @@ function definirModoAutenticacao(
 }
 
 function abrirDialogoAutenticacao(): void {
+  const destinoAtual = window.location.hash;
+
+  if (!ehDestinoAutenticacao(destinoAtual)) {
+    navegarParaDestino(
+      ehDestinoProtegido(destinoAtual)
+        ? obterDestinoAutenticacao(destinoAtual)
+        : DESTINO_ENTRAR,
+    );
+  }
+
   if (!dialogoAutenticacao || dialogoAutenticacao.open) {
     return;
   }
@@ -2552,6 +2583,18 @@ async function enviarFormularioAutenticacao(
     renderizarColecoesDoUsuario();
     void carregarMeusAnunciosDaApi();
     fecharDialogoAutenticacao({ aposSucesso: true });
+
+    const destinoAposAutenticacao = obterDestinoAposAutenticacao(
+      window.location.hash,
+    );
+
+    if (destinoAposAutenticacao) {
+      navegarParaDestino(destinoAposAutenticacao);
+    } else if (ehDestinoAutenticacao(window.location.hash)) {
+      navegarParaDestino(DESTINO_EXPLORAR);
+    } else {
+      sincronizarInterfaceComDestino(undefined, { moverFoco: true });
+    }
     agendarOfertaImportacaoLegada(resultado.dados.usuario);
     mostrarFeedback(
       modo === "login"
@@ -2619,7 +2662,7 @@ function sairDaConta(): void {
   renderizarMeusAnuncios();
   renderizarColecoesDoUsuario();
   mostrarFeedback("Você saiu da sua conta.");
-  botaoContaUsuario?.focus();
+  navegarParaDestino(DESTINO_EXPLORAR);
 }
 
 async function validarSessaoSalva(): Promise<void> {
@@ -2678,7 +2721,7 @@ function inicializarContaUsuario(): void {
 
   botaoContaUsuario.addEventListener("click", () => {
     if (!usuarioAtual) {
-      abrirDialogoAutenticacao();
+      navegarParaDestino(DESTINO_ENTRAR);
       return;
     }
 
@@ -2796,6 +2839,10 @@ function inicializarContaUsuario(): void {
 
     if (elementoParaRestaurar?.isConnected) {
       elementoParaRestaurar.focus({ preventScroll: true });
+    }
+
+    if (!usuarioAtual && ehDestinoAutenticacao(window.location.hash)) {
+      navegarParaDestino(DESTINO_EXPLORAR);
     }
   });
 
@@ -5173,27 +5220,182 @@ function concluirRolagemPendenteDoCatalogo(): void {
   }
 }
 
+function ehDestinoProtegido(valor: string): valor is DestinoProtegido {
+  return [DESTINO_ANUNCIAR, DESTINO_MEUS_ANUNCIOS].includes(
+    valor as DestinoProtegido,
+  );
+}
+
+function ehDestinoAutenticacao(
+  valor: string,
+): valor is DestinoAutenticacao {
+  return [
+    DESTINO_ENTRAR,
+    DESTINO_ENTRAR_PARA_ANUNCIAR,
+    DESTINO_ENTRAR_PARA_MEUS_ANUNCIOS,
+  ].includes(valor as DestinoAutenticacao);
+}
+
+function obterDestinoAutenticacao(
+  destino: DestinoProtegido,
+): DestinoAutenticacao {
+  return destino === DESTINO_ANUNCIAR
+    ? DESTINO_ENTRAR_PARA_ANUNCIAR
+    : DESTINO_ENTRAR_PARA_MEUS_ANUNCIOS;
+}
+
+function obterDestinoAposAutenticacao(
+  destino: string,
+): DestinoProtegido | null {
+  if (destino === DESTINO_ENTRAR_PARA_ANUNCIAR) {
+    return DESTINO_ANUNCIAR;
+  }
+
+  if (destino === DESTINO_ENTRAR_PARA_MEUS_ANUNCIOS) {
+    return DESTINO_MEUS_ANUNCIOS;
+  }
+
+  return null;
+}
+
+function ehDestinoNavegacao(valor: string): valor is DestinoNavegacao {
+  return [
+    DESTINO_EXPLORAR,
+    DESTINO_ANUNCIAR,
+    DESTINO_MEUS_ANUNCIOS,
+    DESTINO_ENTRAR,
+    DESTINO_ENTRAR_PARA_ANUNCIAR,
+    DESTINO_ENTRAR_PARA_MEUS_ANUNCIOS,
+  ].includes(valor as DestinoNavegacao);
+}
+
+function explorarCatalogo(): void {
+  rolagemPrimeiroAnuncioPendente = true;
+
+  if (centralizarPrimeiroAnuncioVisivel()) {
+    rolagemPrimeiroAnuncioPendente = false;
+    return;
+  }
+
+  if (listaAnuncios) {
+    if (listaAnuncios.getAttribute("aria-busy") !== "true") {
+      rolagemPrimeiroAnuncioPendente = false;
+    }
+
+    centralizarElementoSemFoco(
+      listaAnuncios,
+      usuarioPrefereMovimentoReduzido(),
+    );
+  }
+}
+
+function sincronizarInterfaceComDestino(
+  destino = window.location.hash,
+  { moverFoco = false }: { moverFoco?: boolean } = {},
+): void {
+  if (!ehDestinoNavegacao(destino)) {
+    fecharDialogoAutenticacao();
+    definirPainelAnuncioAberto(false, { moverFoco: false });
+    definirPainelColecaoAberto(false, { moverFoco: false });
+    definirPainelMeusAnunciosAberto(false, { moverFoco: false });
+    return;
+  }
+
+  if (destino === DESTINO_EXPLORAR) {
+    fecharDialogoAutenticacao();
+    definirPainelAnuncioAberto(false, { moverFoco: false });
+    definirPainelColecaoAberto(false, { moverFoco: false });
+    definirPainelMeusAnunciosAberto(false, { moverFoco: false });
+    explorarCatalogo();
+    return;
+  }
+
+  if (ehDestinoAutenticacao(destino)) {
+    definirPainelAnuncioAberto(false, { moverFoco: false });
+    definirPainelColecaoAberto(false, { moverFoco: false });
+    definirPainelMeusAnunciosAberto(false, { moverFoco: false });
+
+    if (usuarioAtual) {
+      navegarParaDestino(
+        obterDestinoAposAutenticacao(destino) ?? DESTINO_EXPLORAR,
+      );
+      return;
+    }
+
+    abrirDialogoAutenticacao();
+
+    if (destino === DESTINO_ENTRAR_PARA_ANUNCIAR) {
+      definirFeedbackAutenticacao(
+        "Entre na sua conta para anunciar um item.",
+      );
+    } else if (destino === DESTINO_ENTRAR_PARA_MEUS_ANUNCIOS) {
+      definirFeedbackAutenticacao(
+        "Entre na sua conta para acessar seus anúncios.",
+      );
+    }
+
+    return;
+  }
+
+  if (!ehDestinoProtegido(destino)) {
+    return;
+  }
+
+  definirPainelColecaoAberto(false, { moverFoco: false });
+
+  if (!usuarioAtual) {
+    const destinoAutenticacao = obterDestinoAutenticacao(destino);
+    window.history.replaceState(
+      null,
+      "",
+      destinoAutenticacao,
+    );
+    sincronizarInterfaceComDestino(destinoAutenticacao, { moverFoco });
+    return;
+  }
+
+  fecharDialogoAutenticacao();
+
+  if (destino === DESTINO_ANUNCIAR) {
+    definirPainelMeusAnunciosAberto(false, { moverFoco: false });
+    definirPainelAnuncioAberto(true, { moverFoco });
+    return;
+  }
+
+  definirPainelAnuncioAberto(false, { moverFoco: false });
+  definirPainelMeusAnunciosAberto(true, { moverFoco });
+}
+
+function navegarParaDestino(destino: DestinoNavegacao): void {
+  const destinoEfetivo =
+    !usuarioAtual && ehDestinoProtegido(destino)
+      ? obterDestinoAutenticacao(destino)
+      : destino;
+
+  if (window.location.hash !== destinoEfetivo) {
+    moverFocoNaProximaSincronizacao = true;
+    window.location.hash = destinoEfetivo;
+    return;
+  }
+
+  sincronizarInterfaceComDestino(destinoEfetivo, { moverFoco: true });
+}
+
+function inicializarNavegacaoPorUrl(): void {
+  window.addEventListener("hashchange", () => {
+    const moverFoco = moverFocoNaProximaSincronizacao;
+    moverFocoNaProximaSincronizacao = false;
+    sincronizarInterfaceComDestino(undefined, { moverFoco });
+  });
+
+  sincronizarInterfaceComDestino();
+}
+
 function inicializarExploracaoDoCatalogo(): void {
   botoesExplorarCatalogo.forEach((botaoExplorarCatalogo) => {
     botaoExplorarCatalogo.addEventListener("click", (evento) => {
       evento.preventDefault();
-      rolagemPrimeiroAnuncioPendente = true;
-
-      if (centralizarPrimeiroAnuncioVisivel()) {
-        rolagemPrimeiroAnuncioPendente = false;
-        return;
-      }
-
-      if (listaAnuncios) {
-        if (listaAnuncios.getAttribute("aria-busy") !== "true") {
-          rolagemPrimeiroAnuncioPendente = false;
-        }
-
-        centralizarElementoSemFoco(
-          listaAnuncios,
-          usuarioPrefereMovimentoReduzido(),
-        );
-      }
+      navegarParaDestino(DESTINO_EXPLORAR);
     });
   });
 }
@@ -5202,18 +5404,7 @@ function inicializarAtalhosDeAnuncio(): void {
   atalhosAnunciar.forEach((atalhoAnunciar) => {
     atalhoAnunciar.addEventListener("click", (evento) => {
       evento.preventDefault();
-
-      if (!usuarioAtual) {
-        abrirDialogoAutenticacao();
-        definirFeedbackAutenticacao(
-          "Entre na sua conta para anunciar um item.",
-        );
-        return;
-      }
-
-      definirPainelColecaoAberto(false, { moverFoco: false });
-      definirPainelMeusAnunciosAberto(false, { moverFoco: false });
-      definirPainelAnuncioAberto(true);
+      navegarParaDestino(DESTINO_ANUNCIAR);
     });
   });
 }
@@ -6586,14 +6777,14 @@ function inicializarPainelNovoAnuncio(): void {
 
   botaoAbrirAnuncio.addEventListener("click", () => {
     if (painelNovoAnuncio.hidden) {
-      definirPainelColecaoAberto(false, { moverFoco: false });
-      definirPainelMeusAnunciosAberto(false, { moverFoco: false });
+      navegarParaDestino(DESTINO_ANUNCIAR);
+    } else {
+      navegarParaDestino(DESTINO_EXPLORAR);
     }
-    definirPainelAnuncioAberto(Boolean(painelNovoAnuncio.hidden));
   });
 
   botaoFecharAnuncio?.addEventListener("click", () => {
-    definirPainelAnuncioAberto(false);
+    navegarParaDestino(DESTINO_EXPLORAR);
   });
 
   botaoCriarColecao?.addEventListener("click", () => {
@@ -6612,36 +6803,31 @@ function inicializarPainelNovoAnuncio(): void {
   });
 
   botaoAbrirMeusAnuncios?.addEventListener("click", () => {
-    const deveAbrir = painelMeusAnuncios?.hidden;
-
-    if (deveAbrir) {
-      definirPainelAnuncioAberto(false, { moverFoco: false });
-      definirPainelColecaoAberto(false, { moverFoco: false });
+    if (painelMeusAnuncios?.hidden) {
+      navegarParaDestino(DESTINO_MEUS_ANUNCIOS);
+    } else {
+      navegarParaDestino(DESTINO_EXPLORAR);
     }
-
-    definirPainelMeusAnunciosAberto(Boolean(deveAbrir));
   });
 
   botaoFecharMeusAnuncios?.addEventListener("click", () => {
-    definirPainelMeusAnunciosAberto(false);
+    navegarParaDestino(DESTINO_EXPLORAR);
   });
 
   linksAbrirMeusAnuncios.forEach((link) => {
     link.addEventListener("click", (evento) => {
       evento.preventDefault();
-      definirPainelAnuncioAberto(false, { moverFoco: false });
-      definirPainelColecaoAberto(false, { moverFoco: false });
-      definirPainelMeusAnunciosAberto(true);
+      navegarParaDestino(DESTINO_MEUS_ANUNCIOS);
     });
   });
 
   document.addEventListener("keydown", (evento) => {
     if (evento.key === "Escape" && !painelNovoAnuncio.hidden) {
-      definirPainelAnuncioAberto(false);
+      navegarParaDestino(DESTINO_EXPLORAR);
     } else if (evento.key === "Escape" && !painelNovaColecao?.hidden) {
       definirPainelColecaoAberto(false);
     } else if (evento.key === "Escape" && !painelMeusAnuncios?.hidden) {
-      definirPainelMeusAnunciosAberto(false);
+      navegarParaDestino(DESTINO_EXPLORAR);
     }
   });
 
@@ -7280,6 +7466,7 @@ inicializarVisualizacaoDeImagens();
 inicializarControlesDaVitrine();
 inicializarExploracaoDoCatalogo();
 inicializarAtalhosDeAnuncio();
+inicializarNavegacaoPorUrl();
 inicializarNavegacaoResponsiva();
 inicializarFiltrosResponsivos();
 inicializarHeaderFixo();
