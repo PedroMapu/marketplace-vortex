@@ -271,7 +271,7 @@ const botaoMenuPrincipal =
 const navegacaoPrincipal =
   document.querySelector<HTMLElement>("#navegacao-principal");
 const mediaMenuCompacto = window.matchMedia("(max-width: 68rem)");
-const mediaFiltrosMoveis = window.matchMedia("(max-width: 48rem)");
+const mediaFiltrosMoveis = window.matchMedia("(max-width: 60rem)");
 const botaoFiltrosMoveis =
   document.querySelector<HTMLButtonElement>("#botao-filtros-mobile");
 const painelFiltrosCatalogo =
@@ -492,6 +492,8 @@ let rolagemPrimeiroAnuncioPendente = false;
 let autenticacaoEmAndamento = false;
 let atualizacaoFotoEmAndamento = false;
 let elementoFocadoAntesDaAutenticacao: HTMLElement | null = null;
+let temporizadorFechamentoAutenticacao: number | null = null;
+let restaurarFocoAposFechamentoAutenticacao = true;
 let cacheOfertasApi: Oferta[] = [];
 let ofertaAtiva: Oferta | null = null;
 let anuncioParaOferta: Anuncio | null = null;
@@ -2348,11 +2350,28 @@ function definirModoAutenticacao(
     return;
   }
 
+  const modoAnterior = [...botoesModoAutenticacao].find(
+    (botao) => botao.getAttribute("aria-selected") === "true",
+  )?.dataset.modoAutenticacao;
+
+  if (
+    dialogoAutenticacao?.open &&
+    ehModoAutenticacao(modoAnterior) &&
+    modoAnterior !== modo
+  ) {
+    dialogoAutenticacao.dataset.direcaoAutenticacao =
+      modo === "cadastro" ? "avancar" : "voltar";
+  }
+
   botoesModoAutenticacao.forEach((botao) => {
     const selecionado = botao.dataset.modoAutenticacao === modo;
     botao.setAttribute("aria-selected", String(selecionado));
     botao.tabIndex = selecionado ? 0 : -1;
   });
+
+  dialogoAutenticacao
+    ?.querySelector<HTMLElement>(".autenticacao-abas")
+    ?.setAttribute("data-modo-atual", modo);
 
   formulariosAutenticacao.forEach((formulario) => {
     formulario.hidden =
@@ -2387,6 +2406,13 @@ function abrirDialogoAutenticacao(): void {
     document.activeElement instanceof HTMLElement
       ? document.activeElement
       : null;
+  restaurarFocoAposFechamentoAutenticacao = true;
+  if (temporizadorFechamentoAutenticacao !== null) {
+    window.clearTimeout(temporizadorFechamentoAutenticacao);
+    temporizadorFechamentoAutenticacao = null;
+  }
+  delete dialogoAutenticacao.dataset.fechando;
+  dialogoAutenticacao.dataset.direcaoAutenticacao = "entrada";
   formulariosAutenticacao.forEach((formulario) => {
     formulario.reset();
     limparErrosAutenticacao(formulario);
@@ -2394,9 +2420,42 @@ function abrirDialogoAutenticacao(): void {
   definirModoAutenticacao("login");
   dialogoAutenticacao.showModal();
   document.body.classList.add("modal-aberto");
+
+  const layoutAutenticacao =
+    dialogoAutenticacao.querySelector<HTMLElement>(".autenticacao-layout");
+  const origemAutenticacao = elementoFocadoAntesDaAutenticacao;
+
+  if (layoutAutenticacao && origemAutenticacao) {
+    const caixaLayout = layoutAutenticacao.getBoundingClientRect();
+    const caixaOrigem = origemAutenticacao.getBoundingClientRect();
+    const deslocamentoX = Math.max(
+      -28,
+      Math.min(
+        28,
+        caixaOrigem.left + caixaOrigem.width / 2 -
+          (caixaLayout.left + caixaLayout.width / 2),
+      ),
+    );
+    const deslocamentoY = Math.max(
+      -20,
+      Math.min(
+        20,
+        caixaOrigem.top + caixaOrigem.height / 2 -
+          (caixaLayout.top + caixaLayout.height / 2),
+      ),
+    );
+
+    layoutAutenticacao.style.setProperty(
+      "--autenticacao-origem-x",
+      `${deslocamentoX}px`,
+    );
+    layoutAutenticacao.style.setProperty(
+      "--autenticacao-origem-y",
+      `${deslocamentoY}px`,
+    );
+  }
+
   window.requestAnimationFrame(() => {
-    const layoutAutenticacao =
-      dialogoAutenticacao.querySelector<HTMLElement>(".autenticacao-layout");
     const campoEmail =
       dialogoAutenticacao.querySelector<HTMLInputElement>("#login-email");
 
@@ -2421,9 +2480,38 @@ function fecharDialogoAutenticacao(
     return;
   }
 
-  if (dialogoAutenticacao?.open) {
-    dialogoAutenticacao.close();
+  if (
+    !dialogoAutenticacao?.open ||
+    dialogoAutenticacao.dataset.fechando === "true"
+  ) {
+    return;
   }
+
+  restaurarFocoAposFechamentoAutenticacao = !aposSucesso;
+
+  const concluirFechamento = (): void => {
+    if (temporizadorFechamentoAutenticacao !== null) {
+      window.clearTimeout(temporizadorFechamentoAutenticacao);
+      temporizadorFechamentoAutenticacao = null;
+    }
+    dialogoAutenticacao.close();
+  };
+
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    concluirFechamento();
+    return;
+  }
+
+  dialogoAutenticacao.dataset.fechando = "true";
+  const layoutAutenticacao =
+    dialogoAutenticacao.querySelector<HTMLElement>(".autenticacao-layout");
+  layoutAutenticacao?.addEventListener("animationend", concluirFechamento, {
+    once: true,
+  });
+  temporizadorFechamentoAutenticacao = window.setTimeout(
+    concluirFechamento,
+    190,
+  );
 }
 
 function definirBloqueioAutenticacao(
@@ -2841,16 +2929,22 @@ function inicializarContaUsuario(): void {
     }
   });
   dialogoAutenticacao?.addEventListener("cancel", (evento) => {
-    if (autenticacaoEmAndamento) {
-      evento.preventDefault();
+    evento.preventDefault();
+    if (!autenticacaoEmAndamento) {
+      fecharDialogoAutenticacao();
     }
   });
   dialogoAutenticacao?.addEventListener("close", () => {
     document.body.classList.remove("modal-aberto");
+    delete dialogoAutenticacao.dataset.fechando;
+    dialogoAutenticacao.dataset.direcaoAutenticacao = "entrada";
     const elementoParaRestaurar = elementoFocadoAntesDaAutenticacao;
     elementoFocadoAntesDaAutenticacao = null;
 
-    if (elementoParaRestaurar?.isConnected) {
+    if (
+      restaurarFocoAposFechamentoAutenticacao &&
+      elementoParaRestaurar?.isConnected
+    ) {
       elementoParaRestaurar.focus({ preventScroll: true });
     }
 

@@ -8,8 +8,8 @@ const formatadorInteiro = new Intl.NumberFormat("pt-BR", {
   maximumFractionDigits: 0,
 });
 
-function easeOutCubic(progresso: number): number {
-  return 1 - Math.pow(1 - progresso, 3);
+function easeOutQuart(progresso: number): number {
+  return 1 - Math.pow(1 - progresso, 4);
 }
 
 function escreverValorDoContador(
@@ -38,13 +38,13 @@ function animarContador(contador: HTMLElement): void {
     return;
   }
 
-  const duracao = 1450;
+  const duracao = 1250;
   const inicio = performance.now();
 
   function atualizarContador(agora: DOMHighResTimeStamp): void {
     const tempoDecorrido = agora - inicio;
     const progresso = Math.min(tempoDecorrido / duracao, 1);
-    const valorAtual = Math.round(valorFinal * easeOutCubic(progresso));
+    const valorAtual = Math.round(valorFinal * easeOutQuart(progresso));
 
     escreverValorDoContador(contador, valorAtual);
 
@@ -91,3 +91,48 @@ function inicializarContadoresEstatisticas(): void {
 }
 
 inicializarContadoresEstatisticas();
+
+const gruposComMovimentoContinuo =
+  document.querySelectorAll<HTMLElement>("#inicio, #como-funciona");
+
+function atualizarSuspensaoGlobalDoMovimento(): void {
+  document.body.dataset.motionSuspended = String(document.hidden);
+}
+
+function inicializarPausaDeMovimentoForaDaTela(): void {
+  if (!gruposComMovimentoContinuo.length) {
+    return;
+  }
+
+  atualizarSuspensaoGlobalDoMovimento();
+  document.addEventListener(
+    "visibilitychange",
+    atualizarSuspensaoGlobalDoMovimento,
+  );
+
+  if (!("IntersectionObserver" in window)) {
+    return;
+  }
+
+  const observador = new IntersectionObserver(
+    (entradas) => {
+      entradas.forEach((entrada) => {
+        if (entrada.target instanceof HTMLElement) {
+          entrada.target.dataset.motionPaused = String(
+            !entrada.isIntersecting,
+          );
+        }
+      });
+    },
+    {
+      rootMargin: "12% 0px",
+      threshold: 0.05,
+    },
+  );
+
+  gruposComMovimentoContinuo.forEach((grupo) => {
+    observador.observe(grupo);
+  });
+}
+
+inicializarPausaDeMovimentoForaDaTela();
