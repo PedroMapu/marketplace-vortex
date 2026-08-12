@@ -72,11 +72,11 @@ test("CTAs do hero e da navbar usam o mesmo contrato de navegação", () => {
 
   assert.match(
     html,
-    /class="hero-cta hero-cta-secondary"[^>]*data-explorar-catalogo[^>]*href="#lista-anuncios"|href="#lista-anuncios"[^>]*class="hero-cta hero-cta-secondary"[^>]*data-explorar-catalogo/,
+    /class="hero-cta hero-cta-secondary"[^>]*data-explorar-catalogo[^>]*href="\/anuncios"|href="\/anuncios"[^>]*class="hero-cta hero-cta-secondary"[^>]*data-explorar-catalogo/,
   );
   assert.match(
     html,
-    /href="#lista-anuncios" data-explorar-catalogo>Explorar<\/a>/,
+    /href="\/anuncios" data-explorar-catalogo>Explorar<\/a>/,
   );
   assert.equal(
     (html.match(/data-explorar-catalogo/g) || []).length,

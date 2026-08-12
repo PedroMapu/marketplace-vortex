@@ -2161,6 +2161,112 @@ existentes.
 - Build PWA e geração do Service Worker: aprovados.
 - `git diff --check`: aprovado, sem erros de whitespace.
 
+## 12/08/2026 — rotas semânticas, criação de conta e recuperação de acesso
+
+### Objetivo
+
+Revisar a arquitetura de navegação do Marketplace Vortex, identificar rotas
+ausentes e implementar os fluxos necessários para que as principais telas
+possam ser abertas por URLs reais, compartilhadas e recarregadas sem perder o
+estado da aplicação.
+
+### Diagnóstico
+
+A aplicação concentrava a navegação em âncoras e estados internos. O cadastro
+já existia como painel, mas não possuía uma rota própria. Também faltavam URLs
+para recuperação de senha, conta, detalhes de anúncio, conversas, ajuda,
+contato, termos, privacidade e página não encontrada.
+
+O fluxo de redefinição de senha registrava tokens no banco, mas ainda não
+entregava o link por e-mail. Além disso, os JWTs emitidos antes de uma troca de
+senha continuariam válidos até a expiração.
+
+### Alterações realizadas
+
+- Foi criado um roteador central em `src/routes.ts`, integrado à History API.
+- A aplicação passou a usar caminhos semânticos em vez de depender de hashes:
+  `/`, `/anuncios`, `/anuncios/:id`, `/anunciar`, `/meus-anuncios`, `/entrar`,
+  `/cadastro`, `/esqueci-senha`, `/redefinir-senha`, `/conversas`,
+  `/conversas/:id`, `/conta`, `/ajuda`, `/contato`, `/termos` e `/privacidade`.
+- Hashes antigos continuam sendo convertidos para as novas rotas, preservando
+  compatibilidade com links já utilizados.
+- Rotas protegidas enviam visitantes para `/entrar` e preservam somente
+  destinos internos permitidos, evitando redirecionamentos externos.
+- O cadastro recebeu a rota `/cadastro`, mantendo a exigência de e-mail
+  institucional `@edu.unifor.br` e confirmação de senha.
+- Foram criadas as telas de solicitação e confirmação da redefinição de senha.
+  Links sem token deixam o formulário bloqueado e oferecem uma ação para pedir
+  um novo link.
+- Foi criada a rota de conta, com visualização de nome, e-mail, foto, acesso à
+  redefinição de senha e encerramento da sessão.
+- Foram adicionadas páginas informativas de ajuda, contato, termos e
+  privacidade, além de um estado 404 para caminhos desconhecidos.
+- A abertura direta de anúncios passou a usar `GET /api/anuncios/:id`. Erros
+  temporários da API exibem uma ação de nova tentativa, enquanto anúncios
+  realmente inexistentes usam o estado 404.
+- A navegação de conversas passou a aceitar `/conversas/:id`, permitindo abrir
+  diretamente uma conversa específica após autenticação.
+- O frontend da Vercel recebeu uma rewrite para entregar o shell da SPA em
+  recarregamentos de rotas internas.
+
+### Recuperação de senha e segurança
+
+- Foi integrada a entrega transacional do link de redefinição pela Resend.
+- Os tokens continuam sendo armazenados somente como hash SHA-256, expiram em
+  15 minutos e podem ser utilizados uma única vez.
+- A resposta da solicitação permanece genérica para não revelar quais e-mails
+  possuem conta, inclusive quando o provedor de e-mail está indisponível.
+- Foi adicionada a coluna `auth_version` pela migration
+  `008_add_auth_version.sql`.
+- Cada JWT passou a carregar a versão de autenticação do usuário. Ao redefinir
+  a senha, essa versão é incrementada e todas as sessões anteriores são
+  invalidadas.
+- A inicialização da API em produção valida a presença das variáveis privadas
+  necessárias para entrega do e-mail.
+
+### Acessibilidade e responsividade
+
+- As rotas atualizam o título do documento e movem o foco para o conteúdo
+  principal quando necessário.
+- O diálogo de conta restaura o foco após o fechamento e usa um botão de fechar
+  com nome acessível, SVG e alvo mínimo de 44 × 44 px.
+- Cadastro, login e recuperação de senha foram verificados em desktop e em
+  viewport móvel de 390 × 844 px.
+- As novas páginas preservam a identidade visual e a hierarquia tipográfica do
+  Vortex sem criar overflow horizontal.
+
+### Arquivos principais
+
+- `src/routes.ts`
+- `src/app.ts`
+- `index.html`
+- `public/styles.css`
+- `api.js`
+- `password-reset.js`
+- `password-reset-routes.js`
+- `password-reset-email.js`
+- `middleware-auth.js`
+- `auth.js`
+- `database.js`
+- `migrations/008_add_auth_version.sql`
+- `vercel.json`
+- `.env.example`
+- `README.md`
+
+### Validação
+
+- `npm run typecheck`: aprovado.
+- `npm run build`: aprovado, incluindo PWA e Service Worker.
+- Suíte automatizada: 146 testes aprovados e um teste de integração PostgreSQL
+  ignorado por ausência de `TEST_DATABASE_URL` no ambiente local.
+- Após adicionar a cobertura final dos estados excepcionais, a suíte passou a
+  147 testes, com 146 aprovados e a mesma integração PostgreSQL ignorada.
+- Navegação verificada no navegador para cadastro, recuperação de senha,
+  redirecionamento de rotas protegidas, ajuda, 404 e falha recuperável ao abrir
+  um anúncio.
+- Revisão independente de acabamento: cinco achados novos corrigidos e
+  disposição final `ship`.
+
 ## 30/07/2026 — correção completa da responsividade móvel
 
 ### Objetivo

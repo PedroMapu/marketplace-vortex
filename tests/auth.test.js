@@ -20,6 +20,7 @@ const USUARIO = {
   nome: "Ana",
   email: "ana@example.com",
   senhaHash: "nao-deve-aparecer",
+  authVersion: 3,
 };
 
 test.afterEach(() => {
@@ -43,6 +44,7 @@ test("cria JWT HS256 com sub e escopo mínimos, sem PII redundante", () => {
   assert.equal(payload.aud, JWT_AUDIENCE);
   assert.equal(payload.nome, undefined);
   assert.equal(payload.email, undefined);
+  assert.equal(payload.ver, USUARIO.authVersion);
   assert.ok(payload.exp - payload.iat <= 24 * 60 * 60);
   assert.ok(payload.exp - payload.iat >= 24 * 60 * 60 - 1);
 });

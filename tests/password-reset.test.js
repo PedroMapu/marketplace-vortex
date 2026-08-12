@@ -59,6 +59,25 @@ test("token em texto só retorna quando a chamada habilita exposição explicita
   });
 });
 
+test("entrega o token somente quando a conta existe", async () => {
+  const entregas = [];
+
+  await solicitarRedefinicaoSenha("ana@example.com", {
+    gerarToken: () => "d".repeat(43),
+    registrarToken: async () => true,
+    entregarToken: async (dados) => entregas.push(dados),
+  });
+  await solicitarRedefinicaoSenha("ninguem@example.com", {
+    gerarToken: () => "e".repeat(43),
+    registrarToken: async () => false,
+    entregarToken: async (dados) => entregas.push(dados),
+  });
+
+  assert.equal(entregas.length, 1);
+  assert.equal(entregas[0].email, "ana@example.com");
+  assert.equal(entregas[0].token, "d".repeat(43));
+});
+
 test("confirmação entrega apenas hashes à função atômica do banco", async () => {
   const token = "c".repeat(43);
   let dadosRecebidos;

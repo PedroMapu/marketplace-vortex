@@ -18,7 +18,7 @@ test("navbar sincroniza explorar, anunciar, meus anúncios e login com a URL", (
 
   assert.match(
     html,
-    /href="#painel-novo-anuncio" data-atalho-anunciar>Anunciar<\/a>/,
+    /href="\/anunciar" data-atalho-anunciar>Anunciar<\/a>/,
   );
   assert.match(
     html,
@@ -26,7 +26,7 @@ test("navbar sincroniza explorar, anunciar, meus anúncios e login com a URL", (
   );
   assert.match(
     html,
-    /href="#painel-meus-anuncios" data-abrir-meus-anuncios>Meus anúncios<\/a>/,
+    /href="\/meus-anuncios" data-abrir-meus-anuncios>Meus anúncios<\/a>/,
   );
   assert.equal(
     (html.match(/data-atalho-anunciar/g) || []).length,
@@ -36,29 +36,23 @@ test("navbar sincroniza explorar, anunciar, meus anúncios e login com a URL", (
     app,
     /querySelectorAll<HTMLAnchorElement>\(\s*"\[data-atalho-anunciar\]"/,
   );
-  assert.match(app, /const DESTINO_EXPLORAR[^\n]*"#lista-anuncios"/);
-  assert.match(app, /const DESTINO_ANUNCIAR[^\n]*"#painel-novo-anuncio"/);
-  assert.match(app, /"#painel-meus-anuncios"/);
-  assert.match(app, /const DESTINO_ENTRAR[^\n]*"#entrar"/);
-  assert.match(app, /"#entrar\/anunciar"/);
-  assert.match(app, /"#entrar\/meus-anuncios"/);
-  assert.match(fluxo, /if \(!usuarioAtual\)/);
-  assert.match(fluxo, /abrirDialogoAutenticacao\(\)/);
+  assert.match(app, /const DESTINO_EXPLORAR[^\n]*"\/anuncios"/);
+  assert.match(app, /const DESTINO_ANUNCIAR[^\n]*"\/anunciar"/);
+  assert.match(app, /const DESTINO_MEUS_ANUNCIOS[^\n]*"\/meus-anuncios"/);
+  assert.match(app, /const DESTINO_ENTRAR[^\n]*"\/entrar"/);
+  assert.match(fluxo, /rotaEhProtegida\(rota\) && !usuarioAtual/);
+  assert.match(fluxo, /caminhoDeEntradaPara\(rota\)/);
+  assert.match(fluxo, /abrirDialogoAutenticacao\(/);
   assert.match(fluxo, /Entre na sua conta para anunciar um item\./);
   assert.match(fluxo, /Entre na sua conta para acessar seus anúncios\./);
   assert.match(fluxo, /definirPainelAnuncioAberto\(true, \{ moverFoco \}\)/);
   assert.match(fluxo, /definirPainelMeusAnunciosAberto\(true, \{ moverFoco \}\)/);
-  assert.match(app, /function obterDestinoAposAutenticacao/);
   assert.match(
     app,
-    /const destinoAposAutenticacao = obterDestinoAposAutenticacao/,
+    /const destinoAposAutenticacao =[^;]*rotaAtual\.redirecionarPara/s,
   );
-  assert.match(
-    app,
-    /!usuarioAtual && ehDestinoProtegido\(destino\)/,
-  );
-  assert.match(app, /window\.location\.hash = destinoEfetivo/);
-  assert.match(app, /window\.addEventListener\("hashchange"/);
+  assert.match(app, /window\.history\[substituir \? "replaceState" : "pushState"\]/);
+  assert.match(app, /window\.addEventListener\("popstate"/);
   assert.match(app, /navegarParaDestino\(DESTINO_ENTRAR\)/);
   assert.match(app, /inicializarAtalhosDeAnuncio\(\)/);
   assert.match(app, /inicializarNavegacaoPorUrl\(\)/);

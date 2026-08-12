@@ -36,7 +36,7 @@ function usuarioPublico(usuario) {
 function criarToken(usuario, { manterConectado = false } = {}) {
   const usuarioSeguro = usuarioPublico(usuario);
 
-  return jwt.sign({}, obterSegredoJwt(), {
+  return jwt.sign({ ver: usuario.authVersion ?? 0 }, obterSegredoJwt(), {
     algorithm: JWT_ALGORITMO,
     subject: usuarioSeguro.id,
     issuer: JWT_ISSUER,

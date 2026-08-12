@@ -37,6 +37,15 @@ import {
 } from "./legacy-import.mjs";
 import { invalidarCacheCatalogoPublico } from "./pwa";
 import { centralizarElementoSemFoco } from "./catalog-navigation";
+import {
+  caminhoDaRota,
+  caminhoDeEntradaPara,
+  caminhoLegadoParaRota,
+  interpretarRota,
+  rotaEhProtegida,
+  type RotaAplicacao,
+  type RotaProtegida,
+} from "./routes";
 
 type CampoFormulario =
   | HTMLInputElement
@@ -51,25 +60,23 @@ interface ResultadoApi<T> {
   offline: boolean;
 }
 
+interface RespostaMensagemApi {
+  mensagem: string;
+  tokenDesenvolvimento?: string;
+}
+
 interface ContextoImportacaoLegada {
   identidadeLegada: IdentidadeUsuarioLegada;
   usuarioAutenticado: Sessao["usuario"];
   quantidadeColecoes: number;
 }
 
-type ModoAutenticacao = "login" | "cadastro";
+type ModoAutenticacao =
+  | "login"
+  | "cadastro"
+  | "solicitar-redefinicao"
+  | "confirmar-redefinicao";
 type PersistenciaSessao = "aba" | "navegador";
-type DestinoProtegido =
-  | "#painel-novo-anuncio"
-  | "#painel-meus-anuncios";
-type DestinoAutenticacao =
-  | "#entrar"
-  | "#entrar/anunciar"
-  | "#entrar/meus-anuncios";
-type DestinoNavegacao =
-  | "#lista-anuncios"
-  | DestinoProtegido
-  | DestinoAutenticacao;
 type EstadoBannerConectividade =
   | "offline"
   | "dados-salvos"
@@ -161,15 +168,10 @@ const resumoMeusAnuncios =
   document.querySelector<HTMLElement>("#resumo-meus-anuncios");
 const linksAbrirMeusAnuncios =
   document.querySelectorAll<HTMLAnchorElement>("[data-abrir-meus-anuncios]");
-const DESTINO_EXPLORAR: DestinoNavegacao = "#lista-anuncios";
-const DESTINO_ANUNCIAR: DestinoProtegido = "#painel-novo-anuncio";
-const DESTINO_MEUS_ANUNCIOS: DestinoProtegido =
-  "#painel-meus-anuncios";
-const DESTINO_ENTRAR: DestinoAutenticacao = "#entrar";
-const DESTINO_ENTRAR_PARA_ANUNCIAR: DestinoAutenticacao =
-  "#entrar/anunciar";
-const DESTINO_ENTRAR_PARA_MEUS_ANUNCIOS: DestinoAutenticacao =
-  "#entrar/meus-anuncios";
+const DESTINO_EXPLORAR = "/anuncios";
+const DESTINO_ANUNCIAR = "/anunciar";
+const DESTINO_MEUS_ANUNCIOS = "/meus-anuncios";
+const DESTINO_ENTRAR = "/entrar";
 let moverFocoNaProximaSincronizacao = false;
 const dialogoEditarAnuncio =
   document.querySelector<HTMLDialogElement>("#dialogo-editar-anuncio");
@@ -218,6 +220,8 @@ const menuContaUsuario =
   document.querySelector<HTMLElement>("#menu-conta");
 const botaoSairConta =
   document.querySelector<HTMLButtonElement>("#botao-sair-conta");
+const botaoAbrirConta =
+  document.querySelector<HTMLButtonElement>("#botao-abrir-conta");
 const botaoAlterarFoto =
   document.querySelector<HTMLButtonElement>("#botao-alterar-foto");
 const botaoRemoverFoto =
@@ -251,8 +255,51 @@ const botoesModoAutenticacao =
   document.querySelectorAll<HTMLButtonElement>("[data-modo-autenticacao]");
 const formulariosAutenticacao =
   document.querySelectorAll<HTMLFormElement>("[data-formulario-autenticacao]");
+const abasAutenticacao =
+  document.querySelector<HTMLElement>(".autenticacao-abas");
+const tituloAutenticacao =
+  document.querySelector<HTMLElement>("#titulo-autenticacao");
+const descricaoAutenticacao =
+  document.querySelector<HTMLElement>("#descricao-autenticacao");
+const botaoEsqueciSenha =
+  document.querySelector<HTMLButtonElement>("#botao-esqueci-senha");
+const botoesVoltarLogin =
+  document.querySelectorAll<HTMLButtonElement>("[data-voltar-login]");
+const botaoSolicitarNovoLink = document.querySelector<HTMLButtonElement>(
+  "#botao-solicitar-novo-link",
+);
+const formularioConfirmarRedefinicao = document.querySelector<HTMLFormElement>(
+  "#painel-confirmar-redefinicao",
+);
+const campoTokenRedefinicao =
+  document.querySelector<HTMLInputElement>("#redefinicao-token");
 const feedbackAutenticacao =
   document.querySelector<HTMLElement>("#feedback-autenticacao");
+const dialogoConta =
+  document.querySelector<HTMLDialogElement>("#dialogo-conta");
+const botaoFecharConta =
+  document.querySelector<HTMLButtonElement>("#botao-fechar-conta");
+const avatarContaRota =
+  document.querySelector<HTMLElement>("#avatar-conta-rota");
+const nomeContaRota =
+  document.querySelector<HTMLElement>("#nome-conta-rota");
+const emailContaRota =
+  document.querySelector<HTMLElement>("#email-conta-rota");
+const botaoAlterarFotoConta =
+  document.querySelector<HTMLButtonElement>("#botao-alterar-foto-conta");
+const botaoRedefinirSenhaConta = document.querySelector<HTMLButtonElement>(
+  "#botao-redefinir-senha-conta",
+);
+const botaoSairContaRota =
+  document.querySelector<HTMLButtonElement>("#botao-sair-conta-rota");
+const paginaInformativa =
+  document.querySelector<HTMLElement>("#pagina-informativa");
+const tituloPaginaInformativa =
+  document.querySelector<HTMLElement>("#titulo-pagina-informativa");
+const conteudoPaginaInformativa =
+  document.querySelector<HTMLElement>("#conteudo-pagina-informativa");
+const linksRotasApp =
+  document.querySelectorAll<HTMLAnchorElement>("[data-rota-app]");
 const dialogoImportacaoLegada =
   document.querySelector<HTMLDialogElement>("#dialogo-importacao-legada");
 const nomeIdentidadeLegada =
@@ -492,6 +539,7 @@ let rolagemPrimeiroAnuncioPendente = false;
 let autenticacaoEmAndamento = false;
 let atualizacaoFotoEmAndamento = false;
 let elementoFocadoAntesDaAutenticacao: HTMLElement | null = null;
+let elementoFocadoAntesDaConta: HTMLElement | null = null;
 let temporizadorFechamentoAutenticacao: number | null = null;
 let restaurarFocoAposFechamentoAutenticacao = true;
 let cacheOfertasApi: Oferta[] = [];
@@ -1633,6 +1681,7 @@ function invalidarSessaoPorResposta401(tokenRejeitado: string): void {
     return;
   }
 
+  const rotaAntesDaInvalidacao = obterRotaAtual();
   sessaoAtual = null;
   usuarioAtual = null;
   removerSessaoSalva();
@@ -1648,7 +1697,12 @@ function invalidarSessaoPorResposta401(tokenRejeitado: string): void {
   renderizarAnuncios();
   renderizarMeusAnuncios();
   renderizarColecoesDoUsuario();
-  abrirDialogoAutenticacao();
+  navegarParaDestino(
+    rotaEhProtegida(rotaAntesDaInvalidacao)
+      ? caminhoDeEntradaPara(rotaAntesDaInvalidacao)
+      : DESTINO_ENTRAR,
+    { substituir: true },
+  );
   definirFeedbackAutenticacao(
     "Sua sessão expirou. Entre novamente para continuar.",
     "erro",
@@ -2148,6 +2202,252 @@ function atualizarContaNoHeader(): void {
   menuContaUsuario.hidden = true;
 }
 
+function atualizarContaNaRota(): void {
+  if (!usuarioAtual || !avatarContaRota || !nomeContaRota || !emailContaRota) {
+    return;
+  }
+
+  avatarContaRota.replaceChildren();
+
+  if (usuarioAtual.fotoPerfilUrl) {
+    const imagem = document.createElement("img");
+    imagem.src = usuarioAtual.fotoPerfilUrl;
+    imagem.alt = "";
+    avatarContaRota.append(imagem);
+  } else {
+    avatarContaRota.textContent = obterIniciaisDoUsuario(usuarioAtual.nome);
+  }
+
+  nomeContaRota.textContent = usuarioAtual.nome;
+  emailContaRota.textContent = usuarioAtual.email;
+}
+
+function abrirDialogoConta(): void {
+  if (!dialogoConta || !usuarioAtual) {
+    return;
+  }
+
+  atualizarContaNaRota();
+
+  if (!dialogoConta.open) {
+    elementoFocadoAntesDaConta =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    dialogoConta.showModal();
+    document.body.classList.add("modal-aberto");
+  }
+
+  window.requestAnimationFrame(() => botaoFecharConta?.focus());
+}
+
+function fecharDialogoConta(): void {
+  if (dialogoConta?.open) {
+    dialogoConta.close();
+  }
+}
+
+type NomePaginaInformativa =
+  | "ajuda"
+  | "contato"
+  | "termos"
+  | "privacidade"
+  | "anuncio-indisponivel"
+  | "nao-encontrada";
+
+interface SecaoPaginaInformativa {
+  titulo?: string;
+  paragrafos: string[];
+  itens?: string[];
+  link?: { rotulo: string; href: string };
+}
+
+const paginasInformativas: Record<
+  Exclude<NomePaginaInformativa, "nao-encontrada" | "anuncio-indisponivel">,
+  { titulo: string; secoes: SecaoPaginaInformativa[] }
+> = {
+  ajuda: {
+    titulo: "Como podemos ajudar?",
+    secoes: [
+      {
+        titulo: "Quem pode criar uma conta?",
+        paragrafos: [
+          "O cadastro é exclusivo para pessoas com e-mail institucional @edu.unifor.br.",
+        ],
+      },
+      {
+        titulo: "Como anunciar um item?",
+        paragrafos: [
+          "Entre na conta, abra Anunciar e informe modalidade, condição, retirada e descrição. Você poderá editar ou concluir o anúncio depois.",
+        ],
+      },
+      {
+        titulo: "Como funciona a negociação?",
+        paragrafos: [
+          "Abra os detalhes de um anúncio, envie uma oferta e combine a retirada pelo chat. O Vortex não processa pagamentos.",
+        ],
+      },
+      {
+        titulo: "Esqueci minha senha",
+        paragrafos: [
+          "Solicite um link em Esqueci minha senha. Cada link expira em 15 minutos e só pode ser usado uma vez.",
+        ],
+      },
+    ],
+  },
+  contato: {
+    titulo: "Contato e suporte",
+    secoes: [
+      {
+        paragrafos: [
+          "O Marketplace Vortex é um projeto acadêmico desenvolvido para a Universidade de Fortaleza.",
+          "Para relatar um problema técnico, abra uma ocorrência no repositório do projeto sem incluir senhas, tokens, conversas privadas ou outros dados pessoais.",
+        ],
+        link: {
+          rotulo: "Abrir uma ocorrência no GitHub",
+          href: "https://github.com/PedroMapu/marketplace-vortex/issues",
+        },
+      },
+    ],
+  },
+  termos: {
+    titulo: "Termos de uso",
+    secoes: [
+      {
+        titulo: "Uso da comunidade",
+        paragrafos: [
+          "O Vortex foi criado para a circulação de itens entre integrantes da comunidade acadêmica da UNIFOR. Cada pessoa é responsável pela veracidade do anúncio que publica.",
+        ],
+      },
+      {
+        titulo: "Anúncios e negociação",
+        paragrafos: [
+          "Não publique itens proibidos, ilegais ou que coloquem outras pessoas em risco. Valores, pagamentos e retirada são combinados diretamente entre as partes; a plataforma não intermedeia pagamentos.",
+        ],
+      },
+      {
+        titulo: "Segurança",
+        paragrafos: [
+          "Proteja sua senha, não compartilhe códigos de acesso e prefira locais movimentados do campus para realizar a retirada.",
+        ],
+      },
+    ],
+  },
+  privacidade: {
+    titulo: "Privacidade",
+    secoes: [
+      {
+        titulo: "Dados utilizados",
+        paragrafos: [
+          "A plataforma utiliza nome, e-mail institucional, foto opcional, anúncios, ofertas e mensagens para oferecer os recursos da conta.",
+        ],
+      },
+      {
+        titulo: "Sessão e armazenamento",
+        paragrafos: [
+          "O acesso é mantido no navegador conforme a opção escolhida no login. Consultas públicas do catálogo podem ser armazenadas no dispositivo para funcionamento offline; dados autenticados e mensagens não entram nesse cache.",
+        ],
+      },
+      {
+        titulo: "Cuidados ao publicar",
+        paragrafos: [
+          "Evite incluir telefone, endereço residencial ou outras informações sensíveis em anúncios e mensagens. Informe apenas o necessário para combinar a retirada no campus.",
+        ],
+      },
+    ],
+  },
+};
+
+function fecharPaginaInformativa(): void {
+  if (paginaInformativa) {
+    paginaInformativa.hidden = true;
+  }
+  document.body.removeAttribute("data-rota-informativa");
+}
+
+function abrirPaginaInformativa(
+  nome: NomePaginaInformativa,
+  caminhoNaoEncontrado = "",
+): void {
+  if (!paginaInformativa || !tituloPaginaInformativa || !conteudoPaginaInformativa) {
+    return;
+  }
+
+  const pagina =
+    nome === "nao-encontrada"
+      ? {
+          titulo: "Esta rota não existe.",
+          secoes: [
+            {
+              paragrafos: [
+                `Não encontramos “${caminhoNaoEncontrado}”. Volte ao início ou explore os anúncios disponíveis.`,
+              ],
+            },
+          ],
+        }
+      : nome === "anuncio-indisponivel"
+        ? {
+            titulo: "Não foi possível abrir este anúncio.",
+            secoes: [
+              {
+                paragrafos: [
+                  "O serviço está temporariamente indisponível. Verifique sua conexão e tente novamente.",
+                ],
+                link: {
+                  rotulo: "Tentar abrir novamente",
+                  href: caminhoNaoEncontrado,
+                },
+              },
+            ],
+          }
+        : paginasInformativas[nome];
+
+  tituloPaginaInformativa.textContent = pagina.titulo;
+  conteudoPaginaInformativa.replaceChildren();
+
+  for (const secao of pagina.secoes) {
+    const container = document.createElement("section");
+
+    if (secao.titulo) {
+      container.append(criarElemento("h2", "", secao.titulo));
+    }
+
+    secao.paragrafos.forEach((paragrafo) => {
+      container.append(criarElemento("p", "", paragrafo));
+    });
+
+    if (secao.itens) {
+      const lista = document.createElement("ul");
+      secao.itens.forEach((item) => {
+        lista.append(criarElemento("li", "", item));
+      });
+      container.append(lista);
+    }
+
+    if (secao.link) {
+      const link = document.createElement("a");
+      link.href = secao.link.href;
+      link.textContent = secao.link.rotulo;
+      if (secao.link.href.startsWith("/")) {
+        link.addEventListener("click", (evento) => {
+          evento.preventDefault();
+          navegarParaDestino(secao.link?.href ?? DESTINO_EXPLORAR);
+        });
+      } else {
+        link.rel = "noopener noreferrer";
+      }
+      container.append(link);
+    }
+
+    conteudoPaginaInformativa.append(container);
+  }
+
+  paginaInformativa.hidden = false;
+  document.body.dataset.rotaInformativa = "true";
+  window.scrollTo({ top: 0, behavior: "auto" });
+  tituloPaginaInformativa.focus({ preventScroll: true });
+}
+
 function definirFeedbackFotoPerfil(
   mensagem: string,
   tipo: "neutro" | "erro" | "sucesso" = "neutro",
@@ -2213,6 +2513,7 @@ async function salvarFotoPerfil(fotoPerfilUrl: string | null): Promise<void> {
     usuarioAtual = usuarioAtualizado;
     salvarSessao(sessaoAtual);
     atualizarContaNoHeader();
+    atualizarContaNaRota();
     renderizarAnuncios();
     renderizarMeusAnuncios();
     definirFeedbackFotoPerfil(
@@ -2271,7 +2572,31 @@ async function enviarFotoPerfilSelecionada(): Promise<void> {
 }
 
 function ehModoAutenticacao(valor: string | undefined): valor is ModoAutenticacao {
-  return valor === "login" || valor === "cadastro";
+  return [
+    "login",
+    "cadastro",
+    "solicitar-redefinicao",
+    "confirmar-redefinicao",
+  ].includes(valor ?? "");
+}
+
+function normalizarRespostaMensagemApi(dados: unknown): RespostaMensagemApi {
+  if (
+    !dados ||
+    typeof dados !== "object" ||
+    !("mensagem" in dados) ||
+    typeof dados.mensagem !== "string"
+  ) {
+    throw new TypeError("A API retornou uma confirmação inválida.");
+  }
+
+  const tokenDesenvolvimento =
+    "tokenDesenvolvimento" in dados &&
+    typeof dados.tokenDesenvolvimento === "string"
+      ? dados.tokenDesenvolvimento
+      : undefined;
+
+  return { mensagem: dados.mensagem, tokenDesenvolvimento };
 }
 
 function definirFeedbackAutenticacao(
@@ -2369,6 +2694,41 @@ function definirModoAutenticacao(
     botao.tabIndex = selecionado ? 0 : -1;
   });
 
+  if (abasAutenticacao) {
+    abasAutenticacao.hidden = !["login", "cadastro"].includes(modo);
+  }
+
+  const textosPorModo: Record<
+    ModoAutenticacao,
+    { titulo: string; descricao: string }
+  > = {
+    login: {
+      titulo: "Entre para continuar o ciclo.",
+      descricao: "Acesse sua conta ou crie uma gratuitamente.",
+    },
+    cadastro: {
+      titulo: "Crie sua conta Vortex.",
+      descricao: "Use seu e-mail institucional para participar da comunidade.",
+    },
+    "solicitar-redefinicao": {
+      titulo: "Recupere o acesso à sua conta.",
+      descricao: "Enviaremos um link válido por 15 minutos para o seu e-mail.",
+    },
+    "confirmar-redefinicao": {
+      titulo: "Defina uma nova senha.",
+      descricao: "Ao concluir, sessões anteriores deixarão de ser válidas.",
+    },
+  };
+  const textos = textosPorModo[modo];
+
+  if (tituloAutenticacao) {
+    tituloAutenticacao.textContent = textos.titulo;
+  }
+
+  if (descricaoAutenticacao) {
+    descricaoAutenticacao.textContent = textos.descricao;
+  }
+
   dialogoAutenticacao
     ?.querySelector<HTMLElement>(".autenticacao-abas")
     ?.setAttribute("data-modo-atual", modo);
@@ -2387,18 +2747,15 @@ function definirModoAutenticacao(
   }
 }
 
-function abrirDialogoAutenticacao(): void {
-  const destinoAtual = window.location.hash;
-
-  if (!ehDestinoAutenticacao(destinoAtual)) {
-    navegarParaDestino(
-      ehDestinoProtegido(destinoAtual)
-        ? obterDestinoAutenticacao(destinoAtual)
-        : DESTINO_ENTRAR,
-    );
+function abrirDialogoAutenticacao(
+  modo: ModoAutenticacao = "login",
+): void {
+  if (!dialogoAutenticacao) {
+    return;
   }
 
-  if (!dialogoAutenticacao || dialogoAutenticacao.open) {
+  if (dialogoAutenticacao.open) {
+    definirModoAutenticacao(modo, { moverFoco: true });
     return;
   }
 
@@ -2417,7 +2774,7 @@ function abrirDialogoAutenticacao(): void {
     formulario.reset();
     limparErrosAutenticacao(formulario);
   });
-  definirModoAutenticacao("login");
+  definirModoAutenticacao(modo);
   dialogoAutenticacao.showModal();
   document.body.classList.add("modal-aberto");
 
@@ -2456,8 +2813,11 @@ function abrirDialogoAutenticacao(): void {
   }
 
   window.requestAnimationFrame(() => {
-    const campoEmail =
-      dialogoAutenticacao.querySelector<HTMLInputElement>("#login-email");
+    const formularioAtivo = [...formulariosAutenticacao].find(
+      (formulario) => formulario.dataset.formularioAutenticacao === modo,
+    );
+    const primeiroCampo =
+      formularioAtivo?.querySelector<HTMLInputElement>("input:not([type='hidden'])");
 
     dialogoAutenticacao.scrollTop = 0;
     if (layoutAutenticacao) {
@@ -2465,7 +2825,7 @@ function abrirDialogoAutenticacao(): void {
     }
 
     if (window.matchMedia("(min-width: 48.0625rem)").matches) {
-      campoEmail?.focus({ preventScroll: true });
+      primeiroCampo?.focus({ preventScroll: true });
       return;
     }
 
@@ -2685,17 +3045,13 @@ async function enviarFormularioAutenticacao(
     void carregarMeusAnunciosDaApi();
     fecharDialogoAutenticacao({ aposSucesso: true });
 
-    const destinoAposAutenticacao = obterDestinoAposAutenticacao(
-      window.location.hash,
-    );
+    const rotaAtual = interpretarRota(new URL(window.location.href));
+    const destinoAposAutenticacao =
+      rotaAtual.nome === "entrar" || rotaAtual.nome === "cadastro"
+        ? rotaAtual.redirecionarPara
+        : undefined;
 
-    if (destinoAposAutenticacao) {
-      navegarParaDestino(destinoAposAutenticacao);
-    } else if (ehDestinoAutenticacao(window.location.hash)) {
-      navegarParaDestino(DESTINO_EXPLORAR);
-    } else {
-      sincronizarInterfaceComDestino(undefined, { moverFoco: true });
-    }
+    navegarParaDestino(destinoAposAutenticacao ?? DESTINO_EXPLORAR);
     agendarOfertaImportacaoLegada(resultado.dados.usuario);
     mostrarFeedback(
       modo === "login"
@@ -2742,6 +3098,113 @@ async function enviarFormularioAutenticacao(
     }
   } finally {
     cancelarAvisoApiGratuita();
+    definirBloqueioAutenticacao(formulario, botaoEnviar, false);
+  }
+}
+
+async function solicitarRedefinicaoPeloFormulario(
+  formulario: HTMLFormElement,
+): Promise<void> {
+  if (!formulario.reportValidity()) {
+    return;
+  }
+
+  const botaoEnviar =
+    formulario.querySelector<HTMLButtonElement>("[type='submit']");
+  const email = String(new FormData(formulario).get("email") ?? "").trim();
+  limparErrosAutenticacao(formulario);
+  definirFeedbackAutenticacao("Preparando seu link de redefinição...");
+  definirBloqueioAutenticacao(formulario, botaoEnviar, true);
+
+  try {
+    const { dados } = await requisitarApi(
+      "/api/auth/password-reset/request",
+      normalizarRespostaMensagemApi,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      },
+    );
+
+    if (dados.tokenDesenvolvimento) {
+      navegarParaDestino(
+        `/redefinir-senha?token=${encodeURIComponent(dados.tokenDesenvolvimento)}`,
+      );
+      definirFeedbackAutenticacao(
+        "Modo de desenvolvimento: o token foi aplicado automaticamente.",
+      );
+      return;
+    }
+
+    definirFeedbackAutenticacao(
+      "Se a conta existir, o link chegará ao e-mail informado. Ele expira em 15 minutos.",
+    );
+  } catch (erro) {
+    definirFeedbackAutenticacao(
+      ehErroRequisicaoApi(erro)
+        ? erro.message
+        : "Não foi possível solicitar a redefinição agora. Tente novamente.",
+      "erro",
+    );
+  } finally {
+    definirBloqueioAutenticacao(formulario, botaoEnviar, false);
+  }
+}
+
+async function confirmarRedefinicaoPeloFormulario(
+  formulario: HTMLFormElement,
+): Promise<void> {
+  const dadosFormulario = new FormData(formulario);
+  const token = String(dadosFormulario.get("token") ?? "");
+  const novaSenha = String(dadosFormulario.get("novaSenha") ?? "");
+  const confirmacaoSenha = String(
+    dadosFormulario.get("confirmacaoSenha") ?? "",
+  );
+  const campoConfirmacao = formulario.elements.namedItem("confirmacaoSenha");
+
+  if (campoConfirmacao instanceof HTMLInputElement) {
+    campoConfirmacao.setCustomValidity(
+      novaSenha === confirmacaoSenha ? "" : "As senhas não coincidem.",
+    );
+  }
+
+  if (!formulario.reportValidity()) {
+    return;
+  }
+
+  const botaoEnviar =
+    formulario.querySelector<HTMLButtonElement>("[type='submit']");
+  limparErrosAutenticacao(formulario);
+  definirFeedbackAutenticacao("Salvando sua nova senha...");
+  definirBloqueioAutenticacao(formulario, botaoEnviar, true);
+
+  try {
+    await requisitarApi(
+      "/api/auth/password-reset/confirm",
+      normalizarRespostaMensagemApi,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, novaSenha }),
+      },
+    );
+
+    sessaoAtual = null;
+    usuarioAtual = null;
+    removerSessaoSalva();
+    resetarNotificacoesDaSessao();
+    atualizarContaNoHeader();
+    navegarParaDestino(DESTINO_ENTRAR);
+    mostrarFeedback("Senha redefinida. Entre novamente com a nova senha.");
+  } catch (erro) {
+    definirFeedbackAutenticacao(
+      ehErroRequisicaoApi(erro)
+        ? erro.message
+        : "Não foi possível redefinir a senha. Solicite um novo link.",
+      "erro",
+    );
+  } finally {
     definirBloqueioAutenticacao(formulario, botaoEnviar, false);
   }
 }
@@ -2850,6 +3313,45 @@ function inicializarContaUsuario(): void {
 
     void salvarFotoPerfil(null);
   });
+  botaoAbrirConta?.addEventListener("click", () => {
+    fecharMenuConta();
+    navegarParaDestino("/conta");
+  });
+  botaoAlterarFotoConta?.addEventListener("click", () => {
+    if (!atualizacaoFotoEmAndamento) {
+      campoFotoPerfil?.click();
+    }
+  });
+  botaoRedefinirSenhaConta?.addEventListener("click", () => {
+    navegarParaDestino("/esqueci-senha");
+  });
+  botaoSairContaRota?.addEventListener("click", sairDaConta);
+  botaoFecharConta?.addEventListener("click", fecharDialogoConta);
+  dialogoConta?.addEventListener("click", (evento) => {
+    if (evento.target === dialogoConta) {
+      fecharDialogoConta();
+    }
+  });
+  dialogoConta?.addEventListener("close", () => {
+    if (!document.querySelector("dialog[open]")) {
+      document.body.classList.remove("modal-aberto");
+    }
+
+    const elementoParaRestaurar =
+      elementoFocadoAntesDaConta?.isConnected &&
+      !elementoFocadoAntesDaConta.closest("[hidden]")
+        ? elementoFocadoAntesDaConta
+        : botaoContaUsuario;
+    elementoFocadoAntesDaConta = null;
+
+    if (obterRotaAtual().nome === "conta") {
+      navegarParaDestino(DESTINO_EXPLORAR);
+    }
+
+    window.requestAnimationFrame(() => {
+      elementoParaRestaurar?.focus({ preventScroll: true });
+    });
+  });
   botaoSairConta?.addEventListener("click", sairDaConta);
   botaoFecharAutenticacao?.addEventListener(
     "click",
@@ -2864,8 +3366,18 @@ function inicializarContaUsuario(): void {
 
       const modo = botao.dataset.modoAutenticacao;
 
-      if (ehModoAutenticacao(modo)) {
-        definirModoAutenticacao(modo, { moverFoco: true });
+      if (modo === "login" || modo === "cadastro") {
+        const rotaAtual = interpretarRota(new URL(window.location.href));
+        const redirecionarPara =
+          rotaAtual.nome === "entrar" || rotaAtual.nome === "cadastro"
+            ? rotaAtual.redirecionarPara
+            : undefined;
+        navegarParaDestino(
+          caminhoDaRota({
+            nome: modo === "login" ? "entrar" : "cadastro",
+            redirecionarPara,
+          }),
+        );
       }
     });
 
@@ -2916,7 +3428,27 @@ function inicializarContaUsuario(): void {
     });
     formulario.addEventListener("submit", (evento) => {
       evento.preventDefault();
-      void enviarFormularioAutenticacao(formulario);
+      const modo = formulario.dataset.formularioAutenticacao;
+
+      if (modo === "solicitar-redefinicao") {
+        void solicitarRedefinicaoPeloFormulario(formulario);
+      } else if (modo === "confirmar-redefinicao") {
+        void confirmarRedefinicaoPeloFormulario(formulario);
+      } else {
+        void enviarFormularioAutenticacao(formulario);
+      }
+    });
+  });
+
+  botaoEsqueciSenha?.addEventListener("click", () => {
+    navegarParaDestino("/esqueci-senha");
+  });
+  botaoSolicitarNovoLink?.addEventListener("click", () => {
+    navegarParaDestino("/esqueci-senha");
+  });
+  botoesVoltarLogin.forEach((botao) => {
+    botao.addEventListener("click", () => {
+      navegarParaDestino(DESTINO_ENTRAR);
     });
   });
 
@@ -2948,7 +3480,17 @@ function inicializarContaUsuario(): void {
       elementoParaRestaurar.focus({ preventScroll: true });
     }
 
-    if (!usuarioAtual && ehDestinoAutenticacao(window.location.hash)) {
+    const rotaAtual = interpretarRota(new URL(window.location.href));
+
+    if (
+      restaurarFocoAposFechamentoAutenticacao &&
+      [
+        "entrar",
+        "cadastro",
+        "esqueci-senha",
+        "redefinir-senha",
+      ].includes(rotaAtual.nome)
+    ) {
       navegarParaDestino(DESTINO_EXPLORAR);
     }
   });
@@ -3685,7 +4227,7 @@ function criarCardDaVitrine(anuncio: Anuncio): HTMLElement {
   card.dataset.modalidade = anuncio.modalidade;
   card.dataset.preco = String(anuncio.valor);
 
-  detalhes.href = "#vitrine";
+  detalhes.href = `/anuncios/${encodeURIComponent(anuncio.id)}`;
   detalhes.dataset.id = String(anuncio.id);
   detalhes.setAttribute(
     "aria-label",
@@ -4912,7 +5454,7 @@ function inicializarNotificacoesDeConversas(): void {
     }
 
     fecharPainelNotificacoes();
-    abrirDialogoDeOfertas(null, botaoNotificacoesConversas ?? botao, ofertaId);
+    navegarParaDestino(`/conversas/${ofertaId}`);
   });
 
   document.addEventListener("click", (evento) => {
@@ -4957,7 +5499,7 @@ function inicializarOfertasEConversas(): void {
   }
 
   botaoAbrirConversas?.addEventListener("click", () => {
-    abrirDialogoDeOfertas(null, botaoAbrirConversas);
+    navegarParaDestino("/conversas");
   });
 
   listaAnuncios?.addEventListener("click", (evento) => {
@@ -4989,7 +5531,11 @@ function inicializarOfertasEConversas(): void {
       return;
     }
 
-    selecionarOferta(botao.dataset.ofertaId);
+    const ofertaId = Number(botao.dataset.ofertaId);
+
+    if (Number.isSafeInteger(ofertaId) && ofertaId > 0) {
+      navegarParaDestino(`/conversas/${ofertaId}`);
+    }
   });
 
   formularioOferta?.addEventListener("submit", (evento) => {
@@ -5031,6 +5577,10 @@ function inicializarOfertasEConversas(): void {
 
     if (elementoParaRestaurar?.isConnected) {
       elementoParaRestaurar.focus({ preventScroll: true });
+    }
+
+    if (obterRotaAtual().nome === "conversas") {
+      navegarParaDestino(DESTINO_EXPLORAR);
     }
   });
 }
@@ -5327,53 +5877,22 @@ function concluirRolagemPendenteDoCatalogo(): void {
   }
 }
 
-function ehDestinoProtegido(valor: string): valor is DestinoProtegido {
-  return [DESTINO_ANUNCIAR, DESTINO_MEUS_ANUNCIOS].includes(
-    valor as DestinoProtegido,
-  );
+function obterRotaAtual(): RotaAplicacao {
+  return interpretarRota(new URL(window.location.href));
 }
 
-function ehDestinoAutenticacao(
-  valor: string,
-): valor is DestinoAutenticacao {
+function rotaEhDeAutenticacao(rota: RotaAplicacao): boolean {
   return [
-    DESTINO_ENTRAR,
-    DESTINO_ENTRAR_PARA_ANUNCIAR,
-    DESTINO_ENTRAR_PARA_MEUS_ANUNCIOS,
-  ].includes(valor as DestinoAutenticacao);
+    "entrar",
+    "cadastro",
+    "esqueci-senha",
+    "redefinir-senha",
+  ].includes(rota.nome);
 }
 
-function obterDestinoAutenticacao(
-  destino: DestinoProtegido,
-): DestinoAutenticacao {
-  return destino === DESTINO_ANUNCIAR
-    ? DESTINO_ENTRAR_PARA_ANUNCIAR
-    : DESTINO_ENTRAR_PARA_MEUS_ANUNCIOS;
-}
-
-function obterDestinoAposAutenticacao(
-  destino: string,
-): DestinoProtegido | null {
-  if (destino === DESTINO_ENTRAR_PARA_ANUNCIAR) {
-    return DESTINO_ANUNCIAR;
-  }
-
-  if (destino === DESTINO_ENTRAR_PARA_MEUS_ANUNCIOS) {
-    return DESTINO_MEUS_ANUNCIOS;
-  }
-
-  return null;
-}
-
-function ehDestinoNavegacao(valor: string): valor is DestinoNavegacao {
-  return [
-    DESTINO_EXPLORAR,
-    DESTINO_ANUNCIAR,
-    DESTINO_MEUS_ANUNCIOS,
-    DESTINO_ENTRAR,
-    DESTINO_ENTRAR_PARA_ANUNCIAR,
-    DESTINO_ENTRAR_PARA_MEUS_ANUNCIOS,
-  ].includes(valor as DestinoNavegacao);
+function rotaProtegidaPorCaminho(caminho: string): RotaProtegida | null {
+  const rota = interpretarRota(new URL(caminho, window.location.origin));
+  return rotaEhProtegida(rota) ? rota : null;
 }
 
 function explorarCatalogo(): void {
@@ -5396,103 +5915,292 @@ function explorarCatalogo(): void {
   }
 }
 
-function sincronizarInterfaceComDestino(
-  destino = window.location.hash,
-  { moverFoco = false }: { moverFoco?: boolean } = {},
-): void {
-  if (!ehDestinoNavegacao(destino)) {
-    fecharDialogoAutenticacao();
-    definirPainelAnuncioAberto(false, { moverFoco: false });
-    definirPainelColecaoAberto(false, { moverFoco: false });
-    definirPainelMeusAnunciosAberto(false, { moverFoco: false });
+async function abrirDetalhesDaRota(anuncioId: number): Promise<void> {
+  let anuncio = cacheCatalogoApi.find((item) => item.id === anuncioId);
+
+  if (!anuncio) {
+    try {
+      const resultado = await requisitarApi(
+        `/api/anuncios/${encodeURIComponent(anuncioId)}`,
+        normalizarAnuncioDaApi,
+      );
+      anuncio = resultado.dados;
+    } catch (erro) {
+      const rotaAtual = obterRotaAtual();
+
+      if (
+        rotaAtual.nome === "detalhes-anuncio" &&
+        rotaAtual.anuncioId === anuncioId
+      ) {
+        if (ehErroRequisicaoApi(erro) && erro.status === 404) {
+          abrirPaginaInformativa("nao-encontrada", `/anuncios/${anuncioId}`);
+        } else {
+          abrirPaginaInformativa(
+            "anuncio-indisponivel",
+            `/anuncios/${anuncioId}`,
+          );
+        }
+      }
+      return;
+    }
+  }
+
+  const rotaAtual = obterRotaAtual();
+
+  if (
+    rotaAtual.nome !== "detalhes-anuncio" ||
+    rotaAtual.anuncioId !== anuncioId
+  ) {
     return;
   }
 
-  if (destino === DESTINO_EXPLORAR) {
-    fecharDialogoAutenticacao();
-    definirPainelAnuncioAberto(false, { moverFoco: false });
-    definirPainelColecaoAberto(false, { moverFoco: false });
-    definirPainelMeusAnunciosAberto(false, { moverFoco: false });
+  const acionador =
+    listaAnuncios?.querySelector<HTMLElement>(
+      `.btn-detalhes[data-id="${anuncioId}"]`,
+    ) ?? listaAnuncios ?? document.body;
+  abrirDialogoDeDetalhes(anuncio, acionador);
+}
+
+function fecharDialogosForaDaRota(rota: RotaAplicacao): void {
+  if (!rotaEhDeAutenticacao(rota) && dialogoAutenticacao?.open) {
+    dialogoAutenticacao.close();
+  }
+  if (rota.nome !== "conta" && dialogoConta?.open) {
+    dialogoConta.close();
+  }
+  if (rota.nome !== "detalhes-anuncio" && dialogoDetalhesAnuncio?.open) {
+    dialogoDetalhesAnuncio.close();
+  }
+  if (rota.nome !== "conversas" && dialogoOfertas?.open) {
+    dialogoOfertas.close();
+  }
+}
+
+function atualizarTituloDaRota(rota: RotaAplicacao): void {
+  const titulos: Partial<Record<RotaAplicacao["nome"], string>> = {
+    inicio: "Marketplace Vortex",
+    catalogo: "Explorar anúncios — Vortex",
+    anunciar: "Criar anúncio — Vortex",
+    "meus-anuncios": "Meus anúncios — Vortex",
+    entrar: "Entrar — Vortex",
+    cadastro: "Criar conta — Vortex",
+    "esqueci-senha": "Recuperar senha — Vortex",
+    "redefinir-senha": "Redefinir senha — Vortex",
+    conversas: "Conversas — Vortex",
+    conta: "Minha conta — Vortex",
+    ajuda: "Ajuda — Vortex",
+    contato: "Contato — Vortex",
+    termos: "Termos de uso — Vortex",
+    privacidade: "Privacidade — Vortex",
+    "nao-encontrada": "Página não encontrada — Vortex",
+  };
+
+  document.title =
+    rota.nome === "detalhes-anuncio"
+      ? "Detalhes do anúncio — Vortex"
+      : titulos[rota.nome] ?? "Marketplace Vortex";
+}
+
+function sincronizarInterfaceComDestino(
+  destino?: string,
+  { moverFoco = false }: { moverFoco?: boolean } = {},
+): void {
+  const rota = destino
+    ? interpretarRota(new URL(destino, window.location.origin))
+    : obterRotaAtual();
+
+  if (rotaEhProtegida(rota) && !usuarioAtual) {
+    const entrada = caminhoDeEntradaPara(rota);
+    window.history.replaceState(null, "", entrada);
+    sincronizarInterfaceComDestino(entrada, { moverFoco });
+    return;
+  }
+
+  atualizarTituloDaRota(rota);
+  fecharDialogosForaDaRota(rota);
+  definirPainelColecaoAberto(false, { moverFoco: false });
+  definirPainelAnuncioAberto(false, { moverFoco: false });
+  definirPainelMeusAnunciosAberto(false, { moverFoco: false });
+
+  if (
+    !["ajuda", "contato", "termos", "privacidade", "nao-encontrada"].includes(
+      rota.nome,
+    )
+  ) {
+    fecharPaginaInformativa();
+  }
+
+  if (rota.nome === "inicio") {
+    if (moverFoco) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    return;
+  }
+
+  if (rota.nome === "catalogo") {
     explorarCatalogo();
     return;
   }
 
-  if (ehDestinoAutenticacao(destino)) {
-    definirPainelAnuncioAberto(false, { moverFoco: false });
-    definirPainelColecaoAberto(false, { moverFoco: false });
-    definirPainelMeusAnunciosAberto(false, { moverFoco: false });
-
+  if (rota.nome === "entrar" || rota.nome === "cadastro") {
     if (usuarioAtual) {
-      navegarParaDestino(
-        obterDestinoAposAutenticacao(destino) ?? DESTINO_EXPLORAR,
-      );
+      navegarParaDestino(rota.redirecionarPara ?? DESTINO_EXPLORAR, {
+        substituir: true,
+      });
       return;
     }
 
-    abrirDialogoAutenticacao();
+    abrirDialogoAutenticacao(rota.nome === "cadastro" ? "cadastro" : "login");
 
-    if (destino === DESTINO_ENTRAR_PARA_ANUNCIAR) {
-      definirFeedbackAutenticacao(
-        "Entre na sua conta para anunciar um item.",
-      );
-    } else if (destino === DESTINO_ENTRAR_PARA_MEUS_ANUNCIOS) {
+    if (rota.redirecionarPara === DESTINO_ANUNCIAR) {
+      definirFeedbackAutenticacao("Entre na sua conta para anunciar um item.");
+    } else if (rota.redirecionarPara === DESTINO_MEUS_ANUNCIOS) {
       definirFeedbackAutenticacao(
         "Entre na sua conta para acessar seus anúncios.",
       );
+    } else if (rota.redirecionarPara?.startsWith("/conversas")) {
+      definirFeedbackAutenticacao(
+        "Entre na sua conta para acessar suas conversas.",
+      );
     }
-
     return;
   }
 
-  if (!ehDestinoProtegido(destino)) {
-    return;
-  }
-
-  definirPainelColecaoAberto(false, { moverFoco: false });
-
-  if (!usuarioAtual) {
-    const destinoAutenticacao = obterDestinoAutenticacao(destino);
-    window.history.replaceState(
-      null,
-      "",
-      destinoAutenticacao,
+  if (rota.nome === "esqueci-senha") {
+    abrirDialogoAutenticacao("solicitar-redefinicao");
+    const campoEmail = document.querySelector<HTMLInputElement>(
+      "#redefinicao-email",
     );
-    sincronizarInterfaceComDestino(destinoAutenticacao, { moverFoco });
+    if (campoEmail && usuarioAtual) {
+      campoEmail.value = usuarioAtual.email;
+    }
     return;
   }
 
-  fecharDialogoAutenticacao();
+  if (rota.nome === "redefinir-senha") {
+    abrirDialogoAutenticacao("confirmar-redefinicao");
+    if (campoTokenRedefinicao) {
+      campoTokenRedefinicao.value = rota.token ?? "";
+    }
+    const tokenPresente = Boolean(rota.token);
+    formularioConfirmarRedefinicao
+      ?.querySelectorAll<HTMLInputElement>("input:not([type='hidden'])")
+      .forEach((campo) => {
+        campo.disabled = !tokenPresente;
+      });
+    const botaoConfirmar =
+      formularioConfirmarRedefinicao?.querySelector<HTMLButtonElement>(
+        "button[type='submit']",
+      );
+    if (botaoConfirmar) {
+      botaoConfirmar.disabled = !tokenPresente;
+    }
+    if (botaoSolicitarNovoLink) {
+      botaoSolicitarNovoLink.hidden = tokenPresente;
+    }
+    if (!rota.token) {
+      definirFeedbackAutenticacao(
+        "Este link não contém um token válido. Solicite uma nova redefinição.",
+        "erro",
+      );
+    }
+    return;
+  }
 
-  if (destino === DESTINO_ANUNCIAR) {
-    definirPainelMeusAnunciosAberto(false, { moverFoco: false });
+  if (rota.nome === "anunciar") {
     definirPainelAnuncioAberto(true, { moverFoco });
     return;
   }
 
-  definirPainelAnuncioAberto(false, { moverFoco: false });
-  definirPainelMeusAnunciosAberto(true, { moverFoco });
-}
-
-function navegarParaDestino(destino: DestinoNavegacao): void {
-  const destinoEfetivo =
-    !usuarioAtual && ehDestinoProtegido(destino)
-      ? obterDestinoAutenticacao(destino)
-      : destino;
-
-  if (window.location.hash !== destinoEfetivo) {
-    moverFocoNaProximaSincronizacao = true;
-    window.location.hash = destinoEfetivo;
+  if (rota.nome === "meus-anuncios") {
+    definirPainelMeusAnunciosAberto(true, { moverFoco });
     return;
   }
 
-  sincronizarInterfaceComDestino(destinoEfetivo, { moverFoco: true });
+  if (rota.nome === "detalhes-anuncio") {
+    explorarCatalogo();
+    void abrirDetalhesDaRota(rota.anuncioId);
+    return;
+  }
+
+  if (rota.nome === "conversas") {
+    abrirDialogoDeOfertas(
+      null,
+      botaoAbrirConversas ?? document.body,
+      rota.ofertaId,
+    );
+    return;
+  }
+
+  if (rota.nome === "conta") {
+    abrirDialogoConta();
+    return;
+  }
+
+  if (["ajuda", "contato", "termos", "privacidade"].includes(rota.nome)) {
+    abrirPaginaInformativa(
+      rota.nome as Exclude<NomePaginaInformativa, "nao-encontrada">,
+    );
+    return;
+  }
+
+  if (rota.nome === "nao-encontrada") {
+    abrirPaginaInformativa("nao-encontrada", rota.caminho);
+  }
+}
+
+function navegarParaDestino(
+  destino: string,
+  { substituir = false }: { substituir?: boolean } = {},
+): void {
+  const url = new URL(destino, window.location.origin);
+  const destinoAtual = `${window.location.pathname}${window.location.search}`;
+  const destinoEfetivo = `${url.pathname}${url.search}`;
+
+  if (destinoAtual !== destinoEfetivo) {
+    moverFocoNaProximaSincronizacao = true;
+    window.history[substituir ? "replaceState" : "pushState"](
+      null,
+      "",
+      destinoEfetivo,
+    );
+  }
+
+  const moverFoco = moverFocoNaProximaSincronizacao || destinoAtual === destinoEfetivo;
+  moverFocoNaProximaSincronizacao = false;
+  sincronizarInterfaceComDestino(destinoEfetivo, { moverFoco });
 }
 
 function inicializarNavegacaoPorUrl(): void {
-  window.addEventListener("hashchange", () => {
-    const moverFoco = moverFocoNaProximaSincronizacao;
-    moverFocoNaProximaSincronizacao = false;
-    sincronizarInterfaceComDestino(undefined, { moverFoco });
+  const caminhoLegado =
+    window.location.pathname === "/"
+      ? caminhoLegadoParaRota(window.location.hash)
+      : null;
+
+  if (caminhoLegado) {
+    window.history.replaceState(null, "", caminhoLegado);
+  }
+
+  window.addEventListener("popstate", () => {
+    sincronizarInterfaceComDestino(undefined, { moverFoco: true });
+  });
+
+  linksRotasApp.forEach((link) => {
+    link.addEventListener("click", (evento) => {
+      if (
+        evento.defaultPrevented ||
+        evento.button !== 0 ||
+        evento.ctrlKey ||
+        evento.metaKey ||
+        evento.shiftKey ||
+        evento.altKey
+      ) {
+        return;
+      }
+
+      evento.preventDefault();
+      navegarParaDestino(link.href);
+    });
   });
 
   sincronizarInterfaceComDestino();
@@ -7257,12 +7965,14 @@ function inicializarContagemDeCliquesEmDetalhes(): void {
       return;
     }
 
+    evento.preventDefault();
+
     const id = linkDetalhes.dataset.id;
     void registrarCliqueEmDetalhes(id);
 
-    const anuncio = cacheCatalogoApi.find((item) => String(item.id) === id);
-    if (anuncio) {
-      abrirDialogoDeDetalhes(anuncio, linkDetalhes);
+    const anuncioId = Number(id);
+    if (Number.isSafeInteger(anuncioId) && anuncioId > 0) {
+      navegarParaDestino(`/anuncios/${anuncioId}`);
     }
   });
 }
@@ -7346,6 +8056,10 @@ function inicializarDetalhesDeAnuncios(): void {
     const elementoParaRestaurar = elementoFocadoAntesDosDetalhes;
     elementoFocadoAntesDosDetalhes = null;
     elementoParaRestaurar?.focus({ preventScroll: true });
+
+    if (obterRotaAtual().nome === "detalhes-anuncio") {
+      navegarParaDestino(DESTINO_EXPLORAR);
+    }
   });
 
   botaoDetalhesFazerOferta?.addEventListener("click", () => {

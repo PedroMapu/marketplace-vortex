@@ -27,7 +27,7 @@
     <a href="#conteudo-principal">Pular para o conteúdo principal</a>
 
     <header>
-      <a href="#inicio" aria-label="Marketplace Vortex - ir para o início" class="logo">
+      <a href="/" aria-label="Marketplace Vortex - ir para o início" class="logo" data-rota-app>
         <img
           src="/icons/vortex-mark.png"
           alt=""
@@ -54,12 +54,12 @@
 
       <nav id="navegacao-principal" aria-label="Navegação principal">
         <ul>
-          <li><a href="#inicio">Início</a></li>
+          <li><a href="/" data-rota-app>Início</a></li>
           <li><a href="#como-funciona">Como funciona</a></li>
           <li><a href="#eficiencia">Estatísticas</a></li>
-          <li><a href="#lista-anuncios" data-explorar-catalogo>Explorar</a></li>
-          <li><a href="#painel-novo-anuncio" data-atalho-anunciar>Anunciar</a></li>
-          <li><a href="#painel-meus-anuncios" data-abrir-meus-anuncios>Meus anúncios</a></li>
+          <li><a href="/anuncios" data-explorar-catalogo>Explorar</a></li>
+          <li><a href="/anunciar" data-atalho-anunciar>Anunciar</a></li>
+          <li><a href="/meus-anuncios" data-abrir-meus-anuncios>Meus anúncios</a></li>
         </ul>
       </nav>
 
@@ -134,6 +134,14 @@
           </button>
           <div id="menu-conta" class="menu-conta" role="menu" hidden>
             <button
+              id="botao-abrir-conta"
+              class="menu-conta-perfil"
+              type="button"
+              role="menuitem"
+            >
+              Minha conta
+            </button>
+            <button
               id="botao-alterar-foto"
               class="menu-conta-foto"
               type="button"
@@ -193,6 +201,18 @@
     </div>
 
     <main id="conteudo-principal">
+      <section
+        id="pagina-informativa"
+        class="pagina-rota"
+        aria-labelledby="titulo-pagina-informativa"
+        hidden
+      >
+        <div class="pagina-rota-conteudo">
+          <h1 id="titulo-pagina-informativa" tabindex="-1"></h1>
+          <div id="conteudo-pagina-informativa" class="pagina-informativa-texto"></div>
+          <a href="/" class="pagina-informativa-voltar" data-rota-app>Voltar ao início</a>
+        </div>
+      </section>
       <!-- 1. Hero inicial -->
       <section id="inicio" aria-labelledby="titulo-principal">
         
@@ -203,12 +223,12 @@
         </p>
         <div class="hero-ctas" aria-label="Ações principais">
           <a
-            href="#painel-novo-anuncio"
+            href="/anunciar"
             class="hero-cta hero-cta-primary"
             data-atalho-anunciar
           >Anunciar um item</a>
           <a
-            href="#lista-anuncios"
+            href="/anuncios"
             class="hero-cta hero-cta-secondary"
             data-explorar-catalogo
           >Explorar catálogo</a>
@@ -939,17 +959,12 @@
         <p>Uma iniciativa para incentivar escolhas mais conscientes na comunidade UNIFOR.</p>
         
         <div class="footer-socials">
-          <a href="#facebook" aria-label="Facebook">
-            <img src="/icons/facebook-icon.svg" alt="" aria-hidden="true">
-          </a>
-          <a href="#linkedin" aria-label="LinkedIn">
-            <img src="/icons/linkedin-icon.svg" alt="" aria-hidden="true">
-          </a>
-          <a href="#twitter" aria-label="Twitter">
-            <img src="/icons/twitter-icon.svg" alt="" aria-hidden="true">
-          </a>
-          <a href="#instagram" aria-label="Instagram">
-            <img src="/icons/instagram-icon.svg" alt="" aria-hidden="true">
+          <a
+            href="https://github.com/PedroMapu/marketplace-vortex"
+            aria-label="Ver o código do Marketplace Vortex no GitHub"
+            rel="noopener noreferrer"
+          >
+            Código do projeto
           </a>
         </div>
       </section>
@@ -959,17 +974,17 @@
           <h3 class="footer-heading">Plataforma</h3>
           <ul>
             <li><a href="#como-funciona">Economia circular</a></li>
-            <li><a href="#vitrine">Explorar anúncios</a></li>
-            <li><a href="#vitrine">Criar anúncio</a></li>
+            <li><a href="/anuncios" data-rota-app>Explorar anúncios</a></li>
+            <li><a href="/anunciar" data-rota-app>Criar anúncio</a></li>
           </ul>
         </nav>
         
         <nav aria-label="Navegação do rodapé - Coluna 2">
           <h3 class="footer-heading">Suporte</h3>
           <ul>
-            <li><a href="#aba-meus-anuncios" data-abrir-meus-anuncios>Meus anúncios</a></li>
-            <li><a href="#faq">Perguntas frequentes</a></li>
-            <li><a href="#contato">Contato</a></li>
+            <li><a href="/meus-anuncios" data-abrir-meus-anuncios>Meus anúncios</a></li>
+            <li><a href="/ajuda" data-rota-app>Perguntas frequentes</a></li>
+            <li><a href="/contato" data-rota-app>Contato</a></li>
           </ul>
         </nav>
       </div>
@@ -1006,6 +1021,10 @@
           </ul>
         </div>
       </div>
+      <nav class="footer-legal" aria-label="Informações legais">
+        <a href="/termos" data-rota-app>Termos de uso</a>
+        <a href="/privacidade" data-rota-app>Privacidade</a>
+      </nav>
       <p class="footer-copy">&copy; 2026 Marketplace Vortex. Todos os direitos reservados (Feito por <span class="footer-author">PEDRO MAPURUNGA</span>).</p>
     </footer>
 
@@ -1132,6 +1151,110 @@
             <button class="autenticacao-submit" type="submit">
               Entrar na conta
             </button>
+            <button
+              id="botao-esqueci-senha"
+              class="autenticacao-link"
+              type="button"
+            >
+              Esqueci minha senha
+            </button>
+          </form>
+
+          <form
+            id="painel-solicitar-redefinicao"
+            class="formulario-autenticacao"
+            data-formulario-autenticacao="solicitar-redefinicao"
+            aria-busy="false"
+            hidden
+          >
+            <div class="campo-autenticacao">
+              <label for="redefinicao-email">E-mail da conta</label>
+              <input
+                id="redefinicao-email"
+                name="email"
+                type="email"
+                inputmode="email"
+                autocomplete="email"
+                maxlength="254"
+                required
+              />
+              <span
+                id="erro-redefinicao-email"
+                class="erro-campo-autenticacao"
+                data-erro-campo="email"
+              ></span>
+            </div>
+            <button class="autenticacao-submit" type="submit">
+              Enviar link de redefinição
+            </button>
+            <button
+              class="autenticacao-link"
+              type="button"
+              data-voltar-login
+            >
+              Voltar para entrar
+            </button>
+          </form>
+
+          <form
+            id="painel-confirmar-redefinicao"
+            class="formulario-autenticacao"
+            data-formulario-autenticacao="confirmar-redefinicao"
+            aria-busy="false"
+            hidden
+          >
+            <input id="redefinicao-token" name="token" type="hidden" />
+            <div class="campo-autenticacao">
+              <label for="redefinicao-nova-senha">Nova senha</label>
+              <input
+                id="redefinicao-nova-senha"
+                name="novaSenha"
+                type="password"
+                autocomplete="new-password"
+                minlength="8"
+                maxlength="72"
+                aria-describedby="dica-redefinicao-senha erro-redefinicao-nova-senha"
+                required
+              />
+              <span id="dica-redefinicao-senha" class="dica-campo-autenticacao">
+                Use entre 8 e 72 caracteres.
+              </span>
+              <span
+                id="erro-redefinicao-nova-senha"
+                class="erro-campo-autenticacao"
+                data-erro-campo="novaSenha"
+              ></span>
+            </div>
+            <div class="campo-autenticacao">
+              <label for="redefinicao-confirmar-senha">Confirmar nova senha</label>
+              <input
+                id="redefinicao-confirmar-senha"
+                name="confirmacaoSenha"
+                type="password"
+                autocomplete="new-password"
+                minlength="8"
+                maxlength="72"
+                required
+              />
+            </div>
+            <button class="autenticacao-submit" type="submit">
+              Salvar nova senha
+            </button>
+            <button
+              id="botao-solicitar-novo-link"
+              class="autenticacao-link"
+              type="button"
+              hidden
+            >
+              Solicitar um novo link
+            </button>
+            <button
+              class="autenticacao-link"
+              type="button"
+              data-voltar-login
+            >
+              Voltar para entrar
+            </button>
           </form>
 
           <form
@@ -1247,6 +1370,42 @@
     </dialog>
 
     <dialog
+      id="dialogo-conta"
+      class="dialogo-rota dialogo-conta"
+      aria-labelledby="titulo-dialogo-conta"
+    >
+      <article class="dialogo-rota-conteudo">
+        <button
+          id="botao-fechar-conta"
+          class="dialogo-rota-fechar"
+          type="button"
+          aria-label="Fechar janela da minha conta"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M6 6 18 18M18 6 6 18" />
+          </svg>
+        </button>
+        <div class="conta-rota-identidade">
+          <span id="avatar-conta-rota" class="conta-rota-avatar" aria-hidden="true"></span>
+          <div>
+            <h2 id="titulo-dialogo-conta">Minha conta</h2>
+            <strong id="nome-conta-rota"></strong>
+            <span id="email-conta-rota"></span>
+          </div>
+        </div>
+        <p class="conta-rota-nota">
+          Sua conta é exclusiva para a comunidade acadêmica da UNIFOR.
+        </p>
+        <div class="conta-rota-acoes">
+          <button id="botao-alterar-foto-conta" type="button">Alterar foto</button>
+          <button id="botao-redefinir-senha-conta" type="button">Redefinir senha</button>
+          <button id="botao-sair-conta-rota" class="acao-perigosa" type="button">Sair da conta</button>
+        </div>
+      </article>
+    </dialog>
+
+
+    <dialog
       id="dialogo-concluir-anuncio"
       class="dialogo-concluir-anuncio"
       aria-labelledby="titulo-concluir-anuncio"
@@ -1355,7 +1514,7 @@
           <div class="editar-imagem-campo">
             <label for="editar-imagem">Substituir imagem</label>
             <div class="editar-imagem-atual">
-              <img id="editar-imagem-preview" alt="" />
+              <img id="editar-imagem-preview" src="/icons/vortex-mark.png" alt="" />
               <p>A imagem atual será mantida se você não escolher outra.</p>
             </div>
             <input
@@ -1409,7 +1568,7 @@
 
         <div class="detalhes-anuncio-layout">
           <div class="detalhes-anuncio-imagem-container">
-            <img id="detalhes-anuncio-imagem" src="" alt="Imagem do item" />
+            <img id="detalhes-anuncio-imagem" src="/icons/vortex-mark.png" alt="Imagem do item" />
           </div>
           <div class="detalhes-anuncio-info">
             <div>
@@ -1632,7 +1791,7 @@
         <p class="avatar-anunciante-selo">Quem está anunciando</p>
         <h2 id="titulo-avatar-anunciante">Foto do anunciante</h2>
         <div class="avatar-anunciante-moldura">
-          <img id="avatar-anunciante-ampliado" src="" alt="" />
+          <img id="avatar-anunciante-ampliado" src="/icons/vortex-mark.png" alt="" />
         </div>
         <p id="nome-avatar-anunciante" class="avatar-anunciante-nome"></p>
         <p id="dica-avatar-anunciante" class="avatar-anunciante-dica">
@@ -1657,7 +1816,7 @@
             &times;
           </button>
         </div>
-        <img id="imagem-ampliada" src="" alt="" />
+        <img id="imagem-ampliada" src="/icons/vortex-mark.png" alt="" />
         <p>Pressione Esc ou clique fora da imagem para fechar.</p>
       </div>
     </dialog>

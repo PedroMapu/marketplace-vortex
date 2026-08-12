@@ -87,6 +87,36 @@ test("solicitação válida sempre usa resposta genérica e não armazenável", 
   ]);
 });
 
+test("falha do provedor não revela que a conta existe", async () => {
+  const falhas = [];
+  const app = criarApp({
+    solicitarRedefinicaoSenha: async (email, opcoes) => {
+      await opcoes.entregarToken({ email, token: TOKEN });
+      return {};
+    },
+    enviarEmailRedefinicao: async () => {
+      throw new Error("provedor indisponível");
+    },
+    registrarFalhaEntrega: (erro) => {
+      falhas.push(erro.message);
+    },
+  });
+
+  const resposta = await requisitar(
+    app,
+    "/api/auth/password-reset/request",
+    { email: "existente@example.com" },
+  );
+
+  assert.equal(resposta.status, 202);
+  assert.equal(resposta.headers.get("cache-control"), "no-store");
+  assert.deepEqual(resposta.body, {
+    mensagem:
+      "Se existir uma conta com este e-mail, uma solicitação de redefinição foi registrada.",
+  });
+  assert.deepEqual(falhas, ["provedor indisponível"]);
+});
+
 test("produção nunca autoriza exposição do token", () => {
   process.env.NODE_ENV = "production";
   process.env.PASSWORD_RESET_EXPOSE_TOKEN = "true";

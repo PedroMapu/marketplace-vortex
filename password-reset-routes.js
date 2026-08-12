@@ -10,6 +10,7 @@ const {
   senhaValida,
 } = require("./validacao");
 const { responderErro, validarComSchema } = require("./erros-api");
+const { enviarEmailRedefinicao } = require("./password-reset-email");
 
 function emailValido(email) {
   return schemaSolicitacaoRedefinicao.safeParse({ email }).success;
@@ -34,6 +35,12 @@ function registrarRotasRedefinicaoSenha(app, opcoes = {}) {
     opcoes.solicitarRedefinicaoSenha ?? solicitarRedefinicaoSenha;
   const confirmar =
     opcoes.confirmarRedefinicaoSenha ?? confirmarRedefinicaoSenha;
+  const entregarToken = opcoes.enviarEmailRedefinicao ?? enviarEmailRedefinicao;
+  const registrarFalhaEntrega =
+    opcoes.registrarFalhaEntrega ??
+    ((erro) => {
+      console.error("Não foi possível entregar um e-mail de redefinição.", erro);
+    });
 
   app.post(
     "/api/auth/password-reset/request",
@@ -54,9 +61,27 @@ function registrarRotasRedefinicaoSenha(app, opcoes = {}) {
         );
       }
 
-      const resultado = await solicitar(validacao.dados.email, {
-        exporToken: tokenPodeSerExpostoNoAmbiente(),
-      });
+      const exporToken = tokenPodeSerExpostoNoAmbiente();
+      const opcoesSolicitacao = { exporToken };
+
+      if (!exporToken) {
+        opcoesSolicitacao.entregarToken = async (dados) => {
+          try {
+            await entregarToken(dados);
+          } catch (erro) {
+            /*
+             * A resposta pública precisa continuar idêntica para contas
+             * existentes e inexistentes, mesmo se o provedor estiver fora.
+             */
+            registrarFalhaEntrega(erro);
+          }
+        };
+      }
+
+      const resultado = await solicitar(
+        validacao.dados.email,
+        opcoesSolicitacao,
+      );
       const corpo = {
         mensagem:
           "Se existir uma conta com este e-mail, uma solicitação de redefinição foi registrada.",

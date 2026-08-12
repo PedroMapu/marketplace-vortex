@@ -1,10 +1,14 @@
 const app = require("./api");
 const { validarConfiguracaoAuth } = require("./auth");
+const {
+  validarConfiguracaoEmailRedefinicao,
+} = require("./password-reset-email");
 
 const PORT = process.env.PORT || 3000;
 
 function iniciarServidor(port = PORT) {
   validarConfiguracaoAuth();
+  validarConfiguracaoEmailRedefinicao();
 
   const servidor = app.listen(port, () => {
     console.log(`Servidor disponível em http://localhost:${port}`);

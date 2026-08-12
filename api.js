@@ -273,6 +273,33 @@ app.get("/api/anuncios/me", autenticarBearer, async (request, response) => {
   return response.status(200).json(anuncios);
 });
 
+app.get("/api/anuncios/:id", async (request, response) => {
+  const validacao = validarComSchema(schemaParametroAnuncio, request.params);
+
+  if (!validacao.sucesso) {
+    return responderErro(
+      response,
+      400,
+      "Parâmetro de anúncio inválido.",
+      "VALIDACAO",
+      validacao.campos,
+    );
+  }
+
+  const anuncio = await buscarAnuncioPorId(validacao.dados.id);
+
+  if (!anuncio || anuncio.concluidoEm) {
+    return responderErro(
+      response,
+      404,
+      "Anúncio não encontrado.",
+      "ANUNCIO_NAO_ENCONTRADO",
+    );
+  }
+
+  return response.status(200).json(anuncio);
+});
+
 app.post("/api/anuncios", autenticarBearer, async (request, response) => {
   const validacao = validarComSchema(schemaAnuncio, request.body);
 

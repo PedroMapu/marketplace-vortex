@@ -31,11 +31,19 @@ async function solicitarRedefinicaoSenha(email, opcoes = {}) {
    * O token é criado mesmo quando o e-mail não existe. Assim, a rota pode
    * devolver exatamente o mesmo status e corpo sem revelar contas cadastradas.
    */
-  await registrarToken({
+  const tokenRegistrado = await registrarToken({
     email: email.trim().toLowerCase(),
     tokenHash: hashTokenRedefinicao(token),
     expiraEm,
   });
+
+  if (tokenRegistrado && typeof opcoes.entregarToken === "function") {
+    await opcoes.entregarToken({
+      email: email.trim().toLowerCase(),
+      token,
+      expiraEm,
+    });
+  }
 
   return opcoes.exporToken === true
     ? { tokenDesenvolvimento: token }

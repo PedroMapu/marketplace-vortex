@@ -197,12 +197,13 @@ test("rejeita sessão cujo usuário não existe mais", async () => {
 
 test("anexa somente o DTO público do usuário e chama next", async () => {
   const carregado = carregarMiddleware({
-    verificarToken: () => ({ sub: USUARIO_ID }),
+    verificarToken: () => ({ sub: USUARIO_ID, ver: 2 }),
     buscarUsuarioPorId: async (id) => ({
       id,
       nome: "Ana",
       email: "ana@example.com",
       senhaHash: "hash-que-não-pode-vazar",
+      authVersion: 2,
     }),
   });
   const request = criarRequest("Bearer token-valido");
@@ -222,6 +223,34 @@ test("anexa somente o DTO público do usuário e chama next", async () => {
     assert.equal("senhaHash" in request.usuario, false);
     assert.equal(proximos, 1);
     assert.equal(response.statusCode, undefined);
+  } finally {
+    carregado.restaurar();
+  }
+});
+
+test("rejeita JWT emitido antes de uma troca de senha", async () => {
+  const carregado = carregarMiddleware({
+    verificarToken: () => ({ sub: USUARIO_ID, ver: 1 }),
+    buscarUsuarioPorId: async (id) => ({
+      id,
+      nome: "Ana",
+      email: "ana@example.com",
+      authVersion: 2,
+    }),
+  });
+  const response = criarResponse();
+
+  try {
+    await carregado.middleware.autenticarBearer(
+      criarRequest("Bearer token-antigo"),
+      response,
+      () => {
+        throw new Error("não deveria avançar");
+      },
+    );
+
+    assert.equal(response.statusCode, 401);
+    assert.equal(response.body.codigo, "NAO_AUTENTICADO");
   } finally {
     carregado.restaurar();
   }

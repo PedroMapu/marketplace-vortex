@@ -108,7 +108,7 @@ test("autenticação compacta mantém uma única rolagem e o topo visível", () 
     /\.dialogo-autenticacao \.autenticacao-assinatura\s*\{[\s\S]*display:\s*none/,
   );
   assert.match(app, /matchMedia\("\(min-width:\s*48\.0625rem\)"\)/);
-  assert.match(app, /campoEmail\?\.focus\(\{\s*preventScroll:\s*true\s*\}\)/);
+  assert.match(app, /primeiroCampo\?\.focus\(\{\s*preventScroll:\s*true\s*\}\)/);
   assert.match(
     app,
     /dialogoAutenticacao\.focus\(\{\s*preventScroll:\s*true\s*\}\)/,

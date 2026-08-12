@@ -284,6 +284,67 @@ test("GET /api/anuncios aguarda a consulta e encaminha os filtros", async () => 
   });
 });
 
+test("GET /api/anuncios/:id entrega um anúncio público ativo", async () => {
+  const anuncio = {
+    id: 12,
+    nome: "Calculadora",
+    concluidoEm: null,
+  };
+  const consultas = [];
+  const { app } = carregarApiComDatabaseMock({
+    buscarAnuncioPorId: async (id) => {
+      consultas.push(id);
+      return anuncio;
+    },
+  });
+
+  assert.deepEqual(await requisitar(app, "/api/anuncios/12"), {
+    status: 200,
+    body: anuncio,
+  });
+  assert.deepEqual(consultas, [12]);
+});
+
+test("GET /api/anuncios/:id não publica anúncios concluídos", async () => {
+  const { app } = carregarApiComDatabaseMock({
+    buscarAnuncioPorId: async () => ({
+      id: 12,
+      nome: "Calculadora",
+      concluidoEm: "2026-08-12T12:00:00.000Z",
+    }),
+  });
+
+  assert.deepEqual(await requisitar(app, "/api/anuncios/12"), {
+    status: 404,
+    body: {
+      erro: "Anúncio não encontrado.",
+      codigo: "ANUNCIO_NAO_ENCONTRADO",
+    },
+  });
+});
+
+test("GET /api/anuncios/:id valida o identificador antes de consultar o banco", async () => {
+  let consultas = 0;
+  const { app } = carregarApiComDatabaseMock({
+    buscarAnuncioPorId: async () => {
+      consultas += 1;
+      return undefined;
+    },
+  });
+
+  assert.deepEqual(await requisitar(app, "/api/anuncios/invalido"), {
+    status: 400,
+    body: {
+      erro: "Parâmetro de anúncio inválido.",
+      codigo: "VALIDACAO",
+      campos: {
+        id: "O ID deve ser um número inteiro positivo.",
+      },
+    },
+  });
+  assert.equal(consultas, 0);
+});
+
 test("POST /api/anuncios deriva autoria exclusivamente de request.usuario", async () => {
   const entrada = {
     nome: "  Mesa lateral  ",

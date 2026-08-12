@@ -96,6 +96,7 @@ test("confirmação consome token e troca senha na mesma transação", async (t)
     comando.startsWith("UPDATE usuarios"),
   );
   assert.deepEqual(trocaSenha.parametros, [dados.senhaHash, usuarioId]);
+  assert.match(trocaSenha.comando, /auth_version = auth_version \+ 1/);
   assert.equal(fake.chamadas.at(-1).comando, "COMMIT");
   assert.equal(fake.liberacoes, 1);
 });
