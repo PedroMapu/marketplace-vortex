@@ -8,8 +8,6 @@ const test = require("node:test");
 const caminhoApi = require.resolve("../api");
 const caminhoDatabase = require.resolve("../database");
 const caminhoMiddlewareAuth = require.resolve("../middleware-auth");
-const caminhoPasswordReset = require.resolve("../password-reset");
-const caminhoRotasPasswordReset = require.resolve("../password-reset-routes");
 const SEGREDO_ORIGINAL = process.env.JWT_SECRET;
 
 function carregarApiComBancoEmMemoria() {
@@ -96,20 +94,12 @@ function carregarApiComBancoEmMemoria() {
     async verificarConexao() {
       return true;
     },
-    async registrarTokenRedefinicaoSenha() {
-      return false;
-    },
-    async redefinirSenhaComToken() {
-      return false;
-    },
   };
   const modulosOriginais = new Map(
-    [
-      caminhoDatabase,
-      caminhoMiddlewareAuth,
-      caminhoPasswordReset,
-      caminhoRotasPasswordReset,
-    ].map((caminho) => [caminho, require.cache[caminho]]),
+    [caminhoDatabase, caminhoMiddlewareAuth].map((caminho) => [
+      caminho,
+      require.cache[caminho],
+    ]),
   );
 
   require.cache[caminhoDatabase] = {
@@ -120,8 +110,6 @@ function carregarApiComBancoEmMemoria() {
   };
   delete require.cache[caminhoApi];
   delete require.cache[caminhoMiddlewareAuth];
-  delete require.cache[caminhoPasswordReset];
-  delete require.cache[caminhoRotasPasswordReset];
 
   const app = require(caminhoApi);
 

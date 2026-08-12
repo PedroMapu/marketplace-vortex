@@ -68,10 +68,6 @@ local em `http://127.0.0.1:3000`.
 | `TEST_DATABASE_URL` | testes | Banco ou branch exclusivo para testes; a proteção recusa o destino de produção. |
 | `JWT_SECRET` | API | Segredo de assinatura com pelo menos 32 bytes. |
 | `FRONTEND_ORIGINS` | API | Origens HTTP(S) exatas permitidas por CORS, separadas por vírgula e sem caminhos. |
-| `PASSWORD_RESET_EXPOSE_TOKEN` | desenvolvimento/teste | Quando `true`, permite expor o token de redefinição apenas fora de produção. |
-| `PASSWORD_RESET_FRONTEND_ORIGIN` | API | Origem pública usada para montar o link `/redefinir-senha`; obrigatória em produção. |
-| `PASSWORD_RESET_FROM_EMAIL` | API | Remetente verificado usado nos e-mails de redefinição; obrigatório em produção. |
-| `RESEND_API_KEY` | API | Credencial privada da Resend para entregar e-mails de redefinição; obrigatória em produção. |
 
 Somente valores intencionalmente públicos podem usar o prefixo `VITE_`.
 Credenciais de banco e `JWT_SECRET` devem existir apenas nos ambientes locais
@@ -101,8 +97,6 @@ No Render, o serviço executa `npm ci` no build e
 | `POST /api/auth/register` | público | Cadastra usuário e devolve token e perfil. |
 | `POST /api/auth/login` | público | Autentica e devolve token e perfil; aceita `manterConectado: true` para uma sessão de 30 dias. |
 | `GET /api/auth/me` | Bearer JWT | Revalida a sessão atual. |
-| `POST /api/auth/password-reset/request` | público | Registra uma solicitação sem revelar se o e-mail existe. |
-| `POST /api/auth/password-reset/confirm` | público | Confirma a troca com token válido. |
 | `GET /api/anuncios` | público | Lista o catálogo; aceita filtros públicos por categoria e usuário. |
 | `GET /api/anuncios/:id` | público | Busca um anúncio ativo para permitir acesso direto por URL. |
 | `GET /api/anuncios/me` | Bearer JWT | Lista somente os anúncios do usuário autenticado. |
@@ -129,10 +123,9 @@ links compartilháveis. A Vercel reescreve esses caminhos para o shell da SPA.
 | `/` e `/anuncios` | público | Página inicial e catálogo. |
 | `/anuncios/:id` | público | Detalhes de um anúncio ativo. |
 | `/entrar`, `/cadastro` | visitante | Login e criação de conta. |
-| `/esqueci-senha`, `/redefinir-senha?token=...` | público | Solicitação e confirmação da redefinição de senha. |
 | `/anunciar`, `/meus-anuncios` | autenticado | Criação e gestão de anúncios próprios. |
 | `/conversas`, `/conversas/:id` | autenticado | Lista de conversas e conversa selecionada. |
-| `/conta` | autenticado | Dados da conta, foto, senha e encerramento de sessão. |
+| `/conta` | autenticado | Dados da conta, foto e encerramento de sessão. |
 | `/ajuda`, `/contato`, `/termos`, `/privacidade` | público | Suporte e conteúdo institucional. |
 
 Rotas protegidas abertas sem sessão redirecionam para `/entrar` e preservam o

@@ -1536,7 +1536,7 @@ Ao aceitar, somente as coleções cujo `usuarioId` corresponde à identidade ant
 
 Conectei o Render ao GitHub com acesso restrito ao repositório `PedroMapu/marketplace-vortex` e criei o Blueprint `marketplace-vortex`. As quatro variáveis foram preenchidas no painel sem exposição de valores.
 
-O primeiro deploy executou `npm ci`, `npm run migrate` e `npm start`. As migrations 001 e 002 foram reconhecidas como já aplicadas, e a migration 003 de tokens de redefinição de senha foi aplicada. O servidor iniciou na porta 10000 fornecida pelo Render.
+O primeiro deploy executou `npm ci`, `npm run migrate` e `npm start`. As migrations pendentes foram aplicadas e o servidor iniciou na porta 10000 fornecida pelo Render.
 
 A API ficou disponível em:
 
@@ -2042,8 +2042,7 @@ os endereços definitivos confirmados.
 
 O README diferencia variáveis públicas e privadas. Foram documentadas
 `VITE_API_URL`, `PORT`, `DATABASE_URL`, `DATABASE_URL_DIRECT`,
-`TEST_DATABASE_URL`, `JWT_SECRET`, `FRONTEND_ORIGINS` e
-`PASSWORD_RESET_EXPOSE_TOKEN`.
+`TEST_DATABASE_URL`, `JWT_SECRET` e `FRONTEND_ORIGINS`.
 
 Também ficaram registrados os contratos de deploy já presentes:
 
@@ -2058,8 +2057,8 @@ Também ficaram registrados os contratos de deploy já presentes:
 
 O guia lista `dev:web`, `dev:api`, `typecheck`, `build`, `test`, `migrate`,
 `regression:published` e `start`. Também registra as rotas públicas e
-autenticadas de status, cadastro, login, sessão, redefinição de senha, catálogo,
-anúncios próprios, criação e exclusão pelo proprietário.
+autenticadas de status, cadastro, login, sessão, catálogo, anúncios próprios,
+criação e exclusão pelo proprietário.
 
 ### Evidências concluídas no deploy final
 
@@ -2161,7 +2160,7 @@ existentes.
 - Build PWA e geração do Service Worker: aprovados.
 - `git diff --check`: aprovado, sem erros de whitespace.
 
-## 12/08/2026 — rotas semânticas, criação de conta e recuperação de acesso
+## 12/08/2026 — rotas semânticas e criação de conta
 
 ### Objetivo
 
@@ -2174,31 +2173,24 @@ estado da aplicação.
 
 A aplicação concentrava a navegação em âncoras e estados internos. O cadastro
 já existia como painel, mas não possuía uma rota própria. Também faltavam URLs
-para recuperação de senha, conta, detalhes de anúncio, conversas, ajuda,
-contato, termos, privacidade e página não encontrada.
-
-O fluxo de redefinição de senha registrava tokens no banco, mas ainda não
-entregava o link por e-mail. Além disso, os JWTs emitidos antes de uma troca de
-senha continuariam válidos até a expiração.
+para conta, detalhes de anúncio, conversas, ajuda, contato, termos, privacidade
+e página não encontrada.
 
 ### Alterações realizadas
 
 - Foi criado um roteador central em `src/routes.ts`, integrado à History API.
 - A aplicação passou a usar caminhos semânticos em vez de depender de hashes:
   `/`, `/anuncios`, `/anuncios/:id`, `/anunciar`, `/meus-anuncios`, `/entrar`,
-  `/cadastro`, `/esqueci-senha`, `/redefinir-senha`, `/conversas`,
-  `/conversas/:id`, `/conta`, `/ajuda`, `/contato`, `/termos` e `/privacidade`.
+  `/cadastro`, `/conversas`, `/conversas/:id`, `/conta`, `/ajuda`, `/contato`,
+  `/termos` e `/privacidade`.
 - Hashes antigos continuam sendo convertidos para as novas rotas, preservando
   compatibilidade com links já utilizados.
 - Rotas protegidas enviam visitantes para `/entrar` e preservam somente
   destinos internos permitidos, evitando redirecionamentos externos.
 - O cadastro recebeu a rota `/cadastro`, mantendo a exigência de e-mail
   institucional `@edu.unifor.br` e confirmação de senha.
-- Foram criadas as telas de solicitação e confirmação da redefinição de senha.
-  Links sem token deixam o formulário bloqueado e oferecem uma ação para pedir
-  um novo link.
-- Foi criada a rota de conta, com visualização de nome, e-mail, foto, acesso à
-  redefinição de senha e encerramento da sessão.
+- Foi criada a rota de conta, com visualização de nome, e-mail, foto e
+  encerramento da sessão.
 - Foram adicionadas páginas informativas de ajuda, contato, termos e
   privacidade, além de um estado 404 para caminhos desconhecidos.
 - A abertura direta de anúncios passou a usar `GET /api/anuncios/:id`. Erros
@@ -2209,29 +2201,14 @@ senha continuariam válidos até a expiração.
 - O frontend da Vercel recebeu uma rewrite para entregar o shell da SPA em
   recarregamentos de rotas internas.
 
-### Recuperação de senha e segurança
-
-- Foi integrada a entrega transacional do link de redefinição pela Resend.
-- Os tokens continuam sendo armazenados somente como hash SHA-256, expiram em
-  15 minutos e podem ser utilizados uma única vez.
-- A resposta da solicitação permanece genérica para não revelar quais e-mails
-  possuem conta, inclusive quando o provedor de e-mail está indisponível.
-- Foi adicionada a coluna `auth_version` pela migration
-  `008_add_auth_version.sql`.
-- Cada JWT passou a carregar a versão de autenticação do usuário. Ao redefinir
-  a senha, essa versão é incrementada e todas as sessões anteriores são
-  invalidadas.
-- A inicialização da API em produção valida a presença das variáveis privadas
-  necessárias para entrega do e-mail.
-
 ### Acessibilidade e responsividade
 
 - As rotas atualizam o título do documento e movem o foco para o conteúdo
   principal quando necessário.
 - O diálogo de conta restaura o foco após o fechamento e usa um botão de fechar
   com nome acessível, SVG e alvo mínimo de 44 × 44 px.
-- Cadastro, login e recuperação de senha foram verificados em desktop e em
-  viewport móvel de 390 × 844 px.
+- Cadastro e login foram verificados em desktop e em viewport móvel de
+  390 × 844 px.
 - As novas páginas preservam a identidade visual e a hierarquia tipográfica do
   Vortex sem criar overflow horizontal.
 
@@ -2242,13 +2219,9 @@ senha continuariam válidos até a expiração.
 - `index.html`
 - `public/styles.css`
 - `api.js`
-- `password-reset.js`
-- `password-reset-routes.js`
-- `password-reset-email.js`
 - `middleware-auth.js`
 - `auth.js`
 - `database.js`
-- `migrations/008_add_auth_version.sql`
 - `vercel.json`
 - `.env.example`
 - `README.md`
@@ -2261,11 +2234,45 @@ senha continuariam válidos até a expiração.
   ignorado por ausência de `TEST_DATABASE_URL` no ambiente local.
 - Após adicionar a cobertura final dos estados excepcionais, a suíte passou a
   147 testes, com 146 aprovados e a mesma integração PostgreSQL ignorada.
-- Navegação verificada no navegador para cadastro, recuperação de senha,
-  redirecionamento de rotas protegidas, ajuda, 404 e falha recuperável ao abrir
-  um anúncio.
+- Navegação verificada no navegador para cadastro, redirecionamento de rotas
+  protegidas, ajuda, 404 e falha recuperável ao abrir um anúncio.
 - Revisão independente de acabamento: cinco achados novos corrigidos e
   disposição final `ship`.
+
+## 12/08/2026 — remoção da recuperação de senha e correção do scroll do login
+
+### Objetivo
+
+Retirar integralmente o fluxo de redefinição de senha e corrigir a barra de
+rolagem vertical que aparecia temporariamente depois do fechamento da janela
+de login.
+
+### Alterações realizadas
+
+- Foram removidos os formulários, botões, textos, rotas do frontend, endpoints
+  da API, validações, serviço de e-mail e testes exclusivos da recuperação de
+  senha.
+- A configuração deixou de exigir variáveis do provedor de e-mail e o README
+  foi atualizado para refletir somente as rotas e variáveis ainda suportadas.
+- Os JWTs voltaram ao contrato mínimo com `sub`, sem a versão de autenticação
+  que existia apenas para invalidar sessões após uma troca de senha.
+- A migration `009_remove_legacy_auth_recovery.sql` remove do PostgreSQL a
+  tabela de tokens e a coluna de versão deixadas pelo recurso descontinuado.
+- Ao fechar o diálogo aberto pela rota `/entrar` ou `/cadastro`, a navegação
+  para `/anuncios` agora informa explicitamente que não deve rolar o catálogo.
+  Isso impede que a rolagem suave, e não o desbloqueio do `body`, acione a
+  barra vertical durante alguns segundos.
+- Foi adicionada uma regressão automatizada para preservar esse comportamento.
+
+### Validação
+
+- `npm run typecheck`: aprovado.
+- `npm test`: 128 testes aprovados e um teste de integração PostgreSQL ignorado
+  porque `TEST_DATABASE_URL` não está configurada no ambiente local.
+- `npm run build`: aprovado, incluindo o Service Worker e o precache da PWA.
+- No navegador, o login foi fechado e observado durante 1,3 segundo: a rota
+  mudou para `/anuncios`, `window.scrollY` permaneceu em zero e nenhum texto do
+  fluxo removido continuou visível.
 
 ## 30/07/2026 — correção completa da responsividade móvel
 

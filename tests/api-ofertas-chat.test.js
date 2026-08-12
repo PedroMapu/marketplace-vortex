@@ -7,8 +7,6 @@ const test = require("node:test");
 const caminhoApi = require.resolve("../api");
 const caminhoDatabase = require.resolve("../database");
 const caminhoMiddlewareAuth = require.resolve("../middleware-auth");
-const caminhoPasswordReset = require.resolve("../password-reset");
-const caminhoRotasPasswordReset = require.resolve("../password-reset-routes");
 const COMPRADOR_ID = "11111111-1111-4111-8111-111111111111";
 const ANUNCIANTE_ID = "22222222-2222-4222-8222-222222222222";
 const TERCEIRO_ID = "33333333-3333-4333-8333-333333333333";
@@ -157,12 +155,10 @@ function carregarApiComOfertasEmMemoria() {
     },
   };
   const modulosOriginais = new Map(
-    [
-      caminhoDatabase,
-      caminhoMiddlewareAuth,
-      caminhoPasswordReset,
-      caminhoRotasPasswordReset,
-    ].map((caminho) => [caminho, require.cache[caminho]]),
+    [caminhoDatabase, caminhoMiddlewareAuth].map((caminho) => [
+      caminho,
+      require.cache[caminho],
+    ]),
   );
 
   require.cache[caminhoDatabase] = {
@@ -195,8 +191,6 @@ function carregarApiComOfertasEmMemoria() {
     },
   };
   delete require.cache[caminhoApi];
-  delete require.cache[caminhoPasswordReset];
-  delete require.cache[caminhoRotasPasswordReset];
   const app = require(caminhoApi);
 
   return {

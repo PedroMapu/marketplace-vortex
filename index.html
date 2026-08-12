@@ -1151,110 +1151,6 @@
             <button class="autenticacao-submit" type="submit">
               Entrar na conta
             </button>
-            <button
-              id="botao-esqueci-senha"
-              class="autenticacao-link"
-              type="button"
-            >
-              Esqueci minha senha
-            </button>
-          </form>
-
-          <form
-            id="painel-solicitar-redefinicao"
-            class="formulario-autenticacao"
-            data-formulario-autenticacao="solicitar-redefinicao"
-            aria-busy="false"
-            hidden
-          >
-            <div class="campo-autenticacao">
-              <label for="redefinicao-email">E-mail da conta</label>
-              <input
-                id="redefinicao-email"
-                name="email"
-                type="email"
-                inputmode="email"
-                autocomplete="email"
-                maxlength="254"
-                required
-              />
-              <span
-                id="erro-redefinicao-email"
-                class="erro-campo-autenticacao"
-                data-erro-campo="email"
-              ></span>
-            </div>
-            <button class="autenticacao-submit" type="submit">
-              Enviar link de redefinição
-            </button>
-            <button
-              class="autenticacao-link"
-              type="button"
-              data-voltar-login
-            >
-              Voltar para entrar
-            </button>
-          </form>
-
-          <form
-            id="painel-confirmar-redefinicao"
-            class="formulario-autenticacao"
-            data-formulario-autenticacao="confirmar-redefinicao"
-            aria-busy="false"
-            hidden
-          >
-            <input id="redefinicao-token" name="token" type="hidden" />
-            <div class="campo-autenticacao">
-              <label for="redefinicao-nova-senha">Nova senha</label>
-              <input
-                id="redefinicao-nova-senha"
-                name="novaSenha"
-                type="password"
-                autocomplete="new-password"
-                minlength="8"
-                maxlength="72"
-                aria-describedby="dica-redefinicao-senha erro-redefinicao-nova-senha"
-                required
-              />
-              <span id="dica-redefinicao-senha" class="dica-campo-autenticacao">
-                Use entre 8 e 72 caracteres.
-              </span>
-              <span
-                id="erro-redefinicao-nova-senha"
-                class="erro-campo-autenticacao"
-                data-erro-campo="novaSenha"
-              ></span>
-            </div>
-            <div class="campo-autenticacao">
-              <label for="redefinicao-confirmar-senha">Confirmar nova senha</label>
-              <input
-                id="redefinicao-confirmar-senha"
-                name="confirmacaoSenha"
-                type="password"
-                autocomplete="new-password"
-                minlength="8"
-                maxlength="72"
-                required
-              />
-            </div>
-            <button class="autenticacao-submit" type="submit">
-              Salvar nova senha
-            </button>
-            <button
-              id="botao-solicitar-novo-link"
-              class="autenticacao-link"
-              type="button"
-              hidden
-            >
-              Solicitar um novo link
-            </button>
-            <button
-              class="autenticacao-link"
-              type="button"
-              data-voltar-login
-            >
-              Voltar para entrar
-            </button>
           </form>
 
           <form
@@ -1398,7 +1294,6 @@
         </p>
         <div class="conta-rota-acoes">
           <button id="botao-alterar-foto-conta" type="button">Alterar foto</button>
-          <button id="botao-redefinir-senha-conta" type="button">Redefinir senha</button>
           <button id="botao-sair-conta-rota" class="acao-perigosa" type="button">Sair da conta</button>
         </div>
       </article>

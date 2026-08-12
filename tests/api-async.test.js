@@ -5,8 +5,6 @@ const test = require("node:test");
 const caminhoApi = require.resolve("../api");
 const caminhoDatabase = require.resolve("../database");
 const caminhoMiddlewareAuth = require.resolve("../middleware-auth");
-const caminhoPasswordReset = require.resolve("../password-reset");
-const caminhoRotasPasswordReset = require.resolve("../password-reset-routes");
 const USUARIO_ID = "ea11c83e-a7b1-4ba4-9d27-1bbf94a6e945";
 const USUARIO_AUTENTICADO = {
   id: USUARIO_ID,
@@ -29,9 +27,6 @@ function carregarApiComDatabaseMock(sobrescritas = {}, opcoes = {}) {
   };
   const moduloDatabaseOriginal = require.cache[caminhoDatabase];
   const moduloMiddlewareOriginal = require.cache[caminhoMiddlewareAuth];
-  const moduloPasswordResetOriginal = require.cache[caminhoPasswordReset];
-  const moduloRotasPasswordResetOriginal =
-    require.cache[caminhoRotasPasswordReset];
 
   require.cache[caminhoDatabase] = {
     id: caminhoDatabase,
@@ -53,8 +48,6 @@ function carregarApiComDatabaseMock(sobrescritas = {}, opcoes = {}) {
     },
   };
   delete require.cache[caminhoApi];
-  delete require.cache[caminhoPasswordReset];
-  delete require.cache[caminhoRotasPasswordReset];
 
   try {
     return {
@@ -76,18 +69,6 @@ function carregarApiComDatabaseMock(sobrescritas = {}, opcoes = {}) {
       delete require.cache[caminhoMiddlewareAuth];
     }
 
-    if (moduloPasswordResetOriginal) {
-      require.cache[caminhoPasswordReset] = moduloPasswordResetOriginal;
-    } else {
-      delete require.cache[caminhoPasswordReset];
-    }
-
-    if (moduloRotasPasswordResetOriginal) {
-      require.cache[caminhoRotasPasswordReset] =
-        moduloRotasPasswordResetOriginal;
-    } else {
-      delete require.cache[caminhoRotasPasswordReset];
-    }
   }
 }
 

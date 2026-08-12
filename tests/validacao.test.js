@@ -7,8 +7,6 @@ const {
   schemaCadastro,
   schemaLogin,
   schemaFotoPerfil,
-  schemaSolicitacaoRedefinicao,
-  schemaConfirmacaoRedefinicao,
   schemaAnuncio,
   schemaFiltrosAnuncios,
   schemaParametroAnuncio,
@@ -97,7 +95,7 @@ test("cadastro aceita somente o domínio institucional edu.unifor.br", () => {
   }
 });
 
-test("login e redefinição compartilham e-mail e senha entre 8 e 72 bytes", () => {
+test("login valida e-mail e senha entre 8 e 72 bytes", () => {
   const loginValido = schemaLogin.safeParse({
     email: "ana@example.com",
     senha: "12345678",
@@ -119,19 +117,6 @@ test("login e redefinição compartilham e-mail e senha entre 8 e 72 bytes", () 
       senha: "1234567",
     }).success,
     false,
-  );
-  assert.equal(
-    schemaSolicitacaoRedefinicao.safeParse({
-      email: "endereco-invalido",
-    }).success,
-    false,
-  );
-  assert.equal(
-    schemaConfirmacaoRedefinicao.safeParse({
-      token: "a".repeat(43),
-      novaSenha: "12345678",
-    }).success,
-    true,
   );
 });
 

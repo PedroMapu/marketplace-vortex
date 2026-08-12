@@ -125,7 +125,6 @@ function mapearUsuario(row) {
     nome: row.nome,
     email: row.email,
     fotoPerfilUrl: row.foto_perfil_url ?? null,
-    authVersion: Number(row.auth_version ?? 0),
   };
 }
 
@@ -134,7 +133,7 @@ async function criarUsuario(dados) {
     `
       INSERT INTO usuarios (nome, email, senha_hash)
       VALUES ($1, $2, $3)
-      RETURNING id, nome, email, auth_version
+      RETURNING id, nome, email
     `,
     [dados.nome, dados.email, dados.senhaHash],
   );
@@ -145,7 +144,7 @@ async function criarUsuario(dados) {
 async function buscarUsuarioPorEmail(email) {
   const resultado = await pool.query(
     `
-      SELECT id, nome, email, senha_hash, foto_perfil_url, auth_version
+      SELECT id, nome, email, senha_hash, foto_perfil_url
       FROM usuarios
       WHERE email = $1
     `,
@@ -164,7 +163,7 @@ async function buscarUsuarioPorEmail(email) {
 async function buscarUsuarioPorId(id) {
   const resultado = await pool.query(
     `
-      SELECT id, nome, email, auth_version
+      SELECT id, nome, email
       FROM usuarios
       WHERE id = $1
     `,
@@ -178,7 +177,7 @@ async function buscarUsuarioPorId(id) {
 async function buscarPerfilUsuarioPorId(id) {
   const resultado = await pool.query(
     `
-      SELECT id, nome, email, foto_perfil_url, auth_version
+      SELECT id, nome, email, foto_perfil_url
       FROM usuarios
       WHERE id = $1
     `,
@@ -211,118 +210,13 @@ async function atualizarFotoPerfilUsuario(id, fotoPerfilUrl) {
       UPDATE usuarios
       SET foto_perfil_url = $2
       WHERE id = $1
-      RETURNING id, nome, email, foto_perfil_url, auth_version
+      RETURNING id, nome, email, foto_perfil_url
     `,
     [id, fotoPerfilUrl],
   );
   const usuario = resultado.rows[0];
 
   return usuario ? mapearUsuario(usuario) : undefined;
-}
-
-async function registrarTokenRedefinicaoSenha(dados) {
-  const client = await pool.connect();
-
-  try {
-    await client.query("BEGIN");
-    const resultadoUsuario = await client.query(
-      `
-        SELECT id
-        FROM usuarios
-        WHERE email = $1
-        FOR UPDATE
-      `,
-      [dados.email],
-    );
-    const usuario = resultadoUsuario.rows[0];
-
-    if (!usuario) {
-      await client.query("COMMIT");
-      return false;
-    }
-
-    await client.query(
-      `
-        UPDATE password_reset_tokens
-        SET consumido_em = CURRENT_TIMESTAMP
-        WHERE usuario_id = $1
-          AND consumido_em IS NULL
-      `,
-      [usuario.id],
-    );
-    await client.query(
-      `
-        INSERT INTO password_reset_tokens (
-          usuario_id,
-          token_hash,
-          expira_em
-        )
-        VALUES ($1, $2, $3)
-      `,
-      [usuario.id, dados.tokenHash, dados.expiraEm],
-    );
-    await client.query("COMMIT");
-
-    return true;
-  } catch (erro) {
-    await client.query("ROLLBACK");
-    throw erro;
-  } finally {
-    client.release();
-  }
-}
-
-async function redefinirSenhaComToken(dados) {
-  const client = await pool.connect();
-
-  try {
-    await client.query("BEGIN");
-    const resultadoToken = await client.query(
-      `
-        UPDATE password_reset_tokens
-        SET consumido_em = CURRENT_TIMESTAMP
-        WHERE token_hash = $1
-          AND consumido_em IS NULL
-          AND expira_em > CURRENT_TIMESTAMP
-        RETURNING usuario_id
-      `,
-      [dados.tokenHash],
-    );
-    const tokenConsumido = resultadoToken.rows[0];
-
-    if (!tokenConsumido) {
-      await client.query("ROLLBACK");
-      return false;
-    }
-
-    await client.query(
-      `
-        UPDATE usuarios
-        SET
-          senha_hash = $1,
-          auth_version = auth_version + 1
-        WHERE id = $2
-      `,
-      [dados.senhaHash, tokenConsumido.usuario_id],
-    );
-    await client.query(
-      `
-        UPDATE password_reset_tokens
-        SET consumido_em = CURRENT_TIMESTAMP
-        WHERE usuario_id = $1
-          AND consumido_em IS NULL
-      `,
-      [tokenConsumido.usuario_id],
-    );
-    await client.query("COMMIT");
-
-    return true;
-  } catch (erro) {
-    await client.query("ROLLBACK");
-    throw erro;
-  } finally {
-    client.release();
-  }
 }
 
 async function listarAnuncios(filtros = {}) {
@@ -697,8 +591,6 @@ module.exports = {
   buscarPerfilUsuarioPorId,
   buscarFotoPerfilUsuarioPorId,
   atualizarFotoPerfilUsuario,
-  registrarTokenRedefinicaoSenha,
-  redefinirSenhaComToken,
   listarAnuncios,
   criarAnuncio,
   atualizarAnuncioPorId,

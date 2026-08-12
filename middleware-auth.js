@@ -43,22 +43,14 @@ async function autenticarBearer(request, response, next) {
     !payload ||
     typeof payload !== "object" ||
     typeof payload.sub !== "string" ||
-    !FORMATO_UUID.test(payload.sub) ||
-    (payload.ver !== undefined &&
-      (!Number.isInteger(payload.ver) || payload.ver < 0))
+    !FORMATO_UUID.test(payload.sub)
   ) {
     return responderNaoAutenticado(response);
   }
 
   const usuario = await buscarUsuarioPorId(payload.sub);
 
-  const versaoToken = payload.ver ?? 0;
-
-  if (
-    !usuario ||
-    usuario.id !== payload.sub ||
-    (usuario.authVersion ?? 0) !== versaoToken
-  ) {
+  if (!usuario || usuario.id !== payload.sub) {
     return responderNaoAutenticado(response);
   }
 

@@ -15,11 +15,6 @@ test("estados excepcionais das novas rotas permanecem seguros e recuperáveis", 
   );
   assert.match(app, /rotulo: "Tentar abrir novamente"/);
 
-  assert.match(html, /id="botao-solicitar-novo-link"[\s\S]*Solicitar um novo link/);
-  assert.match(app, /const tokenPresente = Boolean\(rota\.token\)/);
-  assert.match(app, /botaoConfirmar\.disabled = !tokenPresente/);
-  assert.match(app, /botaoSolicitarNovoLink\.hidden = tokenPresente/);
-
   assert.match(html, /aria-label="Fechar janela da minha conta"[\s\S]*<svg[\s\S]*<path/);
   assert.match(css, /\.dialogo-rota-fechar \{[\s\S]*height: 2\.75rem;[\s\S]*width: 2\.75rem;/);
   assert.match(app, /let elementoFocadoAntesDaConta: HTMLElement \| null = null/);

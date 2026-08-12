@@ -209,3 +209,14 @@ test("autenticação de tablet e hero em paisagem recebem composições própria
     /@media \(min-width:\s*40rem\) and \(max-width:\s*60rem\) and \(max-height:\s*35rem\)[\s\S]*#inicio\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1\.05fr\) minmax\(18rem,\s*0\.95fr\)[\s\S]*#inicio::before\s*\{[\s\S]*display:\s*none[\s\S]*#inicio aside\s*\{[\s\S]*display:\s*none/,
   );
 });
+
+test("fechar a autenticação não dispara rolagem suave no catálogo", () => {
+  assert.match(
+    app,
+    /navegarParaDestino\(DESTINO_EXPLORAR,\s*\{\s*rolarCatalogo:\s*false\s*\}\)/,
+  );
+  assert.match(
+    app,
+    /function explorarCatalogo\(\{ rolar = true \}[\s\S]*?if \(!rolar\) \{[\s\S]*?return;\s*\}/,
+  );
+});

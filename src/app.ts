@@ -60,22 +60,13 @@ interface ResultadoApi<T> {
   offline: boolean;
 }
 
-interface RespostaMensagemApi {
-  mensagem: string;
-  tokenDesenvolvimento?: string;
-}
-
 interface ContextoImportacaoLegada {
   identidadeLegada: IdentidadeUsuarioLegada;
   usuarioAutenticado: Sessao["usuario"];
   quantidadeColecoes: number;
 }
 
-type ModoAutenticacao =
-  | "login"
-  | "cadastro"
-  | "solicitar-redefinicao"
-  | "confirmar-redefinicao";
+type ModoAutenticacao = "login" | "cadastro";
 type PersistenciaSessao = "aba" | "navegador";
 type EstadoBannerConectividade =
   | "offline"
@@ -261,18 +252,6 @@ const tituloAutenticacao =
   document.querySelector<HTMLElement>("#titulo-autenticacao");
 const descricaoAutenticacao =
   document.querySelector<HTMLElement>("#descricao-autenticacao");
-const botaoEsqueciSenha =
-  document.querySelector<HTMLButtonElement>("#botao-esqueci-senha");
-const botoesVoltarLogin =
-  document.querySelectorAll<HTMLButtonElement>("[data-voltar-login]");
-const botaoSolicitarNovoLink = document.querySelector<HTMLButtonElement>(
-  "#botao-solicitar-novo-link",
-);
-const formularioConfirmarRedefinicao = document.querySelector<HTMLFormElement>(
-  "#painel-confirmar-redefinicao",
-);
-const campoTokenRedefinicao =
-  document.querySelector<HTMLInputElement>("#redefinicao-token");
 const feedbackAutenticacao =
   document.querySelector<HTMLElement>("#feedback-autenticacao");
 const dialogoConta =
@@ -287,9 +266,6 @@ const emailContaRota =
   document.querySelector<HTMLElement>("#email-conta-rota");
 const botaoAlterarFotoConta =
   document.querySelector<HTMLButtonElement>("#botao-alterar-foto-conta");
-const botaoRedefinirSenhaConta = document.querySelector<HTMLButtonElement>(
-  "#botao-redefinir-senha-conta",
-);
 const botaoSairContaRota =
   document.querySelector<HTMLButtonElement>("#botao-sair-conta-rota");
 const paginaInformativa =
@@ -2287,12 +2263,6 @@ const paginasInformativas: Record<
           "Abra os detalhes de um anúncio, envie uma oferta e combine a retirada pelo chat. O Vortex não processa pagamentos.",
         ],
       },
-      {
-        titulo: "Esqueci minha senha",
-        paragrafos: [
-          "Solicite um link em Esqueci minha senha. Cada link expira em 15 minutos e só pode ser usado uma vez.",
-        ],
-      },
     ],
   },
   contato: {
@@ -2572,31 +2542,7 @@ async function enviarFotoPerfilSelecionada(): Promise<void> {
 }
 
 function ehModoAutenticacao(valor: string | undefined): valor is ModoAutenticacao {
-  return [
-    "login",
-    "cadastro",
-    "solicitar-redefinicao",
-    "confirmar-redefinicao",
-  ].includes(valor ?? "");
-}
-
-function normalizarRespostaMensagemApi(dados: unknown): RespostaMensagemApi {
-  if (
-    !dados ||
-    typeof dados !== "object" ||
-    !("mensagem" in dados) ||
-    typeof dados.mensagem !== "string"
-  ) {
-    throw new TypeError("A API retornou uma confirmação inválida.");
-  }
-
-  const tokenDesenvolvimento =
-    "tokenDesenvolvimento" in dados &&
-    typeof dados.tokenDesenvolvimento === "string"
-      ? dados.tokenDesenvolvimento
-      : undefined;
-
-  return { mensagem: dados.mensagem, tokenDesenvolvimento };
+  return ["login", "cadastro"].includes(valor ?? "");
 }
 
 function definirFeedbackAutenticacao(
@@ -2709,14 +2655,6 @@ function definirModoAutenticacao(
     cadastro: {
       titulo: "Crie sua conta Vortex.",
       descricao: "Use seu e-mail institucional para participar da comunidade.",
-    },
-    "solicitar-redefinicao": {
-      titulo: "Recupere o acesso à sua conta.",
-      descricao: "Enviaremos um link válido por 15 minutos para o seu e-mail.",
-    },
-    "confirmar-redefinicao": {
-      titulo: "Defina uma nova senha.",
-      descricao: "Ao concluir, sessões anteriores deixarão de ser válidas.",
     },
   };
   const textos = textosPorModo[modo];
@@ -3102,113 +3040,6 @@ async function enviarFormularioAutenticacao(
   }
 }
 
-async function solicitarRedefinicaoPeloFormulario(
-  formulario: HTMLFormElement,
-): Promise<void> {
-  if (!formulario.reportValidity()) {
-    return;
-  }
-
-  const botaoEnviar =
-    formulario.querySelector<HTMLButtonElement>("[type='submit']");
-  const email = String(new FormData(formulario).get("email") ?? "").trim();
-  limparErrosAutenticacao(formulario);
-  definirFeedbackAutenticacao("Preparando seu link de redefinição...");
-  definirBloqueioAutenticacao(formulario, botaoEnviar, true);
-
-  try {
-    const { dados } = await requisitarApi(
-      "/api/auth/password-reset/request",
-      normalizarRespostaMensagemApi,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      },
-    );
-
-    if (dados.tokenDesenvolvimento) {
-      navegarParaDestino(
-        `/redefinir-senha?token=${encodeURIComponent(dados.tokenDesenvolvimento)}`,
-      );
-      definirFeedbackAutenticacao(
-        "Modo de desenvolvimento: o token foi aplicado automaticamente.",
-      );
-      return;
-    }
-
-    definirFeedbackAutenticacao(
-      "Se a conta existir, o link chegará ao e-mail informado. Ele expira em 15 minutos.",
-    );
-  } catch (erro) {
-    definirFeedbackAutenticacao(
-      ehErroRequisicaoApi(erro)
-        ? erro.message
-        : "Não foi possível solicitar a redefinição agora. Tente novamente.",
-      "erro",
-    );
-  } finally {
-    definirBloqueioAutenticacao(formulario, botaoEnviar, false);
-  }
-}
-
-async function confirmarRedefinicaoPeloFormulario(
-  formulario: HTMLFormElement,
-): Promise<void> {
-  const dadosFormulario = new FormData(formulario);
-  const token = String(dadosFormulario.get("token") ?? "");
-  const novaSenha = String(dadosFormulario.get("novaSenha") ?? "");
-  const confirmacaoSenha = String(
-    dadosFormulario.get("confirmacaoSenha") ?? "",
-  );
-  const campoConfirmacao = formulario.elements.namedItem("confirmacaoSenha");
-
-  if (campoConfirmacao instanceof HTMLInputElement) {
-    campoConfirmacao.setCustomValidity(
-      novaSenha === confirmacaoSenha ? "" : "As senhas não coincidem.",
-    );
-  }
-
-  if (!formulario.reportValidity()) {
-    return;
-  }
-
-  const botaoEnviar =
-    formulario.querySelector<HTMLButtonElement>("[type='submit']");
-  limparErrosAutenticacao(formulario);
-  definirFeedbackAutenticacao("Salvando sua nova senha...");
-  definirBloqueioAutenticacao(formulario, botaoEnviar, true);
-
-  try {
-    await requisitarApi(
-      "/api/auth/password-reset/confirm",
-      normalizarRespostaMensagemApi,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, novaSenha }),
-      },
-    );
-
-    sessaoAtual = null;
-    usuarioAtual = null;
-    removerSessaoSalva();
-    resetarNotificacoesDaSessao();
-    atualizarContaNoHeader();
-    navegarParaDestino(DESTINO_ENTRAR);
-    mostrarFeedback("Senha redefinida. Entre novamente com a nova senha.");
-  } catch (erro) {
-    definirFeedbackAutenticacao(
-      ehErroRequisicaoApi(erro)
-        ? erro.message
-        : "Não foi possível redefinir a senha. Solicite um novo link.",
-      "erro",
-    );
-  } finally {
-    definirBloqueioAutenticacao(formulario, botaoEnviar, false);
-  }
-}
-
 function sairDaConta(): void {
   sessaoAtual = null;
   removerSessaoSalva();
@@ -3322,9 +3153,6 @@ function inicializarContaUsuario(): void {
       campoFotoPerfil?.click();
     }
   });
-  botaoRedefinirSenhaConta?.addEventListener("click", () => {
-    navegarParaDestino("/esqueci-senha");
-  });
   botaoSairContaRota?.addEventListener("click", sairDaConta);
   botaoFecharConta?.addEventListener("click", fecharDialogoConta);
   dialogoConta?.addEventListener("click", (evento) => {
@@ -3428,27 +3256,7 @@ function inicializarContaUsuario(): void {
     });
     formulario.addEventListener("submit", (evento) => {
       evento.preventDefault();
-      const modo = formulario.dataset.formularioAutenticacao;
-
-      if (modo === "solicitar-redefinicao") {
-        void solicitarRedefinicaoPeloFormulario(formulario);
-      } else if (modo === "confirmar-redefinicao") {
-        void confirmarRedefinicaoPeloFormulario(formulario);
-      } else {
-        void enviarFormularioAutenticacao(formulario);
-      }
-    });
-  });
-
-  botaoEsqueciSenha?.addEventListener("click", () => {
-    navegarParaDestino("/esqueci-senha");
-  });
-  botaoSolicitarNovoLink?.addEventListener("click", () => {
-    navegarParaDestino("/esqueci-senha");
-  });
-  botoesVoltarLogin.forEach((botao) => {
-    botao.addEventListener("click", () => {
-      navegarParaDestino(DESTINO_ENTRAR);
+      void enviarFormularioAutenticacao(formulario);
     });
   });
 
@@ -3484,14 +3292,9 @@ function inicializarContaUsuario(): void {
 
     if (
       restaurarFocoAposFechamentoAutenticacao &&
-      [
-        "entrar",
-        "cadastro",
-        "esqueci-senha",
-        "redefinir-senha",
-      ].includes(rotaAtual.nome)
+      ["entrar", "cadastro"].includes(rotaAtual.nome)
     ) {
-      navegarParaDestino(DESTINO_EXPLORAR);
+      navegarParaDestino(DESTINO_EXPLORAR, { rolarCatalogo: false });
     }
   });
 
@@ -5882,12 +5685,7 @@ function obterRotaAtual(): RotaAplicacao {
 }
 
 function rotaEhDeAutenticacao(rota: RotaAplicacao): boolean {
-  return [
-    "entrar",
-    "cadastro",
-    "esqueci-senha",
-    "redefinir-senha",
-  ].includes(rota.nome);
+  return ["entrar", "cadastro"].includes(rota.nome);
 }
 
 function rotaProtegidaPorCaminho(caminho: string): RotaProtegida | null {
@@ -5895,7 +5693,12 @@ function rotaProtegidaPorCaminho(caminho: string): RotaProtegida | null {
   return rotaEhProtegida(rota) ? rota : null;
 }
 
-function explorarCatalogo(): void {
+function explorarCatalogo({ rolar = true }: { rolar?: boolean } = {}): void {
+  if (!rolar) {
+    rolagemPrimeiroAnuncioPendente = false;
+    return;
+  }
+
   rolagemPrimeiroAnuncioPendente = true;
 
   if (centralizarPrimeiroAnuncioVisivel()) {
@@ -5984,8 +5787,6 @@ function atualizarTituloDaRota(rota: RotaAplicacao): void {
     "meus-anuncios": "Meus anúncios — Vortex",
     entrar: "Entrar — Vortex",
     cadastro: "Criar conta — Vortex",
-    "esqueci-senha": "Recuperar senha — Vortex",
-    "redefinir-senha": "Redefinir senha — Vortex",
     conversas: "Conversas — Vortex",
     conta: "Minha conta — Vortex",
     ajuda: "Ajuda — Vortex",
@@ -6003,7 +5804,10 @@ function atualizarTituloDaRota(rota: RotaAplicacao): void {
 
 function sincronizarInterfaceComDestino(
   destino?: string,
-  { moverFoco = false }: { moverFoco?: boolean } = {},
+  {
+    moverFoco = false,
+    rolarCatalogo = true,
+  }: { moverFoco?: boolean; rolarCatalogo?: boolean } = {},
 ): void {
   const rota = destino
     ? interpretarRota(new URL(destino, window.location.origin))
@@ -6012,7 +5816,7 @@ function sincronizarInterfaceComDestino(
   if (rotaEhProtegida(rota) && !usuarioAtual) {
     const entrada = caminhoDeEntradaPara(rota);
     window.history.replaceState(null, "", entrada);
-    sincronizarInterfaceComDestino(entrada, { moverFoco });
+    sincronizarInterfaceComDestino(entrada, { moverFoco, rolarCatalogo });
     return;
   }
 
@@ -6038,7 +5842,7 @@ function sincronizarInterfaceComDestino(
   }
 
   if (rota.nome === "catalogo") {
-    explorarCatalogo();
+    explorarCatalogo({ rolar: rolarCatalogo });
     return;
   }
 
@@ -6061,47 +5865,6 @@ function sincronizarInterfaceComDestino(
     } else if (rota.redirecionarPara?.startsWith("/conversas")) {
       definirFeedbackAutenticacao(
         "Entre na sua conta para acessar suas conversas.",
-      );
-    }
-    return;
-  }
-
-  if (rota.nome === "esqueci-senha") {
-    abrirDialogoAutenticacao("solicitar-redefinicao");
-    const campoEmail = document.querySelector<HTMLInputElement>(
-      "#redefinicao-email",
-    );
-    if (campoEmail && usuarioAtual) {
-      campoEmail.value = usuarioAtual.email;
-    }
-    return;
-  }
-
-  if (rota.nome === "redefinir-senha") {
-    abrirDialogoAutenticacao("confirmar-redefinicao");
-    if (campoTokenRedefinicao) {
-      campoTokenRedefinicao.value = rota.token ?? "";
-    }
-    const tokenPresente = Boolean(rota.token);
-    formularioConfirmarRedefinicao
-      ?.querySelectorAll<HTMLInputElement>("input:not([type='hidden'])")
-      .forEach((campo) => {
-        campo.disabled = !tokenPresente;
-      });
-    const botaoConfirmar =
-      formularioConfirmarRedefinicao?.querySelector<HTMLButtonElement>(
-        "button[type='submit']",
-      );
-    if (botaoConfirmar) {
-      botaoConfirmar.disabled = !tokenPresente;
-    }
-    if (botaoSolicitarNovoLink) {
-      botaoSolicitarNovoLink.hidden = tokenPresente;
-    }
-    if (!rota.token) {
-      definirFeedbackAutenticacao(
-        "Este link não contém um token válido. Solicite uma nova redefinição.",
-        "erro",
       );
     }
     return;
@@ -6151,7 +5914,10 @@ function sincronizarInterfaceComDestino(
 
 function navegarParaDestino(
   destino: string,
-  { substituir = false }: { substituir?: boolean } = {},
+  {
+    substituir = false,
+    rolarCatalogo = true,
+  }: { substituir?: boolean; rolarCatalogo?: boolean } = {},
 ): void {
   const url = new URL(destino, window.location.origin);
   const destinoAtual = `${window.location.pathname}${window.location.search}`;
@@ -6168,7 +5934,10 @@ function navegarParaDestino(
 
   const moverFoco = moverFocoNaProximaSincronizacao || destinoAtual === destinoEfetivo;
   moverFocoNaProximaSincronizacao = false;
-  sincronizarInterfaceComDestino(destinoEfetivo, { moverFoco });
+  sincronizarInterfaceComDestino(destinoEfetivo, {
+    moverFoco,
+    rolarCatalogo,
+  });
 }
 
 function inicializarNavegacaoPorUrl(): void {

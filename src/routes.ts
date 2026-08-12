@@ -6,9 +6,7 @@ export type RotaProtegida =
 
 export type RotaAutenticacao =
   | { nome: "entrar"; redirecionarPara?: string }
-  | { nome: "cadastro"; redirecionarPara?: string }
-  | { nome: "esqueci-senha" }
-  | { nome: "redefinir-senha"; token: string | null };
+  | { nome: "cadastro"; redirecionarPara?: string };
 
 export type RotaInformativa =
   | { nome: "ajuda" }
@@ -87,13 +85,6 @@ export function interpretarRota(url: URL): RotaAplicacao {
       return { nome: "entrar", redirecionarPara };
     case "/cadastro":
       return { nome: "cadastro", redirecionarPara };
-    case "/esqueci-senha":
-      return { nome: "esqueci-senha" };
-    case "/redefinir-senha":
-      return {
-        nome: "redefinir-senha",
-        token: url.searchParams.get("token"),
-      };
     case "/conversas":
       return { nome: "conversas" };
     case "/conta":
@@ -150,12 +141,6 @@ export function caminhoDaRota(rota: Exclude<RotaAplicacao, { nome: "nao-encontra
         ? `${caminho}?redirect=${encodeURIComponent(rota.redirecionarPara)}`
         : caminho;
     }
-    case "esqueci-senha":
-      return "/esqueci-senha";
-    case "redefinir-senha":
-      return rota.token
-        ? `/redefinir-senha?token=${encodeURIComponent(rota.token)}`
-        : "/redefinir-senha";
     case "conversas":
       return rota.ofertaId ? `/conversas/${rota.ofertaId}` : "/conversas";
     case "conta":

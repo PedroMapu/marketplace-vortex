@@ -48,7 +48,6 @@ test("mapeia a foto de perfil do usuário sem expor snake_case", () => {
       nome: "Pedro",
       email: "pedro@edu.unifor.br",
       fotoPerfilUrl: "data:image/png;base64,iVBORw0KGgo=",
-      authVersion: 0,
     },
   );
 });

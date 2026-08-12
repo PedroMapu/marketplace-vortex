@@ -6,7 +6,6 @@ const CATEGORIAS = ["livros", "eletronicos", "casa", "moda", "outros"];
 const CONDICOES = ["novo", "seminovo", "usado"];
 const MODALIDADES = ["venda", "doacao"];
 const TAMANHO_MAXIMO_IMAGEM_BYTES = 15 * 1024 * 1024;
-const FORMATO_TOKEN_REDEFINICAO = /^[A-Za-z0-9_-]{43}$/u;
 const FORMATO_DATA_URL_IMAGEM =
   /^data:image\/(png|jpeg);base64,([A-Za-z0-9+/]+={0,2})$/u;
 
@@ -86,21 +85,6 @@ const schemaFotoPerfil = z.strictObject({
       }),
     z.null(),
   ]),
-});
-
-const schemaSolicitacaoRedefinicao = z.strictObject({
-  email: schemaEmail,
-});
-
-const schemaConfirmacaoRedefinicao = z.strictObject({
-  token: z
-    .string({
-      error: "Token de redefinição inválido.",
-    })
-    .regex(FORMATO_TOKEN_REDEFINICAO, {
-      error: "Token de redefinição inválido.",
-    }),
-  novaSenha: schemaSenha,
 });
 
 function temAteDuasCasasDecimais(valor) {
@@ -326,8 +310,6 @@ module.exports = {
   schemaCadastro,
   schemaLogin,
   schemaFotoPerfil,
-  schemaSolicitacaoRedefinicao,
-  schemaConfirmacaoRedefinicao,
   schemaAnuncio,
   schemaFiltrosAnuncios,
   schemaParametroAnuncio,

@@ -25,9 +25,6 @@ const {
 const { criarToken, usuarioPublico } = require("./auth");
 const { autenticarBearer } = require("./middleware-auth");
 const {
-  registrarRotasRedefinicaoSenha,
-} = require("./password-reset-routes");
-const {
   schemaCadastro,
   schemaLogin,
   schemaFotoPerfil,
@@ -229,8 +226,6 @@ app.get("/api/usuarios/:id/foto", async (request, response) => {
   });
   return response.status(200).send(conteudo);
 });
-
-registrarRotasRedefinicaoSenha(app);
 
 function normalizarAnuncio(dados, usuario) {
   return {
