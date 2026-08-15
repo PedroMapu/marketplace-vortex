@@ -2355,6 +2355,13 @@ main > section[aria-labelledby="titulo-impacto"] > p:last-child {
   color: var(--branco);
 }
 
+.colecao-img-mini > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .colecao-img-mini.overlay {
   background: rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(4px);

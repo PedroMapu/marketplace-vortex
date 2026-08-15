@@ -48,6 +48,8 @@ async function autenticarBearer(request, response, next) {
     return responderNaoAutenticado(response);
   }
 
+  // A assinatura prova quem emitiu o token; a consulta confirma que a conta
+  // ainda existe e evita manter acesso após uma remoção no banco.
   const usuario = await buscarUsuarioPorId(payload.sub);
 
   if (!usuario || usuario.id !== payload.sub) {

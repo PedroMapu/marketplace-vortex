@@ -48,6 +48,8 @@ function hashManifest(entries: ReadonlyArray<PrecacheEntry>): string {
   return (hash >>> 0).toString(36);
 }
 
+// O hash cria uma versão de cache por manifesto; a ativação pode remover com
+// segurança apenas as versões estáticas antigas deste aplicativo.
 const STATIC_CACHE = `${CACHE_PREFIX}-static-${hashManifest(PRECACHE_ENTRIES)}`;
 const APP_SHELL = PRECACHE_ENTRIES.map(({ url }) => url);
 
@@ -164,6 +166,8 @@ function createCatalogOfflineMissResponse(): Response {
 }
 
 async function networkFirstCatalog(request: Request): Promise<Response> {
+  // O catálogo prioriza dados atuais, mas conserva a última resposta válida
+  // para leitura offline. Respostas de erro nunca substituem esse snapshot.
   const cache = await caches.open(CATALOG_CACHE);
 
   try {
@@ -189,6 +193,8 @@ async function staleWhileRevalidate(
   request: Request,
   event: FetchEvent,
 ): Promise<Response> {
+  // Assets estáticos podem responder imediatamente do cache enquanto a cópia
+  // é atualizada em segundo plano, sem atrasar a renderização da página.
   const cache = await caches.open(STATIC_CACHE);
   const cachedResponse = await cache.match(request);
   const networkResponse = fetch(request)

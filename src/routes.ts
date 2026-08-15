@@ -55,6 +55,8 @@ export function sanitizarRedirecionamento(valor: string | null): string | undefi
 
   const caminho = normalizarCaminho(valor);
 
+  // A lista fechada impede que o parâmetro redirect vire um redirecionamento
+  // aberto para origens externas ou rotas públicas inesperadas.
   if (CAMINHOS_REDIRECIONAMENTO_PERMITIDOS.has(caminho)) {
     return caminho;
   }

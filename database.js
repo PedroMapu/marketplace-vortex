@@ -270,7 +270,7 @@ async function criarAnuncio(dados) {
         u.nome AS usuario_nome,
         a.criado_em,
         a.cliques_detalhes,
-    a.concluido_em
+        a.concluido_em
       FROM anuncio_inserido AS a
       INNER JOIN usuarios AS u
         ON u.id = a.usuario_id
@@ -324,7 +324,7 @@ async function atualizarAnuncioPorId(id, usuarioId, dados) {
         u.nome AS usuario_nome,
         a.criado_em,
         a.cliques_detalhes,
-    a.concluido_em
+        a.concluido_em
       FROM anuncio_atualizado AS a
       INNER JOIN usuarios AS u
         ON u.id = a.usuario_id
@@ -409,6 +409,7 @@ async function concluirAnuncioPorId(id, usuarioId) {
   const anuncio = resultado.rows[0];
   return anuncio ? mapearAnuncio(anuncio) : undefined;
 }
+
 async function registrarCliqueDetalhes(id) {
   const resultado = await pool.query(
     `
@@ -448,6 +449,8 @@ async function criarOferta(dados) {
   const client = await pool.connect();
 
   try {
+    // Oferta e primeira mensagem formam uma única unidade: se qualquer etapa
+    // falhar, o rollback impede uma conversa sem mensagem inicial.
     await client.query("BEGIN");
     const resultado = await client.query(
       `
@@ -547,6 +550,8 @@ async function listarMensagensDaOferta(ofertaId, usuarioId) {
 }
 
 async function criarMensagemOferta(dados) {
+  // O INSERT ... SELECT também aplica a autorização no banco, evitando uma
+  // janela entre verificar a oferta na API e persistir a mensagem.
   const resultado = await pool.query(
     `
       WITH mensagem_inserida AS (

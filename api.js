@@ -128,6 +128,8 @@ app.post("/api/auth/login", async (request, response) => {
   }
 
   const usuario = await buscarUsuarioPorEmail(validacao.dados.email);
+  // O hash fictício mantém o custo do bcrypt mesmo para e-mails inexistentes,
+  // reduzindo a diferença de tempo que poderia revelar contas cadastradas.
   const senhaCorresponde = await bcrypt.compare(
     validacao.dados.senha,
     usuario?.senhaHash ?? HASH_SENHA_FICTICIO,
@@ -219,6 +221,8 @@ app.get("/api/usuarios/:id/foto", async (request, response) => {
 
   const conteudo = Buffer.from(correspondencia[2], "base64");
 
+  // A foto é persistida como data URL, mas entregue como binário para que o
+  // navegador a trate como imagem e nunca como conteúdo HTML interpretável.
   response.set({
     "Cache-Control": "public, max-age=0, must-revalidate",
     "Content-Type": correspondencia[1],
@@ -608,6 +612,8 @@ async function obterOfertaAutorizada(request, response) {
     return undefined;
   }
 
+  // Toda leitura e escrita do chat passa por esta verificação; conhecer o ID
+  // da oferta não concede acesso a quem não participa da negociação.
   if (
     oferta.compradorId !== request.usuario.id &&
     oferta.anuncianteId !== request.usuario.id
@@ -744,6 +750,7 @@ app.use("/api", (request, response) => {
 });
 
 app.use((erro, request, response, next) => {
+  // Erros esperados do parser mantêm o mesmo envelope usado pelas validações.
   if (erro?.type === "entity.too.large" || erro?.status === 413) {
     return responderErro(
       response,

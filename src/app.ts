@@ -44,7 +44,6 @@ import {
   interpretarRota,
   rotaEhProtegida,
   type RotaAplicacao,
-  type RotaProtegida,
 } from "./routes";
 
 type CampoFormulario =
@@ -343,8 +342,6 @@ const botaoVoltarConversas =
   document.querySelector<HTMLButtonElement>("#botao-voltar-conversas");
 const listaConversas =
   document.querySelector<HTMLElement>("#lista-conversas");
-const chatPainel =
-  document.querySelector<HTMLElement>("#chat-painel");
 const tituloChatOferta =
   document.querySelector<HTMLElement>("#titulo-chat-oferta");
 const contextoChatOferta =
@@ -1350,6 +1347,8 @@ function exibirErroAoCarregarAnunciosDoUsuario() {
 async function carregarAnunciosDaApi(
   { mostrarCarregamento = true }: { mostrarCarregamento?: boolean } = {},
 ): Promise<boolean> {
+  // A sequência descarta respostas antigas quando filtros sucessivos terminam
+  // fora de ordem, evitando que uma busca lenta sobrescreva a mais recente.
   const sequenciaDestaRequisicao = ++sequenciaRequisicaoCatalogo;
   const categoria = categoriaFiltroAtiva;
 
@@ -1521,22 +1520,6 @@ function lerUsuarioSalvo(): IdentidadeUsuarioLegada | null {
   }
 }
 
-function salvarUsuario(usuario: IdentidadeUsuarioLegada): void {
-  try {
-    window.localStorage.setItem(CHAVE_USUARIO, JSON.stringify(usuario));
-  } catch (erro) {
-    console.warn("Não foi possível salvar o usuário neste navegador.", erro);
-  }
-}
-
-function removerUsuarioSalvo(): void {
-  try {
-    window.localStorage.removeItem(CHAVE_USUARIO);
-  } catch (erro) {
-    console.warn("Não foi possível remover o usuário salvo.", erro);
-  }
-}
-
 function sessaoSalvaEhValida(sessao: unknown): sessao is Sessao {
   if (!ehRegistro(sessao) || !ehRegistro(sessao.usuario)) {
     return false;
@@ -1603,6 +1586,8 @@ function salvarSessao(
   persistencia: PersistenciaSessao = persistenciaSessaoAtual ?? "aba",
 ): void {
   try {
+    // A foto em data URL pode ser grande e já possui uma rota própria. Mantê-la
+    // fora da sessão evita exceder a cota do Storage e duplicar dados locais.
     const sessaoSemFoto: Sessao = {
       token: sessao.token,
       usuario: {
@@ -4699,20 +4684,6 @@ async function carregarMensagensDaOferta(oferta: Oferta): Promise<void> {
   }
 }
 
-function selecionarOferta(id: string | undefined): void {
-  const idNormalizado = Number(id);
-  const oferta = cacheOfertasApi.find(
-    (item) => item.id === idNormalizado,
-  );
-
-  if (!oferta) {
-    return;
-  }
-
-  definirVisaoMobileDoChat("chat");
-  void carregarMensagensDaOferta(oferta);
-}
-
 function definirVisaoMobileDoChat(
   visao: "lista" | "chat",
   { focar = false }: { focar?: boolean } = {},
@@ -5201,6 +5172,8 @@ function agendarPollingDeConversas(
     return;
   }
 
+  // setTimeout recursivo garante apenas uma verificação ativa e permite parar
+  // o ciclo quando a aba fica oculta ou a sessão termina.
   temporizadorPollingConversas = window.setTimeout(
     () => {
       void verificarNovasMensagens().finally(() => {
@@ -5686,11 +5659,6 @@ function obterRotaAtual(): RotaAplicacao {
 
 function rotaEhDeAutenticacao(rota: RotaAplicacao): boolean {
   return ["entrar", "cadastro"].includes(rota.nome);
-}
-
-function rotaProtegidaPorCaminho(caminho: string): RotaProtegida | null {
-  const rota = interpretarRota(new URL(caminho, window.location.origin));
-  return rotaEhProtegida(rota) ? rota : null;
 }
 
 function explorarCatalogo({ rolar = true }: { rolar?: boolean } = {}): void {

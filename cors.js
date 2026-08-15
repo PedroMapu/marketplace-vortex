@@ -89,6 +89,8 @@ function origemLocalPermitida(origem) {
 }
 
 function origemPermitida(origem, configuracao) {
+  // Clientes sem Origin (CLI, monitoramento e chamadas servidor-servidor) não
+  // estão sujeitos ao CORS, que é uma política aplicada pelo navegador.
   if (!origem) {
     return true;
   }
@@ -151,6 +153,8 @@ function criarCors(configuracao = criarConfiguracaoCors()) {
       return next();
     }
 
+    // O preflight só é aprovado quando método e todos os cabeçalhos foram
+    // explicitamente incluídos nas listas acima.
     const metodoNormalizado = metodoPreflight.toUpperCase();
 
     if (!metodos.has(metodoNormalizado)) {

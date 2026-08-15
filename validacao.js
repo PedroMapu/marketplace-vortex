@@ -24,6 +24,7 @@ function textoObrigatorio(nomeCampo, limite) {
 }
 
 function senhaValida(senha) {
+  // bcrypt considera no máximo 72 bytes, não 72 caracteres Unicode.
   return (
     typeof senha === "string" &&
     Buffer.byteLength(senha, "utf8") >= 8 &&
@@ -117,6 +118,8 @@ function validarDataUrlImagem(valor) {
     return false;
   }
 
+  // O prefixo MIME é declaratório; os magic bytes confirmam que o conteúdo
+  // decodificado realmente começa como PNG ou JPEG.
   const assinaturaPng = Buffer.from([
     0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
   ]);
@@ -131,6 +134,8 @@ function validarDataUrlImagem(valor) {
 }
 
 const schemaAnuncio = z
+  // O objeto permanece loose até o superRefine para produzir erros específicos
+  // para autoria forjada e nomes de campos desconhecidos.
   .looseObject({
     nome: textoObrigatorio("o nome", 80),
     categoria: z.enum(CATEGORIAS, {
