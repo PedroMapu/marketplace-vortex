@@ -1057,26 +1057,12 @@ main > section > p:first-child::before {
   position: absolute;
 }
 
-.ciclo-nucleo span {
-  animation: ciclo-giro 9s linear infinite;
-  font-size: 2.15rem;
-  font-weight: 400;
-  line-height: 1;
-  margin-bottom: 0.55rem;
-}
-
-.ciclo-nucleo strong {
-  font-size: 1rem;
-  line-height: 1.2;
-  max-width: 9rem;
-}
-
 .ciclo-nucleo small {
   color: rgba(255, 255, 255, 0.72);
   font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.08em;
-  margin-top: 0.3rem;
+  margin: 0;
   text-transform: uppercase;
 }
 
@@ -1206,12 +1192,6 @@ main > section > p:first-child::before {
 #como-funciona li:nth-child(4)::after {
   right: -1.5rem;
   top: calc(50% - 0.5rem);
-}
-
-@keyframes ciclo-giro {
-  to {
-    transform: rotate(1turn);
-  }
 }
 
 /* IMPACTO */
@@ -5299,9 +5279,6 @@ footer section p {
     transform: none !important;
   }
 
-  .ciclo-nucleo span {
-    animation: none !important;
-  }
 }
 
 /* Edição de anúncios do proprietário */
@@ -11114,11 +11091,14 @@ canvas {
 /* Superfícies de rota: extensão do vocabulário visual existente. */
 .footer-socials a {
   border-radius: 999rem;
+  /* O CTA precisa preservar a leitura como uma única ação em telas de tablet. */
   font-size: 0.82rem;
   font-weight: 700;
   height: auto;
   min-height: 2.5rem;
+  overflow-wrap: normal;
   padding: 0.55rem 1rem;
+  white-space: nowrap;
   width: auto;
 }
 
