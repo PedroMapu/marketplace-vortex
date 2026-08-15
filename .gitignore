@@ -12,3 +12,6 @@ tmp/
 .agents/
 PLANO/
 edital/
+
+.vercel
+.env*
