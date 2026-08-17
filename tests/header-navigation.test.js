@@ -30,7 +30,7 @@ test("navbar sincroniza explorar, anunciar, meus anúncios e login com a URL", (
   );
   assert.equal(
     (html.match(/data-atalho-anunciar/g) || []).length,
-    2,
+    3,
   );
   assert.match(
     app,

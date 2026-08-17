@@ -66,7 +66,7 @@ test("respeita preferência por movimento reduzido", () => {
   assert.equal(opcoesRolagem.block, "center");
 });
 
-test("CTAs do hero e da navbar usam o mesmo contrato de navegação", () => {
+test("CTAs da página e da navbar usam o mesmo contrato de navegação", () => {
   const html = readProjectFile("index.html");
   const app = readProjectFile("src/app.ts");
 
@@ -80,7 +80,7 @@ test("CTAs do hero e da navbar usam o mesmo contrato de navegação", () => {
   );
   assert.equal(
     (html.match(/data-explorar-catalogo/g) || []).length,
-    2,
+    3,
   );
   assert.match(
     app,
