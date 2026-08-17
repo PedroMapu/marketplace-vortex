@@ -36,7 +36,6 @@ test("a consolidação mobile impede conteúdo flex e grid de ampliar a página"
 
 test("controles principais preservam caixa visível e alvo de toque de 44px", () => {
   assert.match(responsiveCss, /header nav a,[\s\S]*\.footer-nav-container nav a[\s\S]*min-height:\s*2\.75rem/);
-  assert.match(responsiveCss, /\.footer-socials a\s*\{[\s\S]*min-height:\s*2\.75rem[\s\S]*min-width:\s*2\.75rem/);
   assert.match(responsiveCss, /\.footer-nav-container nav a\s*\{[\s\S]*display:\s*inline-flex/);
   assert.match(responsiveCss, /\.vitrine-abas \.aba[\s\S]*border:\s*1px solid/);
   assert.match(responsiveCss, /\.vitrine-abas \.aba[\s\S]*min-height:\s*2\.75rem/);
@@ -45,6 +44,11 @@ test("controles principais preservam caixa visível e alvo de toque de 44px", ()
     css,
     /\.menu-toggle:hover,\s*\.menu-toggle:focus-visible\s*\{[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.13\)[\s\S]*?color:\s*var\(--branco\)/,
   );
+});
+
+test("rodapé não exibe o atalho para o código do projeto", () => {
+  assert.doesNotMatch(html, /footer-socials|Código do projeto/);
+  assert.doesNotMatch(css, /\.footer-socials/);
 });
 
 test("abas do catálogo quebram em grade em vez de ficarem cortadas", () => {
