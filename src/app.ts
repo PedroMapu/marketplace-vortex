@@ -423,7 +423,15 @@ const PREFIXO_DECISAO_IMPORTACAO =
 const PREFIXO_MENSAGENS_VISTAS =
   "marketplace-vortex:mensagens-vistas:v1";
 const INTERVALO_POLLING_CONVERSAS_MS = 60_000;
-const URL_BASE_API = (import.meta.env.VITE_API_URL ?? "")
+const URL_API_PUBLICADA = "https://marketplace-vortex-api.onrender.com";
+const URL_API_CONFIGURADA = import.meta.env.VITE_API_URL?.trim() ?? "";
+const URL_BASE_API = (
+  /^https?:\/\//iu.test(URL_API_CONFIGURADA)
+    ? URL_API_CONFIGURADA
+    : import.meta.env.PROD
+      ? URL_API_PUBLICADA
+      : ""
+)
   .trim()
   .replace(/\/+$/, "");
 const MENSAGEM_CARREGANDO_ANUNCIOS = "Carregando anúncios...";

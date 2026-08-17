@@ -179,6 +179,27 @@ test("respeita a origem configurada para a API publicada", async () => {
   );
 });
 
+test("usa a API publicada como fallback sem variável no build de produção", async () => {
+  const apiOrigin = "https://marketplace-vortex-api.onrender.com";
+  const harness = createServiceWorkerHarness({ production: true });
+  harness.setFetch(async () =>
+    responseWithType(
+      "[]",
+      { headers: { "Content-Type": "application/json" } },
+      "cors",
+    ),
+  );
+
+  assert.equal(
+    (
+      await harness.dispatchFetch(
+        new Request(`${apiOrigin}/api/anuncios`),
+      )
+    ).status,
+    200,
+  );
+});
+
 test("invalida todas as queries do catálogo e confirma pelo MessageChannel", async () => {
   const harness = createServiceWorkerHarness();
   const cache = await harness.caches.open(CATALOG_CACHE);

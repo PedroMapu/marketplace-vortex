@@ -23,12 +23,13 @@ function requestKey(request) {
   return typeof request === "string" ? request : request.url;
 }
 
-function prepareServiceWorkerSource(apiUrl) {
+function prepareServiceWorkerSource(apiUrl, production) {
   const source = readProjectFile("src/service-worker.ts")
-    .replace(
-      /\(import\.meta\.env\.VITE_API_URL \?\? ""\)\.trim\(\)/,
-      JSON.stringify(apiUrl.trim()),
+    .replaceAll(
+      "import.meta.env.VITE_API_URL",
+      JSON.stringify(apiUrl.trim() || undefined),
     )
+    .replaceAll("import.meta.env.PROD", JSON.stringify(production))
     .replace(/\nexport \{\};\s*$/, "\n");
 
   return transpileScript(source, "src/service-worker.ts");
@@ -39,6 +40,7 @@ function createServiceWorkerHarness(options = {}) {
     apiUrl = "",
     manifest = DEFAULT_MANIFEST,
     origin = "https://app.vortex.test",
+    production = false,
   } = options;
   const listeners = new Map();
   const stores = new Map();
@@ -124,7 +126,7 @@ function createServiceWorkerHarness(options = {}) {
     self,
   });
 
-  vm.runInContext(prepareServiceWorkerSource(apiUrl), context, {
+  vm.runInContext(prepareServiceWorkerSource(apiUrl, production), context, {
     filename: "src/service-worker.ts",
   });
 

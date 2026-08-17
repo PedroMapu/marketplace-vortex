@@ -20,7 +20,15 @@ const CATALOG_CACHE = `${CACHE_PREFIX}-catalog-v1`;
 const OFFLINE_RESPONSE_HEADER = "X-Vortex-Offline";
 const OFFLINE_RESPONSE_VALUE = "1";
 const PRECACHE_ENTRIES = self.__WB_MANIFEST;
-const CONFIGURED_API_URL = (import.meta.env.VITE_API_URL ?? "").trim();
+const URL_API_PUBLICADA = "https://marketplace-vortex-api.onrender.com";
+const URL_API_CONFIGURADA = import.meta.env.VITE_API_URL?.trim() ?? "";
+const CONFIGURED_API_URL = (
+  /^https?:\/\//iu.test(URL_API_CONFIGURADA)
+    ? URL_API_CONFIGURADA
+    : import.meta.env.PROD
+      ? URL_API_PUBLICADA
+      : ""
+).trim();
 
 function resolveApiOrigin(value: string): string | null {
   if (value === "") {
