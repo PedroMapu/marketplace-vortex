@@ -422,7 +422,7 @@ const PREFIXO_DECISAO_IMPORTACAO =
   "marketplace-vortex:importacao-colecoes:v1";
 const PREFIXO_MENSAGENS_VISTAS =
   "marketplace-vortex:mensagens-vistas:v1";
-const INTERVALO_POLLING_CONVERSAS_MS = 15_000;
+const INTERVALO_POLLING_CONVERSAS_MS = 60_000;
 const URL_BASE_API = (import.meta.env.VITE_API_URL ?? "")
   .trim()
   .replace(/\/+$/, "");
@@ -709,6 +709,10 @@ function normalizarFotoPerfil(valor: unknown): string | null {
     return valor;
   }
 
+  if (typeof valor === "string" && valor.startsWith("/api/")) {
+    return `${URL_BASE_API}${valor}`;
+  }
+
   throw new TypeError("A API retornou uma foto de perfil inválida.");
 }
 
@@ -898,7 +902,9 @@ function normalizarAnuncioDaApi(anuncio: unknown): Anuncio {
     valor,
     localizacao: obterTextoDoAnuncio(dados, "localizacao"),
     descricao: obterTextoDoAnuncio(dados, "descricao"),
-    imagemUrl: obterTextoDoAnuncio(dados, "imagemUrl"),
+    imagemUrl: normalizarUrlDeMidia(
+      obterTextoDoAnuncio(dados, "imagemUrl"),
+    ),
     usuarioId: obterTextoDoAnuncio(dados, "usuarioId"),
     usuarioNome: obterTextoDoAnuncio(dados, "usuarioNome"),
     criadoEm: obterTextoDoAnuncio(dados, "criadoEm"),
@@ -926,6 +932,10 @@ function criarUrlDaApiDeAnuncios(
 
   const queryString = parametros.toString();
   return `/api/anuncios${queryString ? `?${queryString}` : ""}`;
+}
+
+function normalizarUrlDeMidia(valor: string): string {
+  return valor.startsWith("/api/") ? `${URL_BASE_API}${valor}` : valor;
 }
 
 function normalizarListaDeAnuncios(resposta: unknown): Anuncio[] {
@@ -1030,11 +1040,6 @@ function normalizarOfertaDaApi(resposta: unknown): Oferta {
     throw new TypeError("A API retornou uma oferta inválida.");
   }
 
-  const anuncioImagemUrl =
-    typeof oferta.anuncioImagemUrl === "string" &&
-    oferta.anuncioImagemUrl.trim()
-      ? oferta.anuncioImagemUrl
-      : undefined;
   const atualizadaEm =
     typeof oferta.atualizadaEm === "string" && oferta.atualizadaEm.trim()
       ? oferta.atualizadaEm
@@ -1062,7 +1067,6 @@ function normalizarOfertaDaApi(resposta: unknown): Oferta {
       "anuncioNome",
       "uma oferta",
     ),
-    ...(anuncioImagemUrl ? { anuncioImagemUrl } : {}),
     anuncioConcluidoEm,
     valor,
     mensagem: obterStringObrigatoria(oferta, "mensagem", "uma oferta"),
@@ -1350,8 +1354,6 @@ async function carregarAnunciosDaApi(
   // A sequência descarta respostas antigas quando filtros sucessivos terminam
   // fora de ordem, evitando que uma busca lenta sobrescreva a mais recente.
   const sequenciaDestaRequisicao = ++sequenciaRequisicaoCatalogo;
-  const categoria = categoriaFiltroAtiva;
-
   if (mostrarCarregamento) {
     exibirEstadoDeCarregamento();
   }
@@ -1365,30 +1367,18 @@ async function carregarAnunciosDaApi(
     : () => {};
 
   try {
-    const urlCatalogo = criarUrlDaApiDeAnuncios({ categoria });
-    const precisaCarregarContagensGerais = categoria !== "todas";
-    const [resultadoCatalogo, resultadoParaContagem] = await Promise.all([
-      requisitarApi(urlCatalogo, normalizarListaDeAnuncios),
-      precisaCarregarContagensGerais
-        ? requisitarApi(
-            criarUrlDaApiDeAnuncios(),
-            normalizarListaDeAnuncios,
-          )
-        : Promise.resolve(null),
-    ]);
+    const resultadoCatalogo = await requisitarApi(
+      criarUrlDaApiDeAnuncios(),
+      normalizarListaDeAnuncios,
+    );
 
     if (sequenciaDestaRequisicao !== sequenciaRequisicaoCatalogo) {
       return false;
     }
 
     cacheCatalogoApi = resultadoCatalogo.dados;
-    cacheContagemApi = resultadoParaContagem
-      ? resultadoParaContagem.dados
-      : [...cacheCatalogoApi];
-    registrarOrigemDoCatalogo(
-      resultadoCatalogo.offline ||
-        resultadoParaContagem?.offline === true,
-    );
+    cacheContagemApi = [...cacheCatalogoApi];
+    registrarOrigemDoCatalogo(resultadoCatalogo.offline);
     listaAnuncios?.removeAttribute("aria-busy");
     renderizarAnuncios();
     return true;
@@ -2515,7 +2505,10 @@ async function enviarFotoPerfilSelecionada(): Promise<void> {
   campoFotoPerfil.removeAttribute("aria-invalid");
 
   try {
-    const fotoPerfilUrl = await converterArquivoParaDataUrl(arquivo);
+    const fotoPerfilUrl = await converterArquivoParaDataUrl(arquivo, {
+      dimensaoMaxima: 512,
+      tamanhoMaximo: 300_000,
+    });
     await salvarFotoPerfil(fotoPerfilUrl);
   } catch (erro) {
     console.error("Não foi possível preparar a foto de perfil.", erro);
@@ -3611,41 +3604,70 @@ function arquivoEhImagemPermitida(arquivo: unknown): arquivo is File {
   );
 }
 
-function converterArquivoParaDataUrl(arquivo: File): Promise<string> {
-  return new Promise<string>((resolve, reject) => {
-    const leitor = new FileReader();
+async function converterArquivoParaDataUrl(
+  arquivo: File,
+  {
+    dimensaoMaxima = 1_600,
+    tamanhoMaximo = 1_500_000,
+  }: { dimensaoMaxima?: number; tamanhoMaximo?: number } = {},
+): Promise<string> {
+  const urlTemporaria = URL.createObjectURL(arquivo);
 
-    leitor.addEventListener(
-      "load",
-      () => {
-        if (typeof leitor.result === "string") {
-          resolve(leitor.result);
-          return;
+  try {
+    const imagem = new Image();
+    imagem.src = urlTemporaria;
+    await imagem.decode();
+
+    const escalaInicial = Math.min(
+      1,
+      dimensaoMaxima / Math.max(imagem.naturalWidth, imagem.naturalHeight),
+    );
+    let largura = Math.max(1, Math.round(imagem.naturalWidth * escalaInicial));
+    let altura = Math.max(1, Math.round(imagem.naturalHeight * escalaInicial));
+    let ultimoResultado = "";
+
+    for (let tentativa = 0; tentativa < 5; tentativa += 1) {
+      const canvas = document.createElement("canvas");
+      canvas.width = largura;
+      canvas.height = altura;
+      const contexto = canvas.getContext("2d");
+
+      if (!contexto) {
+        throw new Error("A imagem não pôde ser otimizada para envio.");
+      }
+
+      // JPEG reduz drasticamente o tráfego. O fundo branco preserva imagens
+      // PNG transparentes sem introduzir um fundo preto inesperado.
+      contexto.fillStyle = "#ffffff";
+      contexto.fillRect(0, 0, largura, altura);
+      contexto.drawImage(imagem, 0, 0, largura, altura);
+
+      for (const qualidade of [0.84, 0.74, 0.64, 0.54]) {
+        ultimoResultado = canvas.toDataURL("image/jpeg", qualidade);
+        const base64 = ultimoResultado.split(",", 2)[1] ?? "";
+        const tamanhoEstimado = Math.floor((base64.length * 3) / 4);
+
+        if (tamanhoEstimado <= tamanhoMaximo) {
+          return ultimoResultado;
         }
+      }
 
-        reject(new Error("A imagem não pôde ser convertida para envio."));
-      },
-      { once: true },
-    );
+      largura = Math.max(1, Math.round(largura * 0.8));
+      altura = Math.max(1, Math.round(altura * 0.8));
+    }
 
-    leitor.addEventListener(
-      "error",
-      () => {
-        reject(new Error("A imagem não pôde ser lida para envio."));
-      },
-      { once: true },
-    );
+    if (ultimoResultado) {
+      return ultimoResultado;
+    }
 
-    leitor.addEventListener(
-      "abort",
-      () => {
-        reject(new Error("A leitura da imagem foi interrompida."));
-      },
-      { once: true },
-    );
-
-    leitor.readAsDataURL(arquivo);
-  });
+    throw new Error("A imagem não pôde ser convertida para envio.");
+  } catch (erro) {
+    throw erro instanceof Error
+      ? erro
+      : new Error("A imagem não pôde ser lida para envio.");
+  } finally {
+    URL.revokeObjectURL(urlTemporaria);
+  }
 }
 
 async function obterErrosImagem(
@@ -5459,6 +5481,12 @@ function obterAnunciosVisiveis(): Anuncio[] {
     indice,
   }));
 
+  if (categoriaFiltroAtiva !== "todas") {
+    itens = itens.filter(
+      ({ anuncio }) => anuncio.categoria === categoriaFiltroAtiva,
+    );
+  }
+
   if (abaCatalogoAtiva === "recentes") {
     const primeiroIndiceRecente = Math.max(0, cacheCatalogoApi.length - 3);
     itens = itens.filter(({ indice }) => indice >= primeiroIndiceRecente);
@@ -6145,7 +6173,7 @@ function inicializarControlesDaVitrine(): void {
         }
       });
 
-      void carregarAnunciosDaApi();
+      renderizarAnuncios();
     });
   });
 
@@ -6573,8 +6601,8 @@ async function salvarEdicaoDoAnuncio(): Promise<boolean> {
   try {
     const imagemUrl = arquivoImagem
       ? await converterArquivoParaDataUrl(arquivoImagem)
-      : anuncioOriginal.imagemUrl;
-    const dadosAtualizados: NovoAnuncio = {
+      : undefined;
+    const dadosAtualizados = {
       nome: campoEditarNome.value.trim(),
       categoria,
       condicao,
@@ -6582,7 +6610,7 @@ async function salvarEdicaoDoAnuncio(): Promise<boolean> {
       valor,
       localizacao: campoEditarLocalizacao.value.trim(),
       descricao: campoEditarDescricao.value.trim(),
-      imagemUrl,
+      ...(imagemUrl ? { imagemUrl } : {}),
     };
     const { dados: anuncioAtualizado } = await requisitarApiAutenticada(
       `/api/anuncios/${encodeURIComponent(String(anuncioOriginal.id))}`,

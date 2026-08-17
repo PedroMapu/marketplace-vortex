@@ -12,6 +12,7 @@ const {
   criarAnuncio,
   atualizarAnuncioPorId,
   buscarAnuncioPorId,
+  buscarImagemAnuncioPorId,
   excluirAnuncioPorId,
   concluirAnuncioPorId,
   registrarCliqueDetalhes,
@@ -29,6 +30,7 @@ const {
   schemaLogin,
   schemaFotoPerfil,
   schemaAnuncio,
+  schemaAtualizacaoAnuncio,
   schemaFiltrosAnuncios,
   schemaParametroAnuncio,
   schemaParametroUsuario,
@@ -49,7 +51,7 @@ app.use("/api/auth", (request, response, next) => {
   response.set("Cache-Control", "no-store");
   return next();
 });
-app.use(express.json({ limit: "22mb" }));
+app.use(express.json({ limit: "3mb" }));
 
 app.get("/api/status", async (request, response) => {
   try {
@@ -220,13 +222,23 @@ app.get("/api/usuarios/:id/foto", async (request, response) => {
   }
 
   const conteudo = Buffer.from(correspondencia[2], "base64");
+  const etag = resultado?.versao ? `"${resultado.versao}"` : undefined;
+  const versaoSolicitada =
+    typeof request.query.v === "string" ? request.query.v : null;
+  const versaoImutavel =
+    Boolean(resultado?.versao) && versaoSolicitada === resultado.versao;
 
-  // A foto é persistida como data URL, mas entregue como binário para que o
-  // navegador a trate como imagem e nunca como conteúdo HTML interpretável.
+  if (etag && request.get("If-None-Match") === etag) {
+    return response.status(304).end();
+  }
+
   response.set({
-    "Cache-Control": "public, max-age=0, must-revalidate",
+    "Cache-Control": versaoImutavel
+      ? "public, max-age=31536000, immutable"
+      : "public, max-age=0, must-revalidate",
     "Content-Type": correspondencia[1],
     "X-Content-Type-Options": "nosniff",
+    ...(etag ? { ETag: etag } : {}),
   });
   return response.status(200).send(conteudo);
 });
@@ -299,6 +311,59 @@ app.get("/api/anuncios/:id", async (request, response) => {
   return response.status(200).json(anuncio);
 });
 
+app.get("/api/anuncios/:id/imagem", async (request, response) => {
+  const validacao = validarComSchema(schemaParametroAnuncio, request.params);
+
+  if (!validacao.sucesso) {
+    return responderErro(
+      response,
+      400,
+      "Parâmetro de anúncio inválido.",
+      "VALIDACAO",
+      validacao.campos,
+    );
+  }
+
+  const resultado = await buscarImagemAnuncioPorId(validacao.dados.id);
+  const correspondencia =
+    typeof resultado?.imagemUrl === "string"
+      ? /^data:(image\/(?:png|jpeg));base64,([A-Za-z0-9+/]+={0,2})$/u.exec(
+          resultado.imagemUrl,
+        )
+      : null;
+
+  if (!correspondencia) {
+    return responderErro(
+      response,
+      404,
+      "Imagem do anúncio não encontrada.",
+      "IMAGEM_ANUNCIO_NAO_ENCONTRADA",
+    );
+  }
+
+  const etag = resultado.versao ? `"${resultado.versao}"` : undefined;
+  const versaoSolicitada =
+    typeof request.query.v === "string" ? request.query.v : null;
+  const versaoImutavel =
+    Boolean(resultado.versao) && versaoSolicitada === resultado.versao;
+
+  if (etag && request.get("If-None-Match") === etag) {
+    return response.status(304).end();
+  }
+
+  response.set({
+    "Cache-Control": versaoImutavel
+      ? "public, max-age=31536000, immutable"
+      : "public, max-age=0, must-revalidate",
+    "Content-Type": correspondencia[1],
+    "X-Content-Type-Options": "nosniff",
+    ...(etag ? { ETag: etag } : {}),
+  });
+  return response
+    .status(200)
+    .send(Buffer.from(correspondencia[2], "base64"));
+});
+
 app.post("/api/anuncios", autenticarBearer, async (request, response) => {
   const validacao = validarComSchema(schemaAnuncio, request.body);
 
@@ -337,7 +402,10 @@ app.patch(
       );
     }
 
-    const validacao = validarComSchema(schemaAnuncio, request.body);
+    const validacao = validarComSchema(
+      schemaAtualizacaoAnuncio,
+      request.body,
+    );
 
     if (!validacao.sucesso) {
       return responderErro(
@@ -755,7 +823,7 @@ app.use((erro, request, response, next) => {
     return responderErro(
       response,
       413,
-      "O corpo da requisição excede o limite permitido para imagens de até 15 MB.",
+      "O corpo da requisição excede o limite permitido para imagens otimizadas de até 2 MB.",
       "CORPO_MUITO_GRANDE",
     );
   }

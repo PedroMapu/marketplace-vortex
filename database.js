@@ -11,6 +11,8 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
+// Listagens carregam apenas a versão da mídia. Retornar a data URL aqui faria
+// cada filtro e polling transferir novamente todo o blob armazenado no Neon.
 const SELECAO_ANUNCIO = `
   SELECT
     a.id,
@@ -21,7 +23,10 @@ const SELECAO_ANUNCIO = `
     a.valor,
     a.localizacao,
     a.descricao,
-    a.imagem_url,
+    CASE
+      WHEN a.imagem_url = '' THEN NULL
+      ELSE SUBSTRING(MD5(a.imagem_url), 1, 16)
+    END AS imagem_versao,
     a.usuario_id,
     u.nome AS usuario_nome,
     a.criado_em,
@@ -32,12 +37,13 @@ const SELECAO_ANUNCIO = `
     ON u.id = a.usuario_id
 `;
 
+// A conversa não usa a imagem do anúncio; mantê-la fora deste DTO é essencial,
+// pois a consulta é executada periodicamente para detectar novas mensagens.
 const SELECAO_OFERTA = `
   SELECT
     o.id,
     o.anuncio_id,
     a.nome AS anuncio_nome,
-    a.imagem_url AS anuncio_imagem_url,
     a.concluido_em AS anuncio_concluido_em,
     o.valor,
     o.mensagem,
@@ -79,7 +85,9 @@ function mapearAnuncio(row) {
     valor: Number(row.valor),
     localizacao: row.localizacao,
     descricao: row.descricao,
-    imagemUrl: row.imagem_url,
+    imagemUrl: row.imagem_versao
+      ? `/api/anuncios/${Number(row.id)}/imagem?v=${encodeURIComponent(row.imagem_versao)}`
+      : "",
     usuarioId: row.usuario_id,
     usuarioNome: row.usuario_nome,
     criadoEm: normalizarTimestamp(row.criado_em),
@@ -93,7 +101,6 @@ function mapearOferta(row) {
     id: Number(row.id),
     anuncioId: Number(row.anuncio_id),
     anuncioNome: row.anuncio_nome,
-    anuncioImagemUrl: row.anuncio_imagem_url,
     anuncioConcluidoEm: row.anuncio_concluido_em
       ? normalizarTimestamp(row.anuncio_concluido_em)
       : null,
@@ -124,7 +131,9 @@ function mapearUsuario(row) {
     id: row.id,
     nome: row.nome,
     email: row.email,
-    fotoPerfilUrl: row.foto_perfil_url ?? null,
+    fotoPerfilUrl: row.foto_perfil_versao
+      ? `/api/usuarios/${encodeURIComponent(row.id)}/foto?v=${encodeURIComponent(row.foto_perfil_versao)}`
+      : null,
   };
 }
 
@@ -144,7 +153,15 @@ async function criarUsuario(dados) {
 async function buscarUsuarioPorEmail(email) {
   const resultado = await pool.query(
     `
-      SELECT id, nome, email, senha_hash, foto_perfil_url
+      SELECT
+        id,
+        nome,
+        email,
+        senha_hash,
+        CASE
+          WHEN foto_perfil_url IS NULL THEN NULL
+          ELSE SUBSTRING(MD5(foto_perfil_url), 1, 16)
+        END AS foto_perfil_versao
       FROM usuarios
       WHERE email = $1
     `,
@@ -177,7 +194,14 @@ async function buscarUsuarioPorId(id) {
 async function buscarPerfilUsuarioPorId(id) {
   const resultado = await pool.query(
     `
-      SELECT id, nome, email, foto_perfil_url
+      SELECT
+        id,
+        nome,
+        email,
+        CASE
+          WHEN foto_perfil_url IS NULL THEN NULL
+          ELSE SUBSTRING(MD5(foto_perfil_url), 1, 16)
+        END AS foto_perfil_versao
       FROM usuarios
       WHERE id = $1
     `,
@@ -191,7 +215,12 @@ async function buscarPerfilUsuarioPorId(id) {
 async function buscarFotoPerfilUsuarioPorId(id) {
   const resultado = await pool.query(
     `
-      SELECT foto_perfil_url
+      SELECT
+        foto_perfil_url,
+        CASE
+          WHEN foto_perfil_url IS NULL THEN NULL
+          ELSE SUBSTRING(MD5(foto_perfil_url), 1, 16)
+        END AS foto_perfil_versao
       FROM usuarios
       WHERE id = $1
     `,
@@ -200,7 +229,10 @@ async function buscarFotoPerfilUsuarioPorId(id) {
   const usuario = resultado.rows[0];
 
   return usuario
-    ? { fotoPerfilUrl: usuario.foto_perfil_url ?? null }
+    ? {
+        fotoPerfilUrl: usuario.foto_perfil_url ?? null,
+        versao: usuario.foto_perfil_versao ?? null,
+      }
     : undefined;
 }
 
@@ -210,7 +242,14 @@ async function atualizarFotoPerfilUsuario(id, fotoPerfilUrl) {
       UPDATE usuarios
       SET foto_perfil_url = $2
       WHERE id = $1
-      RETURNING id, nome, email, foto_perfil_url
+      RETURNING
+        id,
+        nome,
+        email,
+        CASE
+          WHEN foto_perfil_url IS NULL THEN NULL
+          ELSE SUBSTRING(MD5(foto_perfil_url), 1, 16)
+        END AS foto_perfil_versao
     `,
     [id, fotoPerfilUrl],
   );
@@ -265,7 +304,10 @@ async function criarAnuncio(dados) {
         a.valor,
         a.localizacao,
         a.descricao,
-        a.imagem_url,
+        CASE
+          WHEN a.imagem_url = '' THEN NULL
+          ELSE SUBSTRING(MD5(a.imagem_url), 1, 16)
+        END AS imagem_versao,
         a.usuario_id,
         u.nome AS usuario_nome,
         a.criado_em,
@@ -304,7 +346,7 @@ async function atualizarAnuncioPorId(id, usuarioId, dados) {
           valor = $7,
           localizacao = $8,
           descricao = $9,
-          imagem_url = $10
+          imagem_url = COALESCE($10, imagem_url)
         WHERE id = $1
           AND usuario_id = $2
           AND concluido_em IS NULL
@@ -319,7 +361,10 @@ async function atualizarAnuncioPorId(id, usuarioId, dados) {
         a.valor,
         a.localizacao,
         a.descricao,
-        a.imagem_url,
+        CASE
+          WHEN a.imagem_url = '' THEN NULL
+          ELSE SUBSTRING(MD5(a.imagem_url), 1, 16)
+        END AS imagem_versao,
         a.usuario_id,
         u.nome AS usuario_nome,
         a.criado_em,
@@ -339,7 +384,7 @@ async function atualizarAnuncioPorId(id, usuarioId, dados) {
       dados.valor,
       dados.localizacao,
       dados.descricao,
-      dados.imagemUrl ?? "",
+      dados.imagemUrl ?? null,
     ],
   );
   const anuncio = resultado.rows[0];
@@ -358,6 +403,30 @@ async function buscarAnuncioPorId(id) {
 
   const anuncio = resultado.rows[0];
   return anuncio ? mapearAnuncio(anuncio) : undefined;
+}
+
+async function buscarImagemAnuncioPorId(id) {
+  const resultado = await pool.query(
+    `
+      SELECT
+        imagem_url,
+        CASE
+          WHEN imagem_url = '' THEN NULL
+          ELSE SUBSTRING(MD5(imagem_url), 1, 16)
+        END AS imagem_versao
+      FROM anuncios
+      WHERE id = $1
+    `,
+    [id],
+  );
+  const anuncio = resultado.rows[0];
+
+  return anuncio
+    ? {
+        imagemUrl: anuncio.imagem_url || null,
+        versao: anuncio.imagem_versao ?? null,
+      }
+    : undefined;
 }
 
 async function excluirAnuncioPorId(id, usuarioId) {
@@ -393,7 +462,10 @@ async function concluirAnuncioPorId(id, usuarioId) {
         a.valor,
         a.localizacao,
         a.descricao,
-        a.imagem_url,
+        CASE
+          WHEN a.imagem_url = '' THEN NULL
+          ELSE SUBSTRING(MD5(a.imagem_url), 1, 16)
+        END AS imagem_versao,
         a.usuario_id,
         u.nome AS usuario_nome,
         a.criado_em,
@@ -600,6 +672,7 @@ module.exports = {
   criarAnuncio,
   atualizarAnuncioPorId,
   buscarAnuncioPorId,
+  buscarImagemAnuncioPorId,
   excluirAnuncioPorId,
   concluirAnuncioPorId,
   registrarCliqueDetalhes,

@@ -20,6 +20,7 @@ function carregarApiComDatabaseMock(sobrescritas = {}, opcoes = {}) {
     criarAnuncio: async (anuncio) => anuncio,
     atualizarAnuncioPorId: async () => undefined,
     buscarAnuncioPorId: async () => undefined,
+    buscarImagemAnuncioPorId: async () => undefined,
     excluirAnuncioPorId: async () => false,
     registrarCliqueDetalhes: async () => undefined,
     verificarConexao: async () => true,
@@ -100,19 +101,22 @@ async function requisitar(app, caminho, opcoes = {}) {
   }
 }
 
-async function requisitarBinario(app, caminho) {
+async function requisitarBinario(app, caminho, headers = {}) {
   const servidor = app.listen(0, "127.0.0.1");
   await once(servidor, "listening");
 
   try {
     const { port } = servidor.address();
-    const resposta = await fetch(`http://127.0.0.1:${port}${caminho}`);
+    const resposta = await fetch(`http://127.0.0.1:${port}${caminho}`, {
+      headers,
+    });
 
     return {
       status: resposta.status,
       contentType: resposta.headers.get("content-type"),
       cacheControl: resposta.headers.get("cache-control"),
       nosniff: resposta.headers.get("x-content-type-options"),
+      etag: resposta.headers.get("etag"),
       body: Buffer.from(await resposta.arrayBuffer()),
     };
   } finally {
@@ -170,21 +174,55 @@ test("GET /api/usuarios/:id/foto entrega a foto real do perfil", async () => {
   const { app } = carregarApiComDatabaseMock({
     buscarFotoPerfilUsuarioPorId: async (id) => {
       usuarioConsultado = id;
-      return { fotoPerfilUrl: "data:image/png;base64,iVBORw0KGgo=" };
+      return {
+        fotoPerfilUrl: "data:image/png;base64,iVBORw0KGgo=",
+        versao: "abc123",
+      };
     },
   });
 
   assert.deepEqual(
-    await requisitarBinario(app, `/api/usuarios/${USUARIO_ID}/foto`),
+    await requisitarBinario(
+      app,
+      `/api/usuarios/${USUARIO_ID}/foto?v=abc123`,
+    ),
     {
       status: 200,
       contentType: "image/png",
-      cacheControl: "public, max-age=0, must-revalidate",
+      cacheControl: "public, max-age=31536000, immutable",
       nosniff: "nosniff",
+      etag: '"abc123"',
       body: foto,
     },
   );
   assert.equal(usuarioConsultado, USUARIO_ID);
+});
+
+test("GET /api/anuncios/:id/imagem entrega mídia versionada sem incluí-la no DTO", async () => {
+  const imagem = Buffer.from("/9j/", "base64");
+  let anuncioConsultado;
+  const { app } = carregarApiComDatabaseMock({
+    buscarImagemAnuncioPorId: async (id) => {
+      anuncioConsultado = id;
+      return {
+        imagemUrl: "data:image/jpeg;base64,/9j/",
+        versao: "def456",
+      };
+    },
+  });
+
+  assert.deepEqual(
+    await requisitarBinario(app, "/api/anuncios/42/imagem?v=def456"),
+    {
+      status: 200,
+      contentType: "image/jpeg",
+      cacheControl: "public, max-age=31536000, immutable",
+      nosniff: "nosniff",
+      etag: '"def456"',
+      body: imagem,
+    },
+  );
+  assert.equal(anuncioConsultado, 42);
 });
 
 test("GET /api/usuarios/:id/foto usa 404 quando o perfil não tem foto", async () => {
@@ -432,7 +470,7 @@ test("POST /api/anuncios rejeita autoria enviada no corpo antes de criar", async
   assert.equal(criacoes, 0);
 });
 
-test("PATCH /api/anuncios/:id atualiza somente o anúncio do usuário autenticado", async () => {
+test("PATCH /api/anuncios/:id preserva a imagem quando ela não é reenviada", async () => {
   const entrada = {
     nome: "  Calculadora atualizada  ",
     categoria: "eletronicos",
@@ -441,7 +479,6 @@ test("PATCH /api/anuncios/:id atualiza somente o anúncio do usuário autenticad
     valor: 75.9,
     localizacao: "  Bloco D  ",
     descricao: "  Com capa protetora.  ",
-    imagemUrl: "data:image/png;base64,iVBORw0KGgo=",
   };
   const anuncioAtualizado = {
     id: 14,
@@ -496,7 +533,6 @@ test("PATCH /api/anuncios/:id atualiza somente o anúncio do usuário autenticad
         valor: 75.9,
         localizacao: "Bloco D",
         descricao: "Com capa protetora.",
-        imagemUrl: "data:image/png;base64,iVBORw0KGgo=",
       },
     },
   ]);

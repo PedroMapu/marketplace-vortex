@@ -10,9 +10,9 @@ services:
     # no painel do serviço e nunca no repositório.
     envVars:
       - key: DATABASE_URL
-        value: postgresql://neondb_owner:npg_4HJCtmufY7Wc@ep-dawn-dawn-ac8q1uef-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+        sync: false
       - key: DATABASE_URL_DIRECT
-        value: postgresql://neondb_owner:npg_4HJCtmufY7Wc@ep-dawn-dawn-ac8q1uef.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+        sync: false
       - key: JWT_SECRET
         sync: false
       - key: FRONTEND_ORIGINS

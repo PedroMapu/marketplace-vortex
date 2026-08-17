@@ -5,6 +5,7 @@ const test = require("node:test");
 
 const {
   buscarFotoPerfilUsuarioPorId,
+  atualizarAnuncioPorId,
   mapearAnuncio,
   mapearUsuario,
   pool,
@@ -19,7 +20,10 @@ test("consulta somente a foto pública do perfil pelo usuário", async () => {
     consulta = { texto, parametros };
     return {
       rows: [
-        { foto_perfil_url: "data:image/png;base64,iVBORw0KGgo=" },
+        {
+          foto_perfil_url: "data:image/png;base64,iVBORw0KGgo=",
+          foto_perfil_versao: "abc123",
+        },
       ],
     };
   };
@@ -27,8 +31,9 @@ test("consulta somente a foto pública do perfil pelo usuário", async () => {
   try {
     assert.deepEqual(await buscarFotoPerfilUsuarioPorId(id), {
       fotoPerfilUrl: "data:image/png;base64,iVBORw0KGgo=",
+      versao: "abc123",
     });
-    assert.match(consulta.texto, /SELECT foto_perfil_url/u);
+    assert.match(consulta.texto, /SELECT\s+foto_perfil_url/u);
     assert.deepEqual(consulta.parametros, [id]);
   } finally {
     pool.query = queryOriginal;
@@ -41,13 +46,14 @@ test("mapeia a foto de perfil do usuário sem expor snake_case", () => {
       id: "d7ff9c07-4409-4cf3-9458-6a7bd8d94104",
       nome: "Pedro",
       email: "pedro@edu.unifor.br",
-      foto_perfil_url: "data:image/png;base64,iVBORw0KGgo=",
+      foto_perfil_versao: "abc123",
     }),
     {
       id: "d7ff9c07-4409-4cf3-9458-6a7bd8d94104",
       nome: "Pedro",
       email: "pedro@edu.unifor.br",
-      fotoPerfilUrl: "data:image/png;base64,iVBORw0KGgo=",
+      fotoPerfilUrl:
+        "/api/usuarios/d7ff9c07-4409-4cf3-9458-6a7bd8d94104/foto?v=abc123",
     },
   );
 });
@@ -64,7 +70,7 @@ test("mapeia a linha do PostgreSQL para o DTO esperado pelo frontend", () => {
     valor: "89.90",
     localizacao: "Fortaleza - CE",
     descricao: "Funcionando normalmente.",
-    imagem_url: "data:image/png;base64,abc",
+    imagem_versao: "def456",
     usuario_id: "d7ff9c07-4409-4cf3-9458-6a7bd8d94104",
     usuario_nome: "Pedro",
     criado_em: criadoEm,
@@ -80,7 +86,7 @@ test("mapeia a linha do PostgreSQL para o DTO esperado pelo frontend", () => {
     valor: 89.9,
     localizacao: "Fortaleza - CE",
     descricao: "Funcionando normalmente.",
-    imagemUrl: "data:image/png;base64,abc",
+    imagemUrl: "/api/anuncios/42/imagem?v=def456",
     usuarioId: "d7ff9c07-4409-4cf3-9458-6a7bd8d94104",
     usuarioNome: "Pedro",
     criadoEm: "2026-07-31T14:30:45.123Z",
@@ -135,4 +141,55 @@ test("normaliza timestamps textuais sem expor nomes snake_case", () => {
   assert.equal("usuario_id" in anuncio, false);
   assert.equal("usuario_nome" in anuncio, false);
   assert.equal("criado_em" in anuncio, false);
+});
+
+test("atualiza metadados sem apagar a imagem quando o PATCH a omite", async () => {
+  const queryOriginal = pool.query;
+  let consulta;
+
+  pool.query = async (texto, parametros) => {
+    consulta = { texto, parametros };
+    return {
+      rows: [
+        {
+          id: 9,
+          nome: "Livro atualizado",
+          categoria: "livros",
+          condicao: "usado",
+          modalidade: "doacao",
+          valor: "0",
+          localizacao: "Biblioteca",
+          descricao: "Nova descrição.",
+          imagem_versao: "abc123",
+          usuario_id: "7dba9ebd-70e4-44b2-baaa-f30bfb92cf92",
+          usuario_nome: "Ana",
+          criado_em: "2026-07-31T12:00:00.000Z",
+        },
+      ],
+    };
+  };
+
+  try {
+    await atualizarAnuncioPorId(
+      9,
+      "7dba9ebd-70e4-44b2-baaa-f30bfb92cf92",
+      {
+        nome: "Livro atualizado",
+        categoria: "livros",
+        condicao: "usado",
+        modalidade: "doacao",
+        valor: 0,
+        localizacao: "Biblioteca",
+        descricao: "Nova descrição.",
+      },
+    );
+
+    assert.match(
+      consulta.texto,
+      /imagem_url = COALESCE\(\$10, imagem_url\)/u,
+    );
+    assert.equal(consulta.parametros[9], null);
+  } finally {
+    pool.query = queryOriginal;
+  }
 });

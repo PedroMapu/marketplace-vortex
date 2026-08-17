@@ -5,7 +5,7 @@ const { z } = require("zod");
 const CATEGORIAS = ["livros", "eletronicos", "casa", "moda", "outros"];
 const CONDICOES = ["novo", "seminovo", "usado"];
 const MODALIDADES = ["venda", "doacao"];
-const TAMANHO_MAXIMO_IMAGEM_BYTES = 15 * 1024 * 1024;
+const TAMANHO_MAXIMO_IMAGEM_BYTES = 2 * 1024 * 1024;
 const FORMATO_DATA_URL_IMAGEM =
   /^data:image\/(png|jpeg);base64,([A-Za-z0-9+/]+={0,2})$/u;
 
@@ -82,7 +82,7 @@ const schemaFotoPerfil = z.strictObject({
       .trim()
       .refine(validarDataUrlImagem, {
         error:
-          "A foto deve ser PNG ou JPEG e ter no máximo 15 MB.",
+          "A foto deve ser PNG ou JPEG e ter no máximo 2 MB.",
       }),
     z.null(),
   ]),
@@ -133,108 +133,121 @@ function validarDataUrlImagem(valor) {
   );
 }
 
-const schemaAnuncio = z
-  // O objeto permanece loose até o superRefine para produzir erros específicos
-  // para autoria forjada e nomes de campos desconhecidos.
-  .looseObject({
-    nome: textoObrigatorio("o nome", 80),
-    categoria: z.enum(CATEGORIAS, {
-      error: "Categoria inválida.",
-    }),
-    condicao: z.enum(CONDICOES, {
-      error: "Condição inválida.",
-    }),
-    modalidade: z.enum(MODALIDADES, {
-      error: "Modalidade inválida.",
-    }),
-    valor: z
-      .number({
-        error: "Informe um valor numérico.",
-      })
-      .finite({
-        error: "Informe um valor numérico.",
-      })
-      .min(0, {
-        error: "O valor deve ser maior ou igual a zero.",
-      })
-      .max(1_000_000, {
-        error: "O valor deve ser de no máximo R$ 1.000.000.",
-      })
-      .refine(temAteDuasCasasDecimais, {
-        error: "O valor deve ter no máximo duas casas decimais.",
-      }),
-    localizacao: textoObrigatorio("a localização", 120),
-    descricao: textoObrigatorio("a descrição", 1_000),
-    imagemUrl: z
-      .string({
-        error: "A imagem deve ser uma data URL PNG ou JPEG.",
-      })
-      .trim()
-      .refine(validarDataUrlImagem, {
-        error:
-          "A imagem deve ser PNG ou JPEG em data URL e ter no máximo 15 MB.",
-      }),
+const schemaImagemAnuncio = z
+  .string({
+    error: "A imagem deve ser uma data URL PNG ou JPEG.",
   })
-  .superRefine((dados, contexto) => {
-    for (const campo of ["usuarioId", "usuarioNome"]) {
-      if (Object.prototype.hasOwnProperty.call(dados, campo)) {
+  .trim()
+  .refine(validarDataUrlImagem, {
+    error:
+      "A imagem deve ser PNG ou JPEG em data URL e ter no máximo 2 MB.",
+  });
+
+function criarSchemaAnuncio({ imagemObrigatoria }) {
+  return z
+    // O objeto permanece loose até o superRefine para produzir erros
+    // específicos para autoria forjada e nomes de campos desconhecidos.
+    .looseObject({
+      nome: textoObrigatorio("o nome", 80),
+      categoria: z.enum(CATEGORIAS, {
+        error: "Categoria inválida.",
+      }),
+      condicao: z.enum(CONDICOES, {
+        error: "Condição inválida.",
+      }),
+      modalidade: z.enum(MODALIDADES, {
+        error: "Modalidade inválida.",
+      }),
+      valor: z
+        .number({
+          error: "Informe um valor numérico.",
+        })
+        .finite({
+          error: "Informe um valor numérico.",
+        })
+        .min(0, {
+          error: "O valor deve ser maior ou igual a zero.",
+        })
+        .max(1_000_000, {
+          error: "O valor deve ser de no máximo R$ 1.000.000.",
+        })
+        .refine(temAteDuasCasasDecimais, {
+          error: "O valor deve ter no máximo duas casas decimais.",
+        }),
+      localizacao: textoObrigatorio("a localização", 120),
+      descricao: textoObrigatorio("a descrição", 1_000),
+      imagemUrl: imagemObrigatoria
+        ? schemaImagemAnuncio
+        : schemaImagemAnuncio.optional(),
+    })
+    .superRefine((dados, contexto) => {
+      for (const campo of ["usuarioId", "usuarioNome"]) {
+        if (Object.prototype.hasOwnProperty.call(dados, campo)) {
+          contexto.addIssue({
+            code: "custom",
+            path: [campo],
+            message: "A autoria do anúncio é definida pela sessão autenticada.",
+          });
+        }
+      }
+
+      const camposPermitidos = new Set([
+        "nome",
+        "categoria",
+        "condicao",
+        "modalidade",
+        "valor",
+        "localizacao",
+        "descricao",
+        "imagemUrl",
+        "usuarioId",
+        "usuarioNome",
+      ]);
+
+      for (const campo of Object.keys(dados)) {
+        if (!camposPermitidos.has(campo)) {
+          contexto.addIssue({
+            code: "custom",
+            path: [campo],
+            message: "Campo não permitido.",
+          });
+        }
+      }
+
+      if (dados.modalidade === "venda" && dados.valor === 0) {
         contexto.addIssue({
           code: "custom",
-          path: [campo],
-          message: "A autoria do anúncio é definida pela sessão autenticada.",
+          path: ["valor"],
+          message: "Anúncios de venda devem ter valor maior que zero.",
         });
       }
-    }
 
-    const camposPermitidos = new Set([
-      "nome",
-      "categoria",
-      "condicao",
-      "modalidade",
-      "valor",
-      "localizacao",
-      "descricao",
-      "imagemUrl",
-      "usuarioId",
-      "usuarioNome",
-    ]);
-
-    for (const campo of Object.keys(dados)) {
-      if (!camposPermitidos.has(campo)) {
+      if (dados.modalidade === "doacao" && dados.valor !== 0) {
         contexto.addIssue({
           code: "custom",
-          path: [campo],
-          message: "Campo não permitido.",
+          path: ["valor"],
+          message: "Anúncios de doação devem ter valor igual a zero.",
         });
       }
-    }
+    })
+    .transform((dados) => ({
+      nome: dados.nome,
+      categoria: dados.categoria,
+      condicao: dados.condicao,
+      modalidade: dados.modalidade,
+      valor: dados.valor,
+      localizacao: dados.localizacao,
+      descricao: dados.descricao,
+      ...(dados.imagemUrl === undefined
+        ? {}
+        : { imagemUrl: dados.imagemUrl }),
+    }));
+}
 
-    if (dados.modalidade === "venda" && dados.valor === 0) {
-      contexto.addIssue({
-        code: "custom",
-        path: ["valor"],
-        message: "Anúncios de venda devem ter valor maior que zero.",
-      });
-    }
-
-    if (dados.modalidade === "doacao" && dados.valor !== 0) {
-      contexto.addIssue({
-        code: "custom",
-        path: ["valor"],
-        message: "Anúncios de doação devem ter valor igual a zero.",
-      });
-    }
-  })
-  .transform((dados) => ({
-    nome: dados.nome,
-    categoria: dados.categoria,
-    condicao: dados.condicao,
-    modalidade: dados.modalidade,
-    valor: dados.valor,
-    localizacao: dados.localizacao,
-    descricao: dados.descricao,
-    imagemUrl: dados.imagemUrl,
-  }));
+const schemaAnuncio = criarSchemaAnuncio({ imagemObrigatoria: true });
+const schemaAtualizacaoAnuncio = criarSchemaAnuncio({
+  imagemObrigatoria: false,
+});
 
 const schemaFiltrosAnuncios = z.strictObject({
   categoria: z
@@ -316,6 +329,7 @@ module.exports = {
   schemaLogin,
   schemaFotoPerfil,
   schemaAnuncio,
+  schemaAtualizacaoAnuncio,
   schemaFiltrosAnuncios,
   schemaParametroAnuncio,
   schemaParametroUsuario,

@@ -8,6 +8,7 @@ const {
   schemaLogin,
   schemaFotoPerfil,
   schemaAnuncio,
+  schemaAtualizacaoAnuncio,
   schemaFiltrosAnuncios,
   schemaParametroAnuncio,
   schemaParametroUsuario,
@@ -157,7 +158,7 @@ test("anúncio aplica enums, tamanhos, faixa monetária e duas casas", () => {
   );
 });
 
-test("imagem aceita somente PNG/JPEG data URL com até 15 MB decodificados", () => {
+test("imagem aceita somente PNG/JPEG data URL com até 2 MB decodificados", () => {
   const imagemNoLimite = Buffer.alloc(TAMANHO_MAXIMO_IMAGEM_BYTES);
   Buffer.from([0xff, 0xd8, 0xff]).copy(imagemNoLimite);
   const noLimite = imagemNoLimite.toString("base64");
@@ -196,7 +197,15 @@ test("imagem aceita somente PNG/JPEG data URL com até 15 MB decodificados", () 
   assert.equal(schemaAnuncio.safeParse(semImagem).success, false);
 });
 
-test("foto de perfil aceita imagem válida de até 15 MB ou remoção", () => {
+test("atualização de anúncio permite preservar a imagem atual", () => {
+  const semImagem = anuncioValido();
+  delete semImagem.imagemUrl;
+
+  assert.equal(schemaAnuncio.safeParse(semImagem).success, false);
+  assert.deepEqual(schemaAtualizacaoAnuncio.parse(semImagem), semImagem);
+});
+
+test("foto de perfil aceita imagem válida de até 2 MB ou remoção", () => {
   assert.equal(
     schemaFotoPerfil.safeParse({
       fotoPerfilUrl: "data:image/png;base64,iVBORw0KGgo=",

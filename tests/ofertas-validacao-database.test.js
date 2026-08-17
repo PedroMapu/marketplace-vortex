@@ -71,7 +71,6 @@ test("mapeia ofertas e mensagens do PostgreSQL para DTOs camelCase", () => {
     id: 8,
     anuncioId: 42,
     anuncioNome: "Bicicleta",
-    anuncioImagemUrl: "",
     anuncioConcluidoEm: null,
     valor: 450,
     mensagem: "Tenho interesse.",
