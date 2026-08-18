@@ -277,6 +277,49 @@ async function listarAnuncios(filtros = {}) {
   return resultado.rows.map(mapearAnuncio);
 }
 
+async function listarPaginaAnuncios({
+  categoria = null,
+  usuarioId = null,
+  limite,
+  cursor = null,
+}) {
+  const resultado = await pool.query(
+    `
+      ${SELECAO_ANUNCIO}
+      WHERE ($1::text IS NULL OR a.categoria = $1)
+        AND ($2::uuid IS NULL OR a.usuario_id = $2)
+        AND a.concluido_em IS NULL
+        AND (
+          $3::timestamptz IS NULL
+          OR (a.criado_em, a.id) < ($3::timestamptz, $4::integer)
+        )
+      ORDER BY a.criado_em DESC, a.id DESC
+      LIMIT $5
+    `,
+    [
+      categoria,
+      usuarioId,
+      cursor?.criadoEm ?? null,
+      cursor?.id ?? null,
+      limite + 1,
+    ],
+  );
+  const temProximaPagina = resultado.rows.length > limite;
+  const linhasDaPagina = resultado.rows.slice(0, limite);
+  const ultimaLinha = linhasDaPagina.at(-1);
+
+  return {
+    anuncios: linhasDaPagina.map(mapearAnuncio),
+    proximoCursor:
+      temProximaPagina && ultimaLinha
+        ? {
+            criadoEm: normalizarTimestamp(ultimaLinha.criado_em),
+            id: Number(ultimaLinha.id),
+          }
+        : null,
+  };
+}
+
 async function criarAnuncio(dados) {
   const resultado = await pool.query(
     `
@@ -669,6 +712,7 @@ module.exports = {
   buscarFotoPerfilUsuarioPorId,
   atualizarFotoPerfilUsuario,
   listarAnuncios,
+  listarPaginaAnuncios,
   criarAnuncio,
   atualizarAnuncioPorId,
   buscarAnuncioPorId,

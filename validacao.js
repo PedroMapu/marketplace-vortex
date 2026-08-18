@@ -264,6 +264,29 @@ const schemaFiltrosAnuncios = z.strictObject({
       error: "O ID do usuário deve ser um UUID válido.",
     })
     .optional(),
+  limite: z
+    .string({
+      error: "O limite deve ser um número inteiro entre 1 e 48.",
+    })
+    .regex(/^\d+$/u, {
+      error: "O limite deve ser um número inteiro entre 1 e 48.",
+    })
+    .transform(Number)
+    .refine((valor) => Number.isInteger(valor) && valor >= 1 && valor <= 48, {
+      error: "O limite deve ser um número inteiro entre 1 e 48.",
+    })
+    .optional(),
+  cursor: z
+    .string({
+      error: "O cursor de paginação é inválido.",
+    })
+    .trim()
+    .min(1, { error: "O cursor de paginação é inválido." })
+    .max(256, { error: "O cursor de paginação é inválido." })
+    .regex(/^[A-Za-z0-9_-]+$/u, {
+      error: "O cursor de paginação é inválido.",
+    })
+    .optional(),
 });
 
 const schemaParametroAnuncio = z.strictObject({

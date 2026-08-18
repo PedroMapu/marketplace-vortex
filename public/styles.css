@@ -1787,6 +1787,48 @@ main > section[aria-labelledby="titulo-impacto"] > p:last-child {
   text-align: center;
 }
 
+.controle-paginacao-catalogo {
+  display: flex;
+  justify-content: center;
+  padding-top: 1.75rem;
+}
+
+.controle-paginacao-catalogo[hidden] {
+  display: none;
+}
+
+.btn-carregar-mais-catalogo {
+  background: transparent;
+  border: 1px solid var(--cinza-600);
+  border-radius: 0.75rem;
+  color: var(--branco);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  min-height: 2.75rem;
+  padding: 0.65rem 1.25rem;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
+}
+
+.btn-carregar-mais-catalogo:hover {
+  background: var(--branco);
+  border-color: var(--branco);
+  color: var(--preto);
+}
+
+.btn-carregar-mais-catalogo:focus-visible {
+  outline: 3px solid var(--azul);
+  outline-offset: 3px;
+}
+
+.btn-carregar-mais-catalogo[aria-busy="true"] {
+  cursor: wait;
+  opacity: 0.78;
+}
+
 .estado-carregamento {
   grid-column: 1 / -1;
   min-width: 0;
@@ -1931,6 +1973,14 @@ main > section[aria-labelledby="titulo-impacto"] > p:last-child {
   overflow: hidden;
   padding: 0;
   position: relative;
+}
+
+.imagem-anuncio-card {
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  position: absolute;
+  width: 100%;
 }
 
 .botao-ampliar-imagem::after {

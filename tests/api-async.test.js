@@ -17,6 +17,10 @@ function carregarApiComDatabaseMock(sobrescritas = {}, opcoes = {}) {
   const databaseMock = {
     buscarFotoPerfilUsuarioPorId: async () => undefined,
     listarAnuncios: async () => [],
+    listarPaginaAnuncios: async () => ({
+      anuncios: [],
+      proximoCursor: null,
+    }),
     criarAnuncio: async (anuncio) => anuncio,
     atualizarAnuncioPorId: async () => undefined,
     buscarAnuncioPorId: async () => undefined,
@@ -301,6 +305,72 @@ test("GET /api/anuncios aguarda a consulta e encaminha os filtros", async () => 
     categoria: "eletronicos",
     usuarioId: USUARIO_ID,
   });
+});
+
+test("GET /api/anuncios pagina por cursor sem repetir o catálogo inteiro", async () => {
+  const anuncio = {
+    id: 12,
+    nome: "Calculadora",
+    criadoEm: "2026-07-28T12:00:00.000Z",
+  };
+  const filtrosRecebidos = [];
+  const { app } = carregarApiComDatabaseMock({
+    listarPaginaAnuncios: async (filtros) => {
+      filtrosRecebidos.push(filtros);
+      return filtros.cursor
+        ? { anuncios: [], proximoCursor: null }
+        : {
+            anuncios: [anuncio],
+            proximoCursor: {
+              criadoEm: anuncio.criadoEm,
+              id: anuncio.id,
+            },
+          };
+    },
+  });
+
+  const primeiraPagina = await requisitar(
+    app,
+    "/api/anuncios?categoria=eletronicos&limite=12",
+  );
+
+  assert.equal(primeiraPagina.status, 200);
+  assert.deepEqual(primeiraPagina.body.anuncios, [anuncio]);
+  assert.equal(typeof primeiraPagina.body.proximoCursor, "string");
+
+  const segundaPagina = await requisitar(
+    app,
+    `/api/anuncios?categoria=eletronicos&limite=12&cursor=${primeiraPagina.body.proximoCursor}`,
+  );
+
+  assert.deepEqual(segundaPagina, {
+    status: 200,
+    body: { anuncios: [], proximoCursor: null },
+  });
+  assert.deepEqual(filtrosRecebidos, [
+    { categoria: "eletronicos", limite: 12, cursor: null },
+    {
+      categoria: "eletronicos",
+      limite: 12,
+      cursor: { criadoEm: anuncio.criadoEm, id: anuncio.id },
+    },
+  ]);
+});
+
+test("GET /api/anuncios rejeita cursor de paginação adulterado", async () => {
+  const { app } = carregarApiComDatabaseMock();
+
+  assert.deepEqual(
+    await requisitar(app, "/api/anuncios?limite=12&cursor=nao-e-json"),
+    {
+      status: 400,
+      body: {
+        erro: "Cursor de paginação inválido.",
+        codigo: "VALIDACAO",
+        campos: { cursor: "O cursor de paginação é inválido." },
+      },
+    },
+  );
 });
 
 test("GET /api/anuncios/:id entrega um anúncio público ativo", async () => {

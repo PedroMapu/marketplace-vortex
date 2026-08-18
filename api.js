@@ -9,6 +9,7 @@ const {
   buscarFotoPerfilUsuarioPorId,
   atualizarFotoPerfilUsuario,
   listarAnuncios,
+  listarPaginaAnuncios,
   criarAnuncio,
   atualizarAnuncioPorId,
   buscarAnuncioPorId,
@@ -258,6 +259,36 @@ function normalizarAnuncio(dados, usuario) {
   };
 }
 
+function codificarCursorCatalogo(cursor) {
+  return Buffer.from(JSON.stringify(cursor), "utf8").toString("base64url");
+}
+
+function decodificarCursorCatalogo(cursorCodificado) {
+  if (!cursorCodificado) {
+    return null;
+  }
+
+  try {
+    const cursor = JSON.parse(
+      Buffer.from(cursorCodificado, "base64url").toString("utf8"),
+    );
+    const criadoEm = new Date(cursor?.criadoEm);
+    const id = Number(cursor?.id);
+
+    if (
+      !Number.isSafeInteger(id) ||
+      id <= 0 ||
+      Number.isNaN(criadoEm.getTime())
+    ) {
+      return undefined;
+    }
+
+    return { criadoEm: criadoEm.toISOString(), id };
+  } catch {
+    return undefined;
+  }
+}
+
 app.get("/api/anuncios", async (request, response) => {
   const validacao = validarComSchema(schemaFiltrosAnuncios, request.query);
 
@@ -269,6 +300,36 @@ app.get("/api/anuncios", async (request, response) => {
       "VALIDACAO",
       validacao.campos,
     );
+  }
+
+  if (validacao.dados.limite !== undefined) {
+    const cursor = decodificarCursorCatalogo(validacao.dados.cursor);
+
+    if (cursor === undefined) {
+      return responderErro(
+        response,
+        400,
+        "Cursor de paginação inválido.",
+        "VALIDACAO",
+        { cursor: "O cursor de paginação é inválido." },
+      );
+    }
+
+    const pagina = await listarPaginaAnuncios({
+      categoria: validacao.dados.categoria,
+      ...(validacao.dados.usuarioId
+        ? { usuarioId: validacao.dados.usuarioId }
+        : {}),
+      limite: validacao.dados.limite,
+      cursor,
+    });
+
+    return response.status(200).json({
+      anuncios: pagina.anuncios,
+      proximoCursor: pagina.proximoCursor
+        ? codificarCursorCatalogo(pagina.proximoCursor)
+        : null,
+    });
   }
 
   const anuncios = await listarAnuncios(validacao.dados);

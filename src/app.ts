@@ -23,6 +23,7 @@ import {
   type NovoAnuncio,
   type Oferta,
   type OrdenacaoCatalogo,
+  type PaginaAnuncios,
   type RespostaExclusaoAnuncio,
   type Sessao,
   respostaEhOffline,
@@ -139,6 +140,12 @@ const gradeColecoes =
   secaoColecoes?.querySelector<HTMLElement>(".colecoes-grid");
 const listaAnuncios =
   document.querySelector<HTMLElement>("#lista-anuncios");
+const controlePaginacaoCatalogo = document.querySelector<HTMLElement>(
+  "#controle-paginacao-catalogo",
+);
+const botaoCarregarMaisCatalogo = document.querySelector<HTMLButtonElement>(
+  "#botao-carregar-mais-catalogo",
+);
 const botoesExplorarCatalogo = document.querySelectorAll<HTMLAnchorElement>(
   "[data-explorar-catalogo]",
 );
@@ -445,6 +452,7 @@ const MENSAGEM_TAMANHO_IMAGEM_INVALIDO =
   "Envie uma imagem de até 15 MB.";
 const IMAGEM_PADRAO_ANUNCIO =
   "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80";
+const TAMANHO_PAGINA_CATALOGO = 12;
   
 const categorias: MapaCategorias = {
   livros: {
@@ -499,6 +507,9 @@ let modalidadeFiltroAtiva: Modalidade | "todas" = "todas";
 let cacheCatalogoApi: Anuncio[] = [];
 let cacheAnunciosUsuarioApi: Anuncio[] = [];
 let cacheContagemApi: Anuncio[] = [];
+let proximoCursorCatalogo: string | null = null;
+let carregandoProximaPaginaCatalogo = false;
+let falhaAoCarregarProximaPagina = false;
 let sequenciaRequisicaoCatalogo = 0;
 let sequenciaRequisicaoUsuario = 0;
 const idsEmExclusao = new Set<string>();
@@ -926,7 +937,14 @@ function criarUrlDaApiDeAnuncios(
   {
     categoria,
     usuarioId,
-  }: { categoria?: CategoriaFiltro; usuarioId?: string } = {},
+    limite,
+    cursor,
+  }: {
+    categoria?: CategoriaFiltro;
+    usuarioId?: string;
+    limite?: number;
+    cursor?: string;
+  } = {},
 ): string {
   const parametros = new URLSearchParams();
 
@@ -936,6 +954,14 @@ function criarUrlDaApiDeAnuncios(
 
   if (usuarioId) {
     parametros.set("usuarioId", usuarioId);
+  }
+
+  if (limite !== undefined) {
+    parametros.set("limite", String(limite));
+  }
+
+  if (cursor) {
+    parametros.set("cursor", cursor);
   }
 
   const queryString = parametros.toString();
@@ -954,6 +980,24 @@ function normalizarListaDeAnuncios(resposta: unknown): Anuncio[] {
   // A API entrega os mais recentes primeiro; o cache mantém a ordem histórica
   // esperada pelas rotinas atuais de renderização.
   return resposta.map(normalizarAnuncioDaApi).reverse();
+}
+
+function normalizarPaginaDeAnuncios(resposta: unknown): PaginaAnuncios {
+  if (
+    !ehRegistro(resposta) ||
+    !Array.isArray(resposta.anuncios) ||
+    !(
+      resposta.proximoCursor === null ||
+      typeof resposta.proximoCursor === "string"
+    )
+  ) {
+    throw new TypeError("A API retornou uma página de anúncios inválida.");
+  }
+
+  return {
+    anuncios: resposta.anuncios.map(normalizarAnuncioDaApi).reverse(),
+    proximoCursor: resposta.proximoCursor,
+  };
 }
 
 function normalizarRespostaDeExclusao(
@@ -1363,6 +1407,8 @@ async function carregarAnunciosDaApi(
   // fora de ordem, evitando que uma busca lenta sobrescreva a mais recente.
   const sequenciaDestaRequisicao = ++sequenciaRequisicaoCatalogo;
   if (mostrarCarregamento) {
+    proximoCursorCatalogo = null;
+    atualizarControlePaginacaoCatalogo();
     exibirEstadoDeCarregamento();
   }
 
@@ -1376,16 +1422,18 @@ async function carregarAnunciosDaApi(
 
   try {
     const resultadoCatalogo = await requisitarApi(
-      criarUrlDaApiDeAnuncios(),
-      normalizarListaDeAnuncios,
+      criarUrlDaApiDeAnuncios({ limite: TAMANHO_PAGINA_CATALOGO }),
+      normalizarPaginaDeAnuncios,
     );
 
     if (sequenciaDestaRequisicao !== sequenciaRequisicaoCatalogo) {
       return false;
     }
 
-    cacheCatalogoApi = resultadoCatalogo.dados;
+    cacheCatalogoApi = resultadoCatalogo.dados.anuncios;
     cacheContagemApi = [...cacheCatalogoApi];
+    proximoCursorCatalogo = resultadoCatalogo.dados.proximoCursor;
+    falhaAoCarregarProximaPagina = false;
     registrarOrigemDoCatalogo(resultadoCatalogo.offline);
     listaAnuncios?.removeAttribute("aria-busy");
     renderizarAnuncios();
@@ -1398,6 +1446,7 @@ async function carregarAnunciosDaApi(
     console.error("Não foi possível carregar os anúncios da API.", erro);
     cacheCatalogoApi = [];
     cacheContagemApi = [];
+    proximoCursorCatalogo = null;
     exibirErroAoCarregarAnuncios(erro);
     return false;
   } finally {
@@ -2159,6 +2208,48 @@ function atualizarContaNoHeader(): void {
     botaoRemoverFoto.hidden = !usuarioAtual.fotoPerfilUrl;
   }
   menuContaUsuario.hidden = true;
+}
+
+async function carregarProximaPaginaDoCatalogo(): Promise<void> {
+  if (!proximoCursorCatalogo || carregandoProximaPaginaCatalogo) {
+    return;
+  }
+
+  const cursorDaRequisicao = proximoCursorCatalogo;
+  carregandoProximaPaginaCatalogo = true;
+  falhaAoCarregarProximaPagina = false;
+  atualizarControlePaginacaoCatalogo();
+
+  try {
+    const resultado = await requisitarApi(
+      criarUrlDaApiDeAnuncios({
+        limite: TAMANHO_PAGINA_CATALOGO,
+        cursor: cursorDaRequisicao,
+      }),
+      normalizarPaginaDeAnuncios,
+    );
+
+    if (cursorDaRequisicao !== proximoCursorCatalogo) {
+      return;
+    }
+
+    const idsCarregados = new Set(cacheCatalogoApi.map(({ id }) => id));
+    const novosAnuncios = resultado.dados.anuncios.filter(
+      ({ id }) => !idsCarregados.has(id),
+    );
+
+    cacheCatalogoApi = [...novosAnuncios, ...cacheCatalogoApi];
+    cacheContagemApi = [...cacheCatalogoApi];
+    proximoCursorCatalogo = resultado.dados.proximoCursor;
+    registrarOrigemDoCatalogo(resultado.offline);
+    renderizarAnuncios();
+  } catch (erro) {
+    console.error("Não foi possível carregar mais anúncios.", erro);
+    falhaAoCarregarProximaPagina = true;
+  } finally {
+    carregandoProximaPaginaCatalogo = false;
+    atualizarControlePaginacaoCatalogo();
+  }
 }
 
 function atualizarContaNaRota(): void {
@@ -3885,13 +3976,17 @@ function criarMediaDoAnuncio(
       media.type = "button";
     }
     media.dataset.anuncioId = String(anuncio.id);
-    media.style.backgroundImage = `url("${imagemUrl}")`;
-    media.style.backgroundPosition = "center";
-    media.style.backgroundSize = "cover";
     media.setAttribute("aria-label", `Ampliar imagem de ${anuncio.nome}`);
 
+    const imagem = document.createElement("img");
+    imagem.className = "imagem-anuncio-card";
+    imagem.src = imagemUrl;
+    imagem.alt = "";
+    imagem.loading = "lazy";
+    imagem.decoding = "async";
+
     const dica = criarElemento("span", "dica-ampliar", "Ampliar imagem");
-    media.append(dica);
+    media.append(imagem, dica);
   } else {
     const emoji = criarElemento(
       "span",
@@ -6023,17 +6118,62 @@ function renderizarAnuncios(): void {
 
   const totalVisivel = anunciosVisiveis.length;
   const totalGeral = cacheCatalogoApi.length;
+  const sufixoCarregamento = proximoCursorCatalogo ? " carregados" : "";
 
   exibirContagemDeResultados(
     totalVisivel === totalGeral
       ? totalVisivel === 1
-        ? "Mostrando 1 resultado"
-        : `Mostrando ${totalVisivel} resultados`
-      : `Mostrando ${totalVisivel} de ${totalGeral} resultados`,
+        ? `Mostrando 1 resultado${sufixoCarregamento}`
+        : `Mostrando ${totalVisivel} resultados${sufixoCarregamento}`
+      : `Mostrando ${totalVisivel} de ${totalGeral} resultados${sufixoCarregamento}`,
   );
 
   atualizarContadoresDosFiltros();
+  atualizarControlePaginacaoCatalogo();
   concluirRolagemPendenteDoCatalogo();
+}
+
+function atualizarControlePaginacaoCatalogo(): void {
+  if (!controlePaginacaoCatalogo || !botaoCarregarMaisCatalogo) {
+    return;
+  }
+
+  controlePaginacaoCatalogo.hidden = proximoCursorCatalogo === null;
+  botaoCarregarMaisCatalogo.disabled = carregandoProximaPaginaCatalogo;
+  botaoCarregarMaisCatalogo.setAttribute(
+    "aria-busy",
+    String(carregandoProximaPaginaCatalogo),
+  );
+  botaoCarregarMaisCatalogo.textContent = carregandoProximaPaginaCatalogo
+    ? "Carregando mais anúncios…"
+    : falhaAoCarregarProximaPagina
+      ? "Tentar carregar mais anúncios"
+      : "Carregar mais anúncios";
+}
+
+function inicializarPaginacaoCatalogo(): void {
+  if (!controlePaginacaoCatalogo || !botaoCarregarMaisCatalogo) {
+    return;
+  }
+
+  botaoCarregarMaisCatalogo.addEventListener("click", () => {
+    void carregarProximaPaginaDoCatalogo();
+  });
+
+  if ("IntersectionObserver" in window) {
+    const observador = new IntersectionObserver(
+      (entradas) => {
+        if (entradas.some(({ isIntersecting }) => isIntersecting)) {
+          void carregarProximaPaginaDoCatalogo();
+        }
+      },
+      { rootMargin: "600px 0px" },
+    );
+
+    observador.observe(controlePaginacaoCatalogo);
+  }
+
+  atualizarControlePaginacaoCatalogo();
 }
 
 function obterControleDoFiltro(
@@ -8058,6 +8198,7 @@ inicializarOfertasEConversas();
 inicializarNotificacoesDeConversas();
 inicializarVisualizacaoDeImagens();
 inicializarControlesDaVitrine();
+inicializarPaginacaoCatalogo();
 inicializarExploracaoDoCatalogo();
 inicializarAtalhosDeAnuncio();
 inicializarNavegacaoPorUrl();

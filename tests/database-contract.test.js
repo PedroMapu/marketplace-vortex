@@ -6,6 +6,7 @@ const test = require("node:test");
 const {
   buscarFotoPerfilUsuarioPorId,
   atualizarAnuncioPorId,
+  listarPaginaAnuncios,
   mapearAnuncio,
   mapearUsuario,
   pool,
@@ -97,6 +98,65 @@ test("mapeia a linha do PostgreSQL para o DTO esperado pelo frontend", () => {
   assert.equal(typeof anuncio.id, "number");
   assert.equal(typeof anuncio.valor, "number");
   assert.equal(typeof anuncio.cliquesDetalhes, "number");
+});
+
+test("pagina anúncios por cursor com limite constante e índice ordenável", async () => {
+  const queryOriginal = pool.query;
+  let consulta;
+  const criarLinha = (id, criadoEm) => ({
+    id,
+    nome: `Anúncio ${id}`,
+    categoria: "livros",
+    condicao: "usado",
+    modalidade: "doacao",
+    valor: "0",
+    localizacao: "Campus",
+    descricao: "Descrição",
+    imagem_versao: null,
+    usuario_id: "7dba9ebd-70e4-44b2-baaa-f30bfb92cf92",
+    usuario_nome: "Ana",
+    criado_em: criadoEm,
+  });
+
+  pool.query = async (texto, parametros) => {
+    consulta = { texto, parametros };
+    return {
+      rows: [
+        criarLinha(9, "2026-08-03T12:00:00.000Z"),
+        criarLinha(8, "2026-08-02T12:00:00.000Z"),
+        criarLinha(7, "2026-08-01T12:00:00.000Z"),
+      ],
+    };
+  };
+
+  try {
+    const pagina = await listarPaginaAnuncios({
+      categoria: "livros",
+      limite: 2,
+      cursor: { criadoEm: "2026-08-04T12:00:00.000Z", id: 10 },
+    });
+
+    assert.deepEqual(pagina.anuncios.map(({ id }) => id), [9, 8]);
+    assert.deepEqual(pagina.proximoCursor, {
+      criadoEm: "2026-08-02T12:00:00.000Z",
+      id: 8,
+    });
+    assert.match(
+      consulta.texto,
+      /\(a\.criado_em, a\.id\) < \(\$3::timestamptz, \$4::integer\)/u,
+    );
+    assert.match(consulta.texto, /ORDER BY a\.criado_em DESC, a\.id DESC/u);
+    assert.match(consulta.texto, /LIMIT \$5/u);
+    assert.deepEqual(consulta.parametros, [
+      "livros",
+      null,
+      "2026-08-04T12:00:00.000Z",
+      10,
+      3,
+    ]);
+  } finally {
+    pool.query = queryOriginal;
+  }
 });
 
 test("normaliza timestamps textuais sem expor nomes snake_case", () => {

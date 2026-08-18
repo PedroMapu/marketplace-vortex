@@ -164,6 +164,11 @@ export interface FiltrosAnuncios {
   usuarioId?: string;
 }
 
+export interface PaginaAnuncios {
+  anuncios: Anuncio[];
+  proximoCursor: string | null;
+}
+
 export type CamposErroApi = Readonly<Record<string, string>>;
 
 export interface ErroApi {
